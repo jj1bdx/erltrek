@@ -7,6 +7,6 @@
 * Incorporating true concurrency (= game proceeds in real-time)
 * Not altering the traditional Star Trek model
     * Coordinate system: 2D and dual layer (Quadrants + Sectors)
-    * Weapons: phaser and torpedo
+    * Weapons: phaser (torpedo is optional)
     * Not too fast but not too slow
 
