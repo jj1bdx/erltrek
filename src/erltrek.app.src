@@ -1,0 +1,8 @@
+{application, erltrek, [
+    {description, "An Erlang Star Trek game"},
+    {vsn, "0.0.0"},
+    {env, []},
+    {registered, []},
+    {modules, [tinymt32]},
+    {applications, [kernel, stdlib]}
+]}.
