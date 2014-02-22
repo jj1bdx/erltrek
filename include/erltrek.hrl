@@ -80,6 +80,10 @@
 -define(MAXEVENTS, 25).
 %% maximum concurrent distress calls
 -define(MAXDISTR, 5).
+%% Version number string
+-define(ERLTREK_VERSION, "0.0")
+%% Debug trace flag
+-define(DEBUG_TRACE, true)
 
 %% vim: set ts=4 sw=4 sts=4 et :
 %% emacs: -*- mode:erlang; tab-width:4; indent-tabs-mode:nil;  -*-
