@@ -80,3 +80,6 @@
 -define(MAXEVENTS, 25).
 %% maximum concurrent distress calls
 -define(MAXDISTR, 5).
+
+%% vim: set ts=4 sw=4 sts=4 et :
+%% emacs: -*- mode:erlang; tab-width:4; indent-tabs-mode:nil;  -*-
