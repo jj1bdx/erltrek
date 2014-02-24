@@ -72,6 +72,8 @@
 -define(NSECTS, 10).
 %% dimension of galaxy in quadrants
 -define(NQUADS, 8).
+%% maximum stars per quadrant
+-define(MAXSTARQUAD, 9).
 %% maximum klingons per quadrant
 -define(MAXKLQUAD, 9).
 %% maximum number of starbases in galaxy
