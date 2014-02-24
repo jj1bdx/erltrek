@@ -85,5 +85,12 @@
 %% Debug trace flag
 -define(DEBUG_TRACE, true)
 
+%% check inside the quadrant
+-define(INQUAD(X), ((X >= 0) andalso (X < ?NQUADS))).
+-define(INQUAD2(X, Y), (?INQUAD(X) andalso ?INQUAD(Y))).
+%% inside the quadrant
+-define(INSECT(X), ((X >= 0) andalso (X < ?NSECTS))).
+-define(INSECT2(X, Y), (?INSECT(X) andalso ?INSECT(Y))).
+
 %% vim: set ts=4 sw=4 sts=4 et :
 %% emacs: -*- mode:erlang; tab-width:4; indent-tabs-mode:nil;  -*-
