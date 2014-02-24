@@ -2,9 +2,14 @@
 
 -include("erltrek.hrl").
 
--export([test/0, randsector/1]).
+-export([test/0,
+        randsector/1,
+        randsector_quad/3]).
 
 %% return empty {qx, qy, sx, sy} in the galaxy
+randsector(G) ->
+    randsector(G, {}, false).
+
 randsector(_, C, true) ->
     C;
 randsector(G, _, false) ->
@@ -15,8 +20,17 @@ randsector(G, _, false) ->
     randsector(G, {QX, QY, SX, SY}, 
         array:get(?GALAXYCOORD(QX, QY, SX, SY), G) =:= empty).
     
-randsector(G) ->
-    randsector(G, {}, false).
+%% return empty {qx, qy, sx, sy} in the specified quadrant
+randsector_quad(G, QX, QY) ->
+    randsector_quad(G, QX, QY, {}, false).
+
+randsector_quad(_, _, _, SC, true) ->
+    SC;
+randsector_quad(G, QX, QY, _, false) ->
+    SX = tinymt32:uniform(?NSECTS) - 1,
+    SY = tinymt32:uniform(?NSECTS) - 1,
+    randsector_quad(G, QX, QY, {SX, SY}, 
+        array:get(?GALAXYCOORD(QX, QY, SX, SY), G) =:= empty).
 
 %% test
 test() -> 
