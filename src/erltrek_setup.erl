@@ -4,6 +4,7 @@
 
 -export([
         genquadlist/1,
+        gensectlist/3,
         inhabitednames/0,
         initquad/0,
         initsect/0,
@@ -55,6 +56,19 @@ genquadlist(N, L, A) ->
     {QX, QY} = QC,
     A2 = array:set(?QUADCOORD(QX, QY), q_fill, A),
     genquadlist(N - 1, [QC|L], A2).
+
+%%% Generate a list of random sector coordinates without duplicates
+%%% with sector state input and output
+gensectlist(N, ENT, SECT) ->
+    gensectlist(N, ENT, [], SECT).
+
+gensectlist(0, _, L, SECT) ->
+    {SECT, L};
+gensectlist(N, ENT, L, A) ->
+    SC = randsect(A),
+    {SX, SY} = SC,
+    A2 = array:set(?SECTCOORD(SX, SY), ENT, A),
+    genquadlist(N - 1, ENT, [QC|L], A2).
 
 %% List of names of inhabited stars
 inhabitednames() -> [
@@ -120,12 +134,18 @@ setupgalaxy(QX, QY, LB, LI, DINAME, DS, DI, DB, DH, DKQ) ->
     end,
     case lists:member(QC, LI) of
         true ->
-            {SX, SY} = randsect(SECT2),
-            SECT3 = array:set(?SECTCOORD(SX, SY), s_inhabited, SECT2),
+            {SX2, SY2} = randsect(SECT2),
+            SECT3 = array:set(?SECTCOORD(SX2, SY2), s_inhabited, SECT2),
             SYSTEMNAME = dict:fetch(QC, DINAME),
-            DI2 = dict:append(QC, {SX, SY, SYSTEMNAME}, DI); % add distressed, etc
+            DI2 = dict:append(QC, {SX2, SY2, SYSTEMNAME}, DI); % add distressed, etc
         _Else ->
             SECT3 = SECT2,
             DI2 = DI
     end,
+    NSTARS = tinymt32:uniform(9),
+    {SECT4, STARLIST} = gensectlist(NSTARS, s_star, SECT3),
+    DS2 = dict:append(QC, STARLIST, DS),
+    NHOLES = tinymt32:uniform(3) - 1,
+    {SECT5, HOLELIST} = gensectlist(NHOLES, s_hole, SECT4),
+    DH2 = dict:append(QC, STARLIST, DH),
     true. % more to go
