@@ -107,20 +107,21 @@ inhabitednames() -> [
 
 %% Setup stars (returns dict)
 setupgalaxy() ->
+    NKLINGONS = (tinymt32:uniform(25) * 2) + 10,
     NBASES = tinymt32:uniform(?MAXBASES - 3) + 3,
     LBASEQUAD = genquadlist(NBASES),
     LINHABITNAME = inhabitednames(),
     LINHABITQUAD = genquadlist(length(LINHABITNAME)),
     DINAME = dict:from_list(lists:zip(LINHABITQUAD, LINHABITNAME)),
     setupgalaxy(?NSECTS - 1, ?NSECTS - 1,
-        LBASEQUAD, LINHABITQUAD, DINAME,
+        LBASEQUAD, LINHABITQUAD, DINAME, NKLINGONS,
         dict:new(), dict:new(), dict:new(), dict:new(), dict:new()).
 
-setupgalaxy(-1, -1, LB, LI, DINAME, DS, DI, DB, DH, DKQ) ->
-    {LB, LI, DINAME, DS, DI, DB, DH, DKQ};
-setupgalaxy(QX, -1, LB, LI, DINAME, DS, DI, DB, DH, DKQ) ->
-    setupgalaxy(QX - 1, ?NSECTS - 1, DINAME, LB, LI, DS, DI, DB, DH, DKQ);
-setupgalaxy(QX, QY, LB, LI, DINAME, DS, DI, DB, DH, DKQ) ->
+setupgalaxy(-1, -1, LB, LI, DINAME, NK, DS, DI, DB, DH, DKQ) ->
+    {LB, LI, DINAME, NK, DS, DI, DB, DH, NKQ};
+setupgalaxy(QX, -1, LB, LI, DINAME, NK, DS, DI, DB, DH, DKQ) ->
+    setupgalaxy(QX - 1, ?NSECTS - 1, DINAME, NK, LB, LI, DS, DI, DB, DH, DKQ);
+setupgalaxy(QX, QY, LB, LI, DINAME, NK, DS, DI, DB, DH, DKQ) ->
     QC = {QX, QY},
     SECT = initsect(),
     case lists:member(QC, LB) of
@@ -148,4 +149,4 @@ setupgalaxy(QX, QY, LB, LI, DINAME, DS, DI, DB, DH, DKQ) ->
     NHOLES = tinymt32:uniform(3) - 1,
     {SECT5, HOLELIST} = gensectlist(NHOLES, s_hole, SECT4),
     DH2 = dict:append(QC, STARLIST, DH),
-    true. % more to go
+    setupgalaxy(QX, QY - 1, LB, LI, NK, DINAME, DS2, DI2, DB2, DH2, DKQ).
