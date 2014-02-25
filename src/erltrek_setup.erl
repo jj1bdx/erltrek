@@ -8,20 +8,20 @@
         initquad/0,
         initsect/0,
         randquad/1,
-        randsector/1,
+        randsect/1,
         setupgalaxy/0
         ]).
 
 %% return empty {sx, sy} in the Sector array
-randsector(S) ->
-    randsector(S, {}, false).
+randsect(S) ->
+    randsect(S, {}, false).
 
-randsector(_, SC, true) ->
+randsect(_, SC, true) ->
     SC;
-randsector(S, _, false) ->
+randsect(S, _, false) ->
     SX = tinymt32:uniform(?NSECTS) - 1,
     SY = tinymt32:uniform(?NSECTS) - 1,
-    randsector(S, {SX, SY}, 
+    randsect(S, {SX, SY}, 
         array:get(?SECTCOORD(SX, SY), S) =:= s_empty).
 
 %% return empty {qx, qy} in the Quadrant array
@@ -97,13 +97,35 @@ setupgalaxy() ->
     LBASEQUAD = genquadlist(NBASES),
     LINHABITNAME = inhabitednames(),
     LINHABITQUAD = genquadlist(length(LINHABITNAME)),
+    DINAME = dict:from_list(lists:zip(LINHABITQUAD, LINHABITNAME)),
     setupgalaxy(?NSECTS - 1, ?NSECTS - 1,
-        LBASEQUAD, LINHABITQUAD,
+        LBASEQUAD, LINHABITQUAD, DINAME,
         dict:new(), dict:new(), dict:new(), dict:new(), dict:new()).
 
-setupgalaxy(-1, -1, LB, LI, DS, DI, DB, DH, DKQ) ->
-    {LB, LI, DS, DI, DB, DH, DKQ};
-setupgalaxy(QX, -1, LB, LI, DS, DI, DB, DH, DKQ) ->
-    setupgalaxy(QX - 1, ?NSECTS - 1, LB, LI, DS, DI, DB, DH, DKQ);
-setupgalaxy(QX, QY, LB, LI, DS, DI, DB, DH, DKQ) ->
-    true.
+setupgalaxy(-1, -1, LB, LI, DINAME, DS, DI, DB, DH, DKQ) ->
+    {LB, LI, DINAME, DS, DI, DB, DH, DKQ};
+setupgalaxy(QX, -1, LB, LI, DINAME, DS, DI, DB, DH, DKQ) ->
+    setupgalaxy(QX - 1, ?NSECTS - 1, DINAME, LB, LI, DS, DI, DB, DH, DKQ);
+setupgalaxy(QX, QY, LB, LI, DINAME, DS, DI, DB, DH, DKQ) ->
+    QC = {QX, QY},
+    SECT = initsect(),
+    case lists:member(QC, LB) of
+        true ->
+            {SX, SY} = randsect(SECT),
+            SECT2 = array:set(?SECTCOORD(SX, SY), s_base, SECT),
+            DB2 = dict:append(QC, {SX, SY}, DB); % add attacked, etc
+        _Else ->
+            SECT2 = SECT,
+            DB2 = DB
+    end,
+    case lists:member(QC, LI) of
+        true ->
+            {SX, SY} = randsect(SECT2),
+            SECT3 = array:set(?SECTCOORD(SX, SY), s_inhabited, SECT2),
+            SYSTEMNAME = dict:fetch(QC, DINAME),
+            DI2 = dict:append(QC, {SX, SY, SYSTEMNAME}, DI); % add distressed, etc
+        _Else ->
+            SECT3 = SECT2,
+            DI2 = DI
+    end,
+    true. % more to go
