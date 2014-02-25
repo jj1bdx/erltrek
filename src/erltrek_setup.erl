@@ -107,21 +107,24 @@ inhabitednames() -> [
 
 %% Setup stars (returns dict)
 setupgalaxy() ->
-    NKLINGONS = (tinymt32:uniform(25) * 2) + 10,
     NBASES = tinymt32:uniform(?MAXBASES - 3) + 3,
     LBASEQUAD = genquadlist(NBASES),
     LINHABITNAME = inhabitednames(),
     LINHABITQUAD = genquadlist(length(LINHABITNAME)),
     DINAME = dict:from_list(lists:zip(LINHABITQUAD, LINHABITNAME)),
-    setupgalaxy(?NSECTS - 1, ?NSECTS - 1,
-        LBASEQUAD, LINHABITQUAD, DINAME, NKLINGONS,
-        dict:new(), dict:new(), dict:new(), dict:new(), dict:new()).
+    {DSTAR, DINHABIT, DBASE, DHOLE} =
+        setupgalaxypersect(?NSECTS - 1, ?NSECTS - 1,
+            LBASEQUAD, LINHABITQUAD, DINAME, 
+            dict:new(), dict:new(), dict:new(), dict:new()),
+    NKLINGONS = (tinymt32:uniform(25) * 2) + 10,
+    DKLINGON = setupnklingons(NKLINGONS, dict:new()),
+    true. % more to go
 
-setupgalaxy(-1, -1, LB, LI, DINAME, NK, DS, DI, DB, DH, DKQ) ->
-    {LB, LI, DINAME, NK, DS, DI, DB, DH, NKQ};
-setupgalaxy(QX, -1, LB, LI, DINAME, NK, DS, DI, DB, DH, DKQ) ->
-    setupgalaxy(QX - 1, ?NSECTS - 1, DINAME, NK, LB, LI, DS, DI, DB, DH, DKQ);
-setupgalaxy(QX, QY, LB, LI, DINAME, NK, DS, DI, DB, DH, DKQ) ->
+setupgalaxypersect(-1, -1, LB, LI, DINAME, DS, DI, DB, DH) ->
+    {DS, DI, DB, DH};
+setupgalaxypersect(QX, -1, LB, LI, DINAME, DS, DI, DB, DH) ->
+    setupgalaxy(QX - 1, ?NSECTS - 1, DINAME, LB, LI, DS, DI, DB, DH);
+setupgalaxypersect(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
     QC = {QX, QY},
     SECT = initsect(),
     case lists:member(QC, LB) of
@@ -149,4 +152,37 @@ setupgalaxy(QX, QY, LB, LI, DINAME, NK, DS, DI, DB, DH, DKQ) ->
     NHOLES = tinymt32:uniform(3) - 1,
     {SECT5, HOLELIST} = gensectlist(NHOLES, s_hole, SECT4),
     DH2 = dict:append(QC, STARLIST, DH),
-    setupgalaxy(QX, QY - 1, LB, LI, NK, DINAME, DS2, DI2, DB2, DH2, DKQ).
+    setupgalaxypersect(QX, QY - 1, LB, LI, DINAME, DS2, DI2, DB2, DH2).
+
+setupnklingons(0, DKQ) ->
+    DKQ;
+setupnklingons(NKALL, DKQ) ->
+    N = tinymt32:uniform(4),
+    case N > NKALL of
+        true ->
+            NKADD = NKALL;
+        _Else ->
+            NKADD = N
+    end,
+    QX = tinymt32:uniform(?NQUADS) - 1,
+    QY = tinymt32:uniform(?NQUADS) - 1,
+    QC = {QX, QY},
+    case dict:is_key(QC, DKQ) of
+        true ->
+            NKOLD = dict:fetch(QC, DKQ);
+        _Else ->
+            NKOLD = 0
+    end,
+    NKNEW = NKOLD + NKADD,
+    case NKNEW <= ?MAXKLQUAD of
+        true ->
+            DKQ2 = dict:store(QC, NKNEW, DKQ),
+            NKALL2 = NKALL - NKNEW;
+        _Else ->
+            DKQ2 = DKQ,
+            NKALL2 = NKALL
+    end,
+    setupnklingons(NKALL2, DKQ2).
+
+
+
