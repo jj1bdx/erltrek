@@ -97,9 +97,9 @@
 -define(GALAXYCOORD(QX, QY, SX, SY), 
     ((((QX * ?NQUADS) + QY) * (?NSECTS * ?NSECTS)) + ((SX*?NSECTS) + SY))).
 %% convert quadrant coordinates to Quad array position
--define(QUADCOORD(QX, QY), (QX * ?NQUADS) + QY)).
+-define(QUADCOORD(QX, QY), (QX * ?NQUADS) + QY).
 %% convert sector coordinates to Sect array position
--define(SECTCOORD(SX, SY), (SX * ?NSECTS) + SY)).
+-define(SECTCOORD(SX, SY), (SX * ?NSECTS) + SY).
 
 %% vim: set ts=4 sw=4 sts=4 et :
 %% emacs: -*- mode:erlang; tab-width:4; indent-tabs-mode:nil;  -*-
