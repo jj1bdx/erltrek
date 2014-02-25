@@ -68,7 +68,7 @@ gensectlist(N, ENT, L, A) ->
     SC = randsect(A),
     {SX, SY} = SC,
     A2 = array:set(?SECTCOORD(SX, SY), ENT, A),
-    genquadlist(N - 1, ENT, [QC|L], A2).
+    gensectlist(N - 1, ENT, [SC|L], A2).
 
 %% List of names of inhabited stars
 inhabitednames() -> [
@@ -113,7 +113,7 @@ setupgalaxy() ->
     LINHABITQUAD = genquadlist(length(LINHABITNAME)),
     DINAME = dict:from_list(lists:zip(LINHABITQUAD, LINHABITNAME)),
     {DSTAR, DINHABIT, DBASE, DHOLE} =
-        setupgalaxypersect(?NSECTS - 1, ?NSECTS - 1,
+        setupgalaxypersect(?NQUADS - 1, ?NQUADS - 1,
             LBASEQUAD, LINHABITQUAD, DINAME, 
             dict:new(), dict:new(), dict:new(), dict:new()),
     NKLINGONS = (tinymt32:uniform(25) * 2) + 10,
@@ -123,7 +123,7 @@ setupgalaxy() ->
 setupgalaxypersect(-1, -1, LB, LI, DINAME, DS, DI, DB, DH) ->
     {DS, DI, DB, DH};
 setupgalaxypersect(QX, -1, LB, LI, DINAME, DS, DI, DB, DH) ->
-    setupgalaxy(QX - 1, ?NSECTS - 1, DINAME, LB, LI, DS, DI, DB, DH);
+    setupgalaxypersect(QX - 1, ?NQUADS - 1, LB, LI, DINAME, DS, DI, DB, DH);
 setupgalaxypersect(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
     QC = {QX, QY},
     SECT = initsect(),
@@ -132,7 +132,7 @@ setupgalaxypersect(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
             {SX, SY} = randsect(SECT),
             SECT2 = array:set(?SECTCOORD(SX, SY), s_base, SECT),
             DB2 = dict:append(QC, {SX, SY}, DB); % add attacked, etc
-        _Else ->
+        false ->
             SECT2 = SECT,
             DB2 = DB
     end,
@@ -142,7 +142,7 @@ setupgalaxypersect(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
             SECT3 = array:set(?SECTCOORD(SX2, SY2), s_inhabited, SECT2),
             SYSTEMNAME = dict:fetch(QC, DINAME),
             DI2 = dict:append(QC, {SX2, SY2, SYSTEMNAME}, DI); % add distressed, etc
-        _Else ->
+        false ->
             SECT3 = SECT2,
             DI2 = DI
     end,
@@ -161,7 +161,7 @@ setupnklingons(NKALL, DKQ) ->
     case N > NKALL of
         true ->
             NKADD = NKALL;
-        _Else ->
+        false ->
             NKADD = N
     end,
     QX = tinymt32:uniform(?NQUADS) - 1,
@@ -170,15 +170,15 @@ setupnklingons(NKALL, DKQ) ->
     case dict:is_key(QC, DKQ) of
         true ->
             NKOLD = dict:fetch(QC, DKQ);
-        _Else ->
+        false ->
             NKOLD = 0
     end,
     NKNEW = NKOLD + NKADD,
-    case NKNEW <= ?MAXKLQUAD of
+    case NKNEW =< ?MAXKLQUAD of
         true ->
             DKQ2 = dict:store(QC, NKNEW, DKQ),
             NKALL2 = NKALL - NKNEW;
-        _Else ->
+        false ->
             DKQ2 = DKQ,
             NKALL2 = NKALL
     end,
