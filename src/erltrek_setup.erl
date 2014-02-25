@@ -118,9 +118,9 @@ setupgalaxy() ->
             dict:new(), dict:new(), dict:new(), dict:new()),
     NKLINGONS = (tinymt32:uniform(25) * 2) + 10,
     DKLINGON = setupnklingons(NKLINGONS, dict:new()),
-    true. % more to go
+    {NKLINGONS, DSTAR, DINHABIT, DBASE, DHOLE, DKLINGON}.
 
-setupgalaxypersect(-1, -1, LB, LI, DINAME, DS, DI, DB, DH) ->
+setupgalaxypersect(-1, _QY, _LB, _LI, _DINAME, DS, DI, DB, DH) ->
     {DS, DI, DB, DH};
 setupgalaxypersect(QX, -1, LB, LI, DINAME, DS, DI, DB, DH) ->
     setupgalaxypersect(QX - 1, ?NQUADS - 1, LB, LI, DINAME, DS, DI, DB, DH);
@@ -150,8 +150,8 @@ setupgalaxypersect(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
     {SECT4, STARLIST} = gensectlist(NSTARS, s_star, SECT3),
     DS2 = dict:append(QC, STARLIST, DS),
     NHOLES = tinymt32:uniform(3) - 1,
-    {SECT5, HOLELIST} = gensectlist(NHOLES, s_hole, SECT4),
-    DH2 = dict:append(QC, STARLIST, DH),
+    {_SECT5, HOLELIST} = gensectlist(NHOLES, s_hole, SECT4),
+    DH2 = dict:append(QC, HOLELIST, DH),
     setupgalaxypersect(QX, QY - 1, LB, LI, DINAME, DS2, DI2, DB2, DH2).
 
 setupnklingons(0, DKQ) ->
