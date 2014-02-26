@@ -134,8 +134,8 @@ gen_quad_list(0, L, _) ->
 gen_quad_list(N, L, A) ->
     QC = rand_quad(A),
     {QX, QY} = QC,
-    A2 = array:set(?QUADCOORD(QX, QY), q_fill, A),
-    gen_quad_list(N - 1, [QC|L], A2).
+    gen_quad_list(N - 1, [QC|L],
+        array:set(?QUADCOORD(QX, QY), q_fill, A)).
 
 %%% Generate a list of random sector coordinates without duplicates
 %%% with sector state input and output
@@ -147,8 +147,8 @@ gen_sect_list(0, _, L, SECT) ->
 gen_sect_list(N, ENT, L, A) ->
     SC = rand_sect(A),
     {SX, SY} = SC,
-    A2 = array:set(?SECTCOORD(SX, SY), ENT, A),
-    gen_sect_list(N - 1, ENT, [SC|L], A2).
+    gen_sect_list(N - 1, ENT, [SC|L],
+        array:set(?SECTCOORD(SX, SY), ENT, A)).
 
 %% List of names of inhabited stars
 inhabited_names() -> [
