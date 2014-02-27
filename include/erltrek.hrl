@@ -141,5 +141,12 @@
         next_command :: tuple()
     }).
 
+%% Status for Klingons in the sector
+
+-record(klingon_status, {
+        sectxy :: #sectxy{},
+        energy :: integer()
+    }).
+
 %% vim: set ts=4 sw=4 sts=4 et :
 %% emacs: -*- mode:erlang; tab-width:4; indent-tabs-mode:nil;  -*-
