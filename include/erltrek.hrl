@@ -115,6 +115,10 @@
 
 %%% types and records
 
+%% see OTP lib/stdlib/src/orddict.erl
+
+-type orddict() :: [{Key :: term(), Value :: term()}].
+
 %% quadrant and sector coordinates
 
 -type quadcoord() :: 0..(?NQUADS - 1).
