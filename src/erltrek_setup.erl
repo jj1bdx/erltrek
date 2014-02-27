@@ -92,7 +92,8 @@
         rand_quad/1,
         rand_sect/1,
         sectxy_index/1,
-        setup_galaxy/0
+        setup_galaxy/0,
+        setup_sector/6
         ]).
 
 %% convert quadrant coordinate record to Quad array position
@@ -226,11 +227,12 @@ inhabited_names() -> [
     "Exo III"
     ].
 
-%% Setup stars (returns dict)
+%% Setup stars (returns dicts)
 
 -spec setup_galaxy() -> {pos_integer(), dict(), dict(), dict(), dict(), dict()}.
 
 setup_galaxy() ->
+    % number of bases in the galaxy
     NBASES = tinymt32:uniform(?MAXBASES - 3) + 3,
     LBASEQUAD = gen_quad_list(NBASES),
     LINHABITNAME = inhabited_names(),
@@ -240,6 +242,7 @@ setup_galaxy() ->
         setup_galaxy_sector(?NQUADS - 1, ?NQUADS - 1,
             LBASEQUAD, LINHABITQUAD, DINAME,
             dict:new(), dict:new(), dict:new(), dict:new()),
+    % number of klingons in the galaxy
     NKLINGONS = (tinymt32:uniform(25) * 2) + 10,
     DKLINGON = setup_klingon_numbers(NKLINGONS, dict:new()),
     {NKLINGONS, DSTAR, DINHABIT, DBASE, DHOLE, DKLINGON}.
@@ -315,5 +318,72 @@ setup_klingon_numbers(NKALL, DKQ) ->
     end,
     setup_klingon_numbers(NKALL2, DKQ2).
 
+-spec fill_sector([#sectxy{}], sector_entity(), array()) -> array().
+
+fill_sector([], _E, SECT) ->
+    SECT;
+fill_sector(LSC, E, SECT) ->
+    [H|T] = LSC,
+    fill_sector(T, E, array:set(sectxy_index(H), E, SECT)).
+
+-spec fill_klingons(non_neg_integer(), array(), dict()) -> {array(), dict()}.
+
+fill_klingons(0, SECT, DKS) ->
+    {SECT, DKS};
+fill_klingons(N, SECT, DKS) ->
+    SC = rand_sect(SECT),
+    fill_klingons(N - 1, array:set(sectxy_index(SC), s_klingon, SECT),
+        % initial energy of klingon
+        dict:append(SC, #klingon_status{energy = 300}, DKS)).
+
+-spec setup_sector(#quadxy{}, dict(), dict(), dict(), dict(), dict()) ->
+        {array(), dict()}.
+
+setup_sector(QC, DS, DI, DB, DH, DKQ) ->
+    SECT = init_sect(),
+    % stars
+    case dict:is_key(QC, DS) of
+        true ->
+            LS = dict:fetch(QC, DS),
+            SECT2 = fill_sector(LS, s_star, SECT);
+        false ->
+            SECT2 = SECT
+    end,
+    % inhabited systems
+    case dict:is_key(QC, DI) of
+        true ->
+            TI = dict:fetch(QC, DI),
+            SECT3 = fill_sector([TI#inhabited_info.xy], s_inhabited, SECT2);
+        false ->
+            SECT3 = SECT2
+    end,
+    % bases
+    case dict:is_key(QC, DB) of
+        true ->
+            TB = dict:fetch(QC, DB),
+            SECT4 = fill_sector([TB#base_info.xy], s_inhabited, SECT3);
+        false ->
+            SECT4 = SECT3
+    end,
+    % holes
+    case dict:is_key(QC, DH) of
+        true ->
+            LH = dict:fetch(QC, DH),
+            SECT5 = fill_sector(LH, s_hole, SECT4);
+        false ->
+            SECT5 = SECT4
+    end,
+    % klingons
+    DKS = dict:new(),
+    case dict:is_key(QC, DKQ) of
+        true ->
+            NH = dict:fetch(QC, DKQ),
+            {SECT6, DKS2} = fill_klingons(NH, SECT5, DKS);
+        false ->
+            SECT6 = SECT5,
+            DKS2 = DKS
+    end,
+    {SECT6, DKS2}.
+            
 
 
