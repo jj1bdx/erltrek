@@ -96,9 +96,15 @@
 %% maximum concurrent distress calls
 -define(MAXDISTR, 5).
 %% Version number string
--define(ERLTREK_VERSION, "0.0")
+-define(ERLTREK_VERSION, "0.0").
 %% Debug trace flag
--define(DEBUG_TRACE, true)
+-define(DEBUG_TRACE, true).
+%% Initial Enterprise energy
+-define(SHIPENERGY, 5000).
+%% Initial Enterprise shield level
+-define(SHIPSHIELD, 1000).
+%% Initial klingon energy
+-define(KLINGONENERGY, 400).
 
 %% check inside the quadrant
 -define(INQUAD(X), ((X >= 0) andalso (X < ?NQUADS))).
