@@ -109,18 +109,37 @@
 
 %%% types and records
 
+%% quadrant and sector coordinates
+
 -type quadcoord() :: 0..(?NQUADS - 1).
 -type sectcoord() :: 0..(?NSECTS - 1).
 
 -record(quadxy, { x :: quadcoord(), y :: quadcoord()}).
 -record(sectxy, { x :: sectcoord(), y :: sectcoord()}).
 
+%% entity atom in the sector array
+
 -type sector_entity() ::
     's_empty' | 's_star' | 's_enterprise' | 's_base' | 's_inhabited' |
     's_klingon' | 's_hole'.
 
+%% record for entities
+
 -record(base_info, { xy :: #sectxy{} }).
 -record(inhabited_info, { xy :: #sectxy{}, systemname :: string()}).
+
+%% Enterprise status
+
+-record(enterprise_status, {
+        quadxy :: #quadxy{},
+        sectxy :: #sectxy{},
+        energy :: integer(),
+        shield :: integer(),
+        moving :: boolean(),
+        warping :: boolean(),
+        % next command content
+        next_command :: tuple()
+    }).
 
 %% vim: set ts=4 sw=4 sts=4 et :
 %% emacs: -*- mode:erlang; tab-width:4; indent-tabs-mode:nil;  -*-
