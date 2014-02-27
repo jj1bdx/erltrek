@@ -94,63 +94,94 @@
         ]).
 
 %% return empty {sx, sy} in the Sector array
+
+-spec rand_sect(array()) -> #sectxy{}.
+
 rand_sect(S) ->
     rand_sect(S, {}, false).
+
+-spec rand_sect(array(), #sectxy{}, boolean()) -> #sectxy{}.
 
 rand_sect(_, SC, true) ->
     SC;
 rand_sect(S, _, false) ->
     SX = tinymt32:uniform(?NSECTS) - 1,
     SY = tinymt32:uniform(?NSECTS) - 1,
-    rand_sect(S, {SX, SY},
+    rand_sect(S, #sectxy{x = SX, y = SY},
         array:get(?SECTCOORD(SX, SY), S) =:= s_empty).
 
 %% return empty {qx, qy} in the Quadrant array
+
+-spec rand_quad(array()) -> #quadxy{}.
+
+
 rand_quad(Q) ->
     rand_quad(Q, {}, false).
+
+-spec rand_quad(array(), #quadxy{}, boolean()) -> #quadxy{}.
 
 rand_quad(_, QC, true) ->
     QC;
 rand_quad(Q, _, false) ->
     QX = tinymt32:uniform(?NQUADS) - 1,
     QY = tinymt32:uniform(?NQUADS) - 1,
-    rand_quad(Q, {QX, QY},
+    rand_quad(Q, #quadxy{x = QX, y = QY},
         array:get(?QUADCOORD(QX, QY), Q) =:= q_empty).
 
 %% init Sector array
+-spec init_sect() -> array().
+
 init_sect() ->
     array:new(?NSECTS * ?NSECTS, {default, s_empty}).
 
 %% init Quadrant array
+
+-spec init_quad() -> array().
+
 init_quad() ->
     array:new(?NQUADS * ?NQUADS, {default, q_empty}).
 
 %% Generate a list of random quadrant coordinates without duplicates
+
+-spec gen_quad_list(non_neg_integer()) -> list(#quadxy{}).
+
 gen_quad_list(N) ->
     gen_quad_list(N, [], init_quad()).
+
+-spec gen_quad_list(non_neg_integer(), list(#quadxy{}), array()) -> list(#quadxy{}).
 
 gen_quad_list(0, L, _) ->
     L;
 gen_quad_list(N, L, A) ->
     QC = rand_quad(A),
-    {QX, QY} = QC,
+    #quadxy{x = QX, y = QY} = QC,
     gen_quad_list(N - 1, [QC|L],
         array:set(?QUADCOORD(QX, QY), q_fill, A)).
 
 %%% Generate a list of random sector coordinates without duplicates
 %%% with sector state input and output
+
+-spec gen_sect_list(non_neg_integer(), sector_entity(), array()) ->
+    {array(), list(#sectxy{})}.
+
 gen_sect_list(N, ENT, SECT) ->
     gen_sect_list(N, ENT, [], SECT).
+
+-spec gen_sect_list(non_neg_integer(), sector_entity(), list(#sectxy{}), array()) ->
+    {array(), list(#sectxy{})}.
 
 gen_sect_list(0, _, L, SECT) ->
     {SECT, L};
 gen_sect_list(N, ENT, L, A) ->
     SC = rand_sect(A),
-    {SX, SY} = SC,
+    #sectxy{x = SX, y = SY} = SC,
     gen_sect_list(N - 1, ENT, [SC|L],
         array:set(?SECTCOORD(SX, SY), ENT, A)).
 
 %% List of names of inhabited stars
+
+-spec inhabited_names() -> list(string()).
+
 inhabited_names() -> [
     "Talos IV",
     "Rigel III",
@@ -186,6 +217,9 @@ inhabited_names() -> [
     ].
 
 %% Setup stars (returns dict)
+
+-spec setup_galaxy() -> {pos_integer(), dict(), dict(), dict(), dict(), dict()}.
+
 setup_galaxy() ->
     NBASES = tinymt32:uniform(?MAXBASES - 3) + 3,
     LBASEQUAD = gen_quad_list(NBASES),
@@ -200,28 +234,36 @@ setup_galaxy() ->
     DKLINGON = setup_klingon_numbers(NKLINGONS, dict:new()),
     {NKLINGONS, DSTAR, DINHABIT, DBASE, DHOLE, DKLINGON}.
 
+-spec setup_galaxy_sector(integer(), integer(), list(#quadxy{}), list(#quadxy{}),
+    dict(), dict(), dict(), dict(), dict()) ->
+    {dict(), dict(), dict(), dict()}.
+
 setup_galaxy_sector(-1, _QY, _LB, _LI, _DINAME, DS, DI, DB, DH) ->
     {DS, DI, DB, DH};
 setup_galaxy_sector(QX, -1, LB, LI, DINAME, DS, DI, DB, DH) ->
     setup_galaxy_sector(QX - 1, ?NQUADS - 1, LB, LI, DINAME, DS, DI, DB, DH);
 setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
-    QC = {QX, QY},
+    QC = #quadxy{x = QX, y = QY},
     SECT = init_sect(),
     case lists:member(QC, LB) of
         true ->
-            {SX, SY} = rand_sect(SECT),
+            SC = rand_sect(SECT),
+            #sectxy{x = SX, y = SY} = SC,
             SECT2 = array:set(?SECTCOORD(SX, SY), s_base, SECT),
-            DB2 = dict:append(QC, {SX, SY}, DB); % add attacked, etc
+            % add attacked, etc
+            DB2 = dict:append(QC, #base_info{xy = SC}, DB);
         false ->
             SECT2 = SECT,
             DB2 = DB
     end,
     case lists:member(QC, LI) of
         true ->
-            {SX2, SY2} = rand_sect(SECT2),
+            SC2 = rand_sect(SECT2),
+            #sectxy{x = SX2, y = SY2} = SC2,
             SECT3 = array:set(?SECTCOORD(SX2, SY2), s_inhabited, SECT2),
             SYSTEMNAME = dict:fetch(QC, DINAME),
-            DI2 = dict:append(QC, {SX2, SY2, SYSTEMNAME}, DI); % add distressed, etc
+            % add distressed, etc
+            DI2 = dict:append(QC, #inhabited_info{xy = SC2, systemname = SYSTEMNAME}, DI);
         false ->
             SECT3 = SECT2,
             DI2 = DI
@@ -233,6 +275,8 @@ setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
     {_SECT5, HOLELIST} = gen_sect_list(NHOLES, s_hole, SECT4),
     DH2 = dict:append(QC, HOLELIST, DH),
     setup_galaxy_sector(QX, QY - 1, LB, LI, DINAME, DS2, DI2, DB2, DH2).
+
+-spec setup_klingon_numbers(non_neg_integer(), dict()) -> dict().
 
 setup_klingon_numbers(0, DKQ) ->
     DKQ;
@@ -246,7 +290,7 @@ setup_klingon_numbers(NKALL, DKQ) ->
     end,
     QX = tinymt32:uniform(?NQUADS) - 1,
     QY = tinymt32:uniform(?NQUADS) - 1,
-    QC = {QX, QY},
+    QC = #quadxy{x = QX, y = QY},
     case dict:is_key(QC, DKQ) of
         true ->
             NKOLD = dict:fetch(QC, DKQ);
