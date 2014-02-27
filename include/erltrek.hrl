@@ -106,10 +106,6 @@
 %% check inside the sectors
 -define(INSECT(X), ((X >= 0) andalso (X < ?NSECTS))).
 -define(INSECT2(X, Y), (?INSECT(X) andalso ?INSECT(Y))).
-%% convert quadrant coordinate record to Quad array position
--define(QUADCOORD(QC), (QC#quadxy.x * ?NQUADS) + QC#quadxy.y).
-%% convert sector coordinate record to Sect array position
--define(SECTCOORD(SC), (SC#sectxy.x * ?NSECTS) + SC#sectxy.y).
 
 %%% types and records
 
