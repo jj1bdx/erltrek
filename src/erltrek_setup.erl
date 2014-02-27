@@ -130,7 +130,6 @@ rand_sect(S, _, false) ->
 
 -spec rand_quad(array()) -> #quadxy{}.
 
-
 rand_quad(Q) ->
     rand_quad(Q, {}, false).
 
@@ -144,6 +143,7 @@ rand_quad(Q, _, false) ->
     rand_quad(Q, QC, array:get(quadxy_index(QC), Q) =:= q_empty).
 
 %% init Sector array
+
 -spec init_sect() -> array().
 
 init_sect() ->
@@ -171,8 +171,8 @@ gen_quad_list(N, L, A) ->
     QC = rand_quad(A),
     gen_quad_list(N - 1, [QC|L], array:set(quadxy_index(QC), q_fill, A)).
 
-%%% Generate a list of random sector coordinates without duplicates
-%%% with sector state input and output
+%% Generate a list of random sector coordinates without duplicates
+%% with sector state input and output
 
 -spec gen_sect_list(non_neg_integer(), sector_entity(), array()) ->
     {array(), list(#sectxy{})}.
@@ -227,7 +227,14 @@ inhabited_names() -> [
     "Exo III"
     ].
 
-%% Setup stars (returns dicts)
+%% Setup galaxy, returns following info:
+%% * number of Klingons
+%% * dicts with keys of quadxy on:
+%%   * stars, values of #sectxy list (of multiple stars)
+%%   * inhabited systems, values of #inhabited_info list (one element per list)
+%%   * bases, values of #base_info list (one element per list)
+%%   * holes, values of #sectxy list (of multiple stars)
+%%   * number of klingons, values of integer (NOT a list)
 
 -spec setup_galaxy() -> {pos_integer(), dict(), dict(), dict(), dict(), dict()}.
 
@@ -246,6 +253,15 @@ setup_galaxy() ->
     NKLINGONS = (tinymt32:uniform(25) * 2) + 10,
     DKLINGON = setup_klingon_numbers(NKLINGONS, dict:new()),
     {NKLINGONS, DSTAR, DINHABIT, DBASE, DHOLE, DKLINGON}.
+
+%% Setup galaxy sector of each quadrant X, Y,
+%% list of base #quadxy, list of inhabited #quadxy,
+%% pair list of {#quadxy, systemname} for inhabited systems,
+%% and dicts with keys of quadxy on:
+%%   * stars, values of #sectxy list (of multiple stars)
+%%   * inhabited systems, values of #inhabited_info list (one element per list)
+%%   * bases, values of #base_info list (one element per list)
+%%   * holes, values of #sectxy list (of multiple stars)
 
 -spec setup_galaxy_sector(integer(), integer(), list(#quadxy{}), list(#quadxy{}),
     dict(), dict(), dict(), dict(), dict()) ->
@@ -287,6 +303,9 @@ setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
     DH2 = dict:append_list(QC, HOLELIST, DH),
     setup_galaxy_sector(QX, QY - 1, LB, LI, DINAME, DS2, DI2, DB2, DH2).
 
+%% setup a dict with keys of quadxy on the number of klingons per quadrant
+%% with given total number of klingons
+
 -spec setup_klingon_numbers(non_neg_integer(), dict()) -> dict().
 
 setup_klingon_numbers(0, DKQ) ->
@@ -318,6 +337,9 @@ setup_klingon_numbers(NKALL, DKQ) ->
     end,
     setup_klingon_numbers(NKALL2, DKQ2).
 
+%% fill in a sector array with given sector_entity()
+%% for the given list of #sectxy
+
 -spec fill_sector([#sectxy{}], sector_entity(), array()) -> array().
 
 fill_sector([], _E, SECT) ->
@@ -325,6 +347,9 @@ fill_sector([], _E, SECT) ->
 fill_sector(LSC, E, SECT) ->
     [H|T] = LSC,
     fill_sector(T, E, array:set(sectxy_index(H), E, SECT)).
+
+%% fill in a sector array and a dict of key #sectxy with value #klingon_status
+%% for the given number of Klingons
 
 -spec fill_klingons(non_neg_integer(), array(), dict()) -> {array(), dict()}.
 
@@ -335,6 +360,15 @@ fill_klingons(N, SECT, DKS) ->
     fill_klingons(N - 1, array:set(sectxy_index(SC), s_klingon, SECT),
         % initial energy of klingon
         dict:append(SC, #klingon_status{energy = 300}, DKS)).
+
+%% Setup the sector array and a dict of key #sectxy with value #klingon_status
+%% for the given Quadrant of #quadxy and
+%% * dicts with keys of quadxy on:
+%%   * stars, values of #sectxy list (of multiple stars)
+%%   * inhabited systems, values of #inhabited_info list (one element per list)
+%%   * bases, values of #base_info list (one element per list)
+%%   * holes, values of #sectxy list (of multiple stars)
+%%   * values of the number of klingons per quadrant
 
 -spec setup_sector(#quadxy{}, dict(), dict(), dict(), dict(), dict()) ->
         {array(), dict()}.
@@ -386,6 +420,6 @@ setup_sector(QC, DS, DI, DB, DH, DKQ) ->
             DKS2 = DKS
     end,
     {SECT6, DKS2}.
-            
+
 
 
