@@ -107,26 +107,29 @@ srscan(T, SHIP, SECT, DI) ->
              SHIP#enterprise_status.quadxy#quadxy.y, 
              SHIP#enterprise_status.sectxy#sectxy.x, 
              SHIP#enterprise_status.sectxy#sectxy.y]),
-        io_lib:format("Energy:        ~b", SHIP#enterprise_status.energy),
-        io_lib:format("Shield:        ~b", SHIP#enterprise_status.shield)
+        io_lib:format("Energy:        ~b", [SHIP#enterprise_status.energy]),
+        io_lib:format("Shield:        ~b", [SHIP#enterprise_status.shield])
         ],
     io:format("Short range sensor scan~n"),
     io:format("  0 1 2 3 4 5 6 7 8 9~n"),
     srscan_xline(0, STATUS, SECT, DISP),
     io:format("  0 1 2 3 4 5 6 7 8 9~n"),
-    case dict:if_key(SHIP#enterprise_status.quadxy, DI) of
+    case dict:is_key(SHIP#enterprise_status.quadxy, DI) of
         true ->
-            io:format("Starsystem ~s~n", 
-                [dict:fetch(SHIP#enterprise_status.quadxy, DI)])
+            LI = dict:fetch(SHIP#enterprise_status.quadxy, DI),
+            [I] = LI,
+            io:format("Starsystem ~s~n", [I#inhabited_info.systemname]);
+        false ->
+            ok % do nothing
     end,
     ok.
 
 srscan_xline(?NSECTS, _SL, _SECT, _DISP) ->
     ok;
 srscan_xline(X, SL, SECT, DISP) ->
-    io:format("~b ", [X]),
+    io:format("~c ", [X + $0]),
     srscan_ypos(0, X, SECT, DISP),
-    io:format("~b  ", [X]),
+    io:format("~c  ", [X + $0]),
     case length(SL) > 0 of
         true ->
             [H|SL2] = SL,
@@ -141,6 +144,7 @@ srscan_ypos(?NSECTS, _SL, _SECT, _DISP) ->
     ok;
 srscan_ypos(Y, X, SECT, DISP) ->
     io:format("~c ", [orddict:fetch(
-                array:get(erltrek_setup:sectxy_index(#sectxy{x = X, y = Y}), SECT))]),
+                array:get(erltrek_setup:sectxy_index(#sectxy{x = X, y = Y}), 
+                    SECT), DISP)]),
     srscan_ypos(Y + 1, X, SECT, DISP).
 
