@@ -144,7 +144,6 @@
 %% Status for Klingons in the sector
 
 -record(klingon_status, {
-        sectxy :: #sectxy{},
         energy :: integer()
     }).
 
