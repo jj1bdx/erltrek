@@ -281,10 +281,10 @@ setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
     end,
     NSTARS = tinymt32:uniform(9),
     {SECT4, STARLIST} = gen_sect_list(NSTARS, s_star, SECT3),
-    DS2 = dict:append(QC, STARLIST, DS),
+    DS2 = dict:append_list(QC, STARLIST, DS),
     NHOLES = tinymt32:uniform(3) - 1,
     {_SECT5, HOLELIST} = gen_sect_list(NHOLES, s_hole, SECT4),
-    DH2 = dict:append(QC, HOLELIST, DH),
+    DH2 = dict:append_list(QC, HOLELIST, DH),
     setup_galaxy_sector(QX, QY - 1, LB, LI, DINAME, DS2, DI2, DB2, DH2).
 
 -spec setup_klingon_numbers(non_neg_integer(), dict()) -> dict().
@@ -352,7 +352,8 @@ setup_sector(QC, DS, DI, DB, DH, DKQ) ->
     % inhabited systems
     case dict:is_key(QC, DI) of
         true ->
-            TI = dict:fetch(QC, DI),
+            LI = dict:fetch(QC, DI),
+            [TI] = LI,
             SECT3 = fill_sector([TI#inhabited_info.xy], s_inhabited, SECT2);
         false ->
             SECT3 = SECT2
@@ -360,8 +361,9 @@ setup_sector(QC, DS, DI, DB, DH, DKQ) ->
     % bases
     case dict:is_key(QC, DB) of
         true ->
-            TB = dict:fetch(QC, DB),
-            SECT4 = fill_sector([TB#base_info.xy], s_inhabited, SECT3);
+            LB = dict:fetch(QC, DB),
+            [TB] = LB,
+            SECT4 = fill_sector([TB#base_info.xy], s_base, SECT3);
         false ->
             SECT4 = SECT3
     end,
