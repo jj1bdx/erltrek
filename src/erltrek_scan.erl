@@ -86,7 +86,6 @@
         srscan/4
         ]).
 
-
 %% Display current sector info and ship status with
 %% * tick time (integer)
 %% * #enterprise_status
@@ -124,6 +123,8 @@ srscan(T, SHIP, SECT, DI) ->
     end,
     ok.
 
+-spec srscan_xline(non_neg_integer(), [string()], array(), orddict()) -> ok.
+
 srscan_xline(?NSECTS, _SL, _SECT, _DISP) ->
     ok;
 srscan_xline(X, SL, SECT, DISP) ->
@@ -140,7 +141,9 @@ srscan_xline(X, SL, SECT, DISP) ->
     end,
     srscan_xline(X + 1, SL2, SECT, DISP).
     
-srscan_ypos(?NSECTS, _SL, _SECT, _DISP) ->
+-spec srscan_ypos(non_neg_integer(), non_neg_integer(), array(), orddict()) -> ok.
+
+srscan_ypos(?NSECTS, _X, _SECT, _DISP) ->
     ok;
 srscan_ypos(Y, X, SECT, DISP) ->
     io:format("~c ", [orddict:fetch(
