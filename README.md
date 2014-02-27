@@ -10,4 +10,5 @@
     * Coordinate system: 2D and dual layer (Quadrants + Sectors)
     * Weapons: phaser (torpedo is optional)
     * Not too fast but not too slow
+* Start from a simplified model but make it extendable
 
