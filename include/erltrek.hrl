@@ -107,8 +107,8 @@
 -define(KLINGONENERGY, 400).
 %% Interval in milliseconds per tick
 -define(TICK_INTERVAL, 1000).
-%% Initial Stardate
--define(INITTICK, 2000).
+%% Initial Stardate * 100
+-define(INITTICK, 200000).
 
 %% check inside the quadrant
 -define(INQUAD(X), ((X >= 0) andalso (X < ?NQUADS))).
