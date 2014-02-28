@@ -82,16 +82,22 @@
 -behaviour(gen_server).
 
 -export([
+         handle_call/3,
          handle_cast/2,
          handle_info/2,
          init/1,
+         lose/1,
+         start_game/0,
          start_link/0,
          start_link/1,
          stop/0,
-         terminate/2
+         terminate/2,
+         won/1
      ]).
 
 -include("erltrek.hrl").
+
+%% public APIs
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -99,23 +105,43 @@ start_link() ->
 start_link(Args) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, Args, []).
 
+start_game() ->
+    gen_server:call(?MODULE, start_game).
+
 stop() ->
     gen_server:cast(?MODULE, stop).
 
+lose(Message) ->
+    gen_server:cast(?MODULE, {lose, Message}).
+
+won(Message) ->
+    gen_server:cast(?MODULE, {won, Message}).
+
+%% Callbacks
+
 init([]) ->
+    {ok, []}.
+
+handle_call(start_game, _From, _State) ->
     % initialize the stardate clock,
     Tick = ?INITTICK,
     % {SHIP,NK,DS,DI,DB,DH,DKQ,SECT,DKS} 
     InitState = erltrek_setup:setup_state(),
     Timer = erlang:send_after(1, self(), tick_event),
     GameTimeState = {Tick, Timer, InitState},
-    {ok, GameTimeState}.
+    {reply, ok, GameTimeState}.
 
 terminate(normal, State) ->
     ok.
 
+handle_cast({lose, Message}, State) ->
+    io:format("~s: Game lost: ~s~n", [?MODULE, Message]),
+    {stop, normal, State};
+handle_cast({won, Message}, State) ->
+    io:format("~s: Game won: ~s~n", [?MODULE, Message]),
+    {stop, normal, State};
 handle_cast(stop, State) ->
-    io:format("~s: stop call received~n", [?MODULE]),
+    io:format("~s: handle_cast(stop, State) received~n", [?MODULE]),
     {stop, normal, State}.
 
 handle_info(tick_event, GameTimeState) ->
