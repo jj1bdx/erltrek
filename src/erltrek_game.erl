@@ -2,10 +2,13 @@
 -behaviour(gen_server).
 
 -export([
+         handle_cast/2,
          handle_info/2,
          init/1,
          start_link/0,
-         start_link/1
+         start_link/1,
+         stop/0,
+         terminate/2
      ]).
 
 -include("erltrek.hrl").
@@ -16,6 +19,9 @@ start_link() ->
 start_link(Args) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, Args, []).
 
+stop() ->
+    gen_server:cast(?MODULE, stop).
+
 init([]) ->
     % initialize the stardate clock,
     Tick = ?INITTICK,
@@ -24,6 +30,13 @@ init([]) ->
     Timer = erlang:send_after(1, self(), tick_event),
     GameTimeState = {Tick, Timer, InitState},
     {ok, GameTimeState}.
+
+terminate(normal, State) ->
+    ok.
+
+handle_cast(stop, State) ->
+    io:format("~s: stop call received~n", [?MODULE]),
+    {stop, normal, State}.
 
 handle_info(tick_event, GameTimeState) ->
     {Tick, OldTimer, GameState} = GameTimeState,
