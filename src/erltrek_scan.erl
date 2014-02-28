@@ -99,8 +99,10 @@ srscan(T, SHIP, SECT, DI) ->
             {s_empty, $.}, {s_star, $*}, {s_enterprise, $E},
             {s_base, $#}, {s_inhabited, $@}, {s_klingon, $K},
             {s_hole, $H}]),
+    LT = integer_to_list(T),
+    {LT1, LT2} = lists:split(length(LT) - 2, LT),
     STATUS = [
-        io_lib:format("Game time:     ~b", [T]),
+        io_lib:format("Stardate:      ~s.~s", [LT1, LT2]),
         io_lib:format("Position:      ~b,~b/~b,~b",
             [SHIP#enterprise_status.quadxy#quadxy.x, 
              SHIP#enterprise_status.quadxy#quadxy.y, 
