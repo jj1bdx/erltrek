@@ -13,3 +13,7 @@
     * Not too fast but not too slow
 * Start from a simplified model but make it extendable
 
+## TODO
+
+* Dialyzer remote type issues incompatibility between R16B03-1 and 17.0-rc2 reported as in
+<http://erlang.org/pipermail/erlang-questions/2014-February/077945.html> and <http://erlang.org/pipermail/erlang-questions/2014-February/077955.html>.
