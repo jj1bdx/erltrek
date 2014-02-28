@@ -83,7 +83,7 @@
 -include("erltrek.hrl").
 
 -export([
-        srscan/4
+        srscan/5
         ]).
 
 %% Display current sector info and ship status with
@@ -91,16 +91,18 @@
 %% * #enterprise_status
 %% * current sector array
 %% * dict of inhabited systems
+%% * dict of number of klingons per quadrant
 
--spec srscan(integer(), #enterprise_status{}, array(), dict()) -> ok.
+-spec srscan(integer(), #enterprise_status{}, array(), dict(), dict()) -> ok.
 
-srscan(T, SHIP, SECT, DI) ->
+srscan(T, SHIP, SECT, DI, DKQ) ->
     DISP = orddict:from_list([
             {s_empty, $.}, {s_star, $*}, {s_enterprise, $E},
             {s_base, $#}, {s_inhabited, $@}, {s_klingon, $K},
             {s_hole, $H}]),
     LT = integer_to_list(T),
     {LT1, LT2} = lists:split(length(LT) - 2, LT),
+    NK = dict:fold(fun(_K, V, A) -> A + V end, 0, DKQ),
     STATUS = [
         io_lib:format("Stardate:      ~s.~s", [LT1, LT2]),
         io_lib:format("Position:      ~b,~b/~b,~b",
@@ -109,7 +111,8 @@ srscan(T, SHIP, SECT, DI) ->
              SHIP#enterprise_status.sectxy#sectxy.x, 
              SHIP#enterprise_status.sectxy#sectxy.y]),
         io_lib:format("Energy:        ~b", [SHIP#enterprise_status.energy]),
-        io_lib:format("Shield:        ~b", [SHIP#enterprise_status.shield])
+        io_lib:format("Shield:        ~b", [SHIP#enterprise_status.shield]),
+        io_lib:format("Klingons:      ~b", [NK])
         ],
     io:format("Short range sensor scan~n"),
     io:format("  0 1 2 3 4 5 6 7 8 9~n"),
