@@ -151,6 +151,7 @@
         shield :: integer(),
         moving :: boolean(),
         warping :: boolean(),
+        docked :: boolean(),
         % next command content
         next_command :: tuple()
     }).
