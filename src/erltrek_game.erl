@@ -52,7 +52,7 @@ handle_info(tick_event, GameTimeState) ->
     SECT3 = array:set(erltrek_setup:sectxy_index(SC), s_enterprise, SECT2), 
     SHIP2 = SHIP#enterprise_status{quadxy = QC, sectxy = SC},
     % displaying the status
-    erltrek_scan:srscan(Tick, SHIP2, SECT3, DI),
+    erltrek_scan:srscan(Tick, SHIP2, SECT3, DI, DKQ),
     % Set new game state
     % NOTE WELL ON THE VARIABLES!
     NewGameState = {SHIP2,NK,DS,DI,DB,DH,DKQ,SECT3,DKS},
