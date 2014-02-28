@@ -127,7 +127,8 @@ handle_call(start_game, _From, _State) ->
     Tick = ?INITTICK,
     % {SHIP,NK,DS,DI,DB,DH,DKQ,SECT,DKS} 
     InitState = erltrek_setup:setup_state(),
-    Timer = erlang:send_after(1, self(), tick_event),
+    % wait one second to start the game
+    Timer = erlang:send_after(1000, self(), tick_event),
     GameTimeState = {Tick, Timer, InitState},
     {reply, ok, GameTimeState}.
 
