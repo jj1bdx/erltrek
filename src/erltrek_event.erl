@@ -81,35 +81,62 @@
 -module(erltrek_event).
 
 -export([
-        timer_tasks/1
+        timer_tasks/2
      ]).
 
 -include("erltrek.hrl").
 
 %% Do timer tasks
 %% Input and output:
+%% Tick, and
 %% {SHIP,NK,DS,DI,DB,DH,DKQ,SECT,DKS} = GameState
 %% @todo isn't this spec definition clumsy?
 
--spec timer_tasks({integer(), {#enterprise_status{}, integer(),
-            dict(), dict(), dict(), dict(), dict(), array(), dict()}}) ->
+-spec timer_tasks(integer(), {#enterprise_status{}, integer(),
+            dict(), dict(), dict(), dict(), dict(), array(), dict()}) ->
     {integer(), {#enterprise_status{}, integer(),
             dict(), dict(), dict(), dict(), dict(), array(), dict()}}.
 
-timer_tasks({Tick, GameState}) ->
-    {SHIP,NK,DS,DI,DB,DH,DKQ,SECT,DKS} = GameState,
-    QC = #quadxy{x = tinymt32:uniform(?NQUADS) - 1,
-                 y = tinymt32:uniform(?NQUADS) - 1},
-    {SECT2, DKS2} = erltrek_setup:setup_sector(QC, DS, DI, DB, DH, DKQ),
+timer_tasks(Tick, GameState) ->
+    GameState2 = enterprise_command(Tick, GameState),
+    %QC = #quadxy{x = tinymt32:uniform(?NQUADS) - 1,
+    %             y = tinymt32:uniform(?NQUADS) - 1},
+    %{SECT2, DKS2} = erltrek_setup:setup_sector(QC, DS, DI, DB, DH, DKQ),
     % put enterprise in the current quadrant
-    SC = erltrek_setup:rand_sect(SECT2),
-    SECT3 = array:set(erltrek_setup:sectxy_index(SC), s_enterprise, SECT2), 
-    SHIP2 = SHIP#enterprise_status{quadxy = QC, sectxy = SC},
+    %SC = erltrek_setup:rand_sect(SECT2),
+    %SECT3 = array:set(erltrek_setup:sectxy_index(SC), s_enterprise, SECT2), 
+    %SHIP2 = SHIP#enterprise_status{quadxy = QC, sectxy = SC},
     % displaying the status
     %erltrek_scan:srscan(Tick, SHIP2, SECT3, DI, DKQ),
-    erltrek_scan:lrscan(SHIP2, DS, DI, DB, DKQ),
+    %erltrek_scan:lrscan(SHIP2, DS, DI, DB, DKQ),
+
     % Set new game state
-    % NOTE WELL ON THE VARIABLES!
-    NewGameState = {SHIP2,NK,DS,DI,DB,DH,DKQ,SECT3,DKS},
-    NewTick = Tick, 
-    {NewTick, NewGameState}.
+
+    NewGameState = GameState2,
+    NewGameState.
+
+%% Do commands for Enterprise
+
+-spec enterprise_command(integer(), {#enterprise_status{}, integer(),
+            dict(), dict(), dict(), dict(), dict(), array(), dict()}) ->
+    {#enterprise_status{}, integer(),
+        dict(), dict(), dict(), dict(), dict(), array(), dict()}.
+
+enterprise_command(Tick, GameState) ->
+    {SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
+    Command = SHIP#enterprise_status.next_command,
+    case Command of
+        {lrscan} -> % long range scanner
+            erltrek_scan:lrscan(SHIP, DS, DI, DB, DKQ),
+            % clear command buffer
+            SHIP2 = SHIP#enterprise_status{next_command = {}},
+            {SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS};
+        {srscan} -> % short range scanner
+            erltrek_scan:srscan(Tick, SHIP, SECT, DI, DKQ),
+            % clear command buffer
+            SHIP2 = SHIP#enterprise_status{next_command = {}},
+            {SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS};
+        {} -> % do nothing
+            GameState
+    end.
+
