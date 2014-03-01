@@ -151,7 +151,8 @@
         sectxy :: #sectxy{},
         energy :: integer(),
         shield :: integer(),
-        moving :: boolean(),
+        impulse_move :: boolean(),
+        impulse_course :: [{#quadxy{}, #sectxy{}],
         warping :: boolean(),
         docked :: boolean(),
         % next command content
