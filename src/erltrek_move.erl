@@ -82,6 +82,7 @@
 
 -export([
         course_distance/4,
+        destination/4,
         track_course/4
      ]).
 
@@ -164,9 +165,9 @@ list_track_x_elem(N, IX, Y, DY, PATH) ->
     IX2 = IX + 1,
     Y2 = Y + DY,
     IY = trunc(Y2 + 0.5),
-    NQ = #quadxy{x = IX2 div ?NSECTS, y = IY div ?NSECTS},
-    NC = #sectxy{x = IX2 rem ?NSECTS, y = IY rem ?NSECTS},
-    list_track_x_elem(N - 1, IX2, Y2, DY, [{NQ, NC}|PATH]).
+    NQC = #quadxy{x = IX2 div ?NSECTS, y = IY div ?NSECTS},
+    NSC = #sectxy{x = IX2 rem ?NSECTS, y = IY rem ?NSECTS},
+    list_track_x_elem(N - 1, IX2, Y2, DY, [{NQC, NSC}|PATH]).
 
 -spec list_track_y(#quadxy{}, #sectxy{}, integer(), integer()) -> [{#quadxy{}, #sectxy{}}].
 
@@ -185,6 +186,33 @@ list_track_y_elem(N, X, IY, DX, PATH) ->
     IY2 = IY + 1,
     X2 = X + DX,
     IX = trunc(X2 + 0.5),
-    NQ = #quadxy{x = IX div ?NSECTS, y = IY2 div ?NSECTS},
-    NC = #sectxy{x = IX rem ?NSECTS, y = IY2 rem ?NSECTS},
-    list_track_y_elem(N - 1, X2, IY2, DX, [{NQ, NC}|PATH]).
+    NQC = #quadxy{x = IX div ?NSECTS, y = IY2 div ?NSECTS},
+    NSC = #sectxy{x = IX rem ?NSECTS, y = IY2 rem ?NSECTS},
+    list_track_y_elem(N - 1, X2, IY2, DX, [{NQC, NSC}|PATH]).
+
+%% Calculate the destination coordinate from given coordinate
+%% and course (0-360 degrees, 0: -X direction, counter clockwise),
+%% and distance (unit: sector)
+%% Input: source #quadxy, #sectxy, course, distance
+%% Output:
+%% destination #quadxy, #sectxy
+
+-spec destination(#quadxy{}, #sectxy{}, float(), float()) ->
+    {ok, #quadxy{}, #sectxy{}} | out_of_bound.
+
+destination(SQC, SSC, COURSE, DIST) ->
+    SX = (SQC#quadxy.x * ?NSECTS) + SSC#sectxy.x,
+    SY = (SQC#quadxy.y * ?NSECTS) + SSC#sectxy.y,
+    ANGLE = COURSE / 180 * math:pi(),
+    DIFFX = DIST * -math:cos(ANGLE),
+    DIFFY = DIST * math:sin(ANGLE),
+    DESTX = trunc(SX + DIFFX + 0.5),
+    DESTY = trunc(SY + DIFFY + 0.5),
+    DESTQC = #quadxy{x = DESTX div ?NSECTS, y = DESTY div ?NSECTS},
+    DESTSC = #sectxy{x = DESTX rem ?NSECTS, y = DESTY rem ?NSECTS},
+    case ?INQUADQC(DESTQC) andalso ?INSECTSC(DESTSC) of
+        true ->
+            {ok, DESTQC, DESTSC};
+        false ->
+            out_of_bound
+    end.
