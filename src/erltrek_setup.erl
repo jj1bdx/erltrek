@@ -464,7 +464,8 @@ setup_state() ->
     % setup enterprise status
     SHIP = #enterprise_status{quadxy = QC, sectxy = SC,
         energy = ?SHIPENERGY, shield = ?SHIPSHIELD,
-        moving = false, warping = false, docked = false,
+        impulse_move = false, impulse_course = [],
+        warping = false, docked = false,
         next_command = {}},
     % return the values as a tuple
     {SHIP, NK, DS, DI, DB, DH, DKQ, SECT2, DKS}.
