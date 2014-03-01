@@ -3,6 +3,12 @@
     {vsn, "0.0.0"},
     {env, []},
     {registered, []},
-    {modules, [tinymt32]},
+    {modules, 
+        [tinymt32,
+            erltrek_event,
+            erltrek_game,
+            erltrek_scan,
+            erltrek_setup
+        ]},
     {applications, [kernel, stdlib]}
 ]}.
