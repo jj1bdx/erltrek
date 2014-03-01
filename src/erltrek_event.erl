@@ -124,6 +124,10 @@ enterprise_command(Tick, GameState) ->
             % clear command buffer
             SHIP2 = SHIP#enterprise_status{next_command = {}},
             {SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS};
+        {impulse, SX, SY} -> % impulse moving in the same quadrant
+            erltrek_move:impulse(SX, SY, GameState);
+        {impulse, QX, QY, SX, SY} -> % impulse moving to the different quadrant
+            erltrek_move:impulse(QX, QY, SX, SY, GameState);
         {} -> % do nothing
             GameState;
         _ -> % do nothing if something strange comes
