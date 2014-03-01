@@ -93,8 +93,8 @@
 %% Output:
 %%   difference of X,
 %%   difference of Y,
-%%   course (0-360 degrees, 0: -X direction, counter clockwise),
-%%   distance (unit: sector)
+%%   course (0-360 degrees, 0: -X direction, clockwise (e.g., 90: +Y direction)),
+%%   distance (unit: sector, number of sectors for a quadrant = ?NSECTS )
 
 -spec course_distance(#quadxy{}, #sectxy{}, #quadxy{}, #sectxy{}) ->
     {ok, integer(), integer(), float(), float()} | out_of_bound.
@@ -127,7 +127,7 @@ course_distance(SQC, SSC, DQC, DSC) ->
 %% Output:
 %%   difference of X,
 %%   difference of Y,
-%%   course (0-360 degrees, 0: -X direction, counter clockwise),
+%%   course (0-360 degrees)
 %%   distance (unit: sector),
 %%   list of {#quadxy, #sectxy} in the path
 
@@ -191,7 +191,7 @@ list_track_y_elem(N, X, IY, DX, PATH) ->
     list_track_y_elem(N - 1, X2, IY2, DX, [{NQC, NSC}|PATH]).
 
 %% Calculate the destination coordinate from given coordinate
-%% and course (0-360 degrees, 0: -X direction, counter clockwise),
+%% and course (0-360 degrees)
 %% and distance (unit: sector)
 %% Input: source #quadxy, #sectxy, course, distance
 %% Output:
