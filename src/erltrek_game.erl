@@ -82,6 +82,7 @@
 -behaviour(gen_server).
 
 -export([
+         code_change/3,
          handle_call/3,
          handle_cast/2,
          handle_info/2,
@@ -134,6 +135,9 @@ handle_call(start_game, _From, _State) ->
 
 terminate(normal, State) ->
     ok.
+
+code_change(_OldVsn, State, _Extra) ->
+        {ok, State}.
 
 handle_cast({lose, Message}, State) ->
     io:format("~s: Game lost: ~s~n", [?MODULE, Message]),
