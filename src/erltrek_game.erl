@@ -152,21 +152,8 @@ handle_cast(stop, State) ->
 handle_info(tick_event, GameTimeState) ->
     {Tick, OldTimer, GameState} = GameTimeState,
     erlang:cancel_timer(OldTimer),
-    % do interval timer task here,
-    {SHIP,NK,DS,DI,DB,DH,DKQ,SECT,DKS} = GameState,
-    % warping test
-    QC = #quadxy{x = tinymt32:uniform(?NQUADS) - 1,
-                 y = tinymt32:uniform(?NQUADS) - 1},
-    {SECT2, DKS2} = erltrek_setup:setup_sector(QC, DS, DI, DB, DH, DKQ),
-    % put enterprise in the current quadrant
-    SC = erltrek_setup:rand_sect(SECT2),
-    SECT3 = array:set(erltrek_setup:sectxy_index(SC), s_enterprise, SECT2), 
-    SHIP2 = SHIP#enterprise_status{quadxy = QC, sectxy = SC},
-    % displaying the status
-    erltrek_scan:srscan(Tick, SHIP2, SECT3, DI, DKQ),
-    % Set new game state
-    % NOTE WELL ON THE VARIABLES!
-    NewGameState = {SHIP2,NK,DS,DI,DB,DH,DKQ,SECT3,DKS},
+    % do interval timer task here
+    {NewTick, NewGameState} = erltrek_event:timer_tasks({Tick, GameState}),
     % increment tick counter and restart timer
     NewTick = Tick + 1,
     NewTimer = erlang:send_after(?TICK_INTERVAL, self(), tick_event),
