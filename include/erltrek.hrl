@@ -152,7 +152,7 @@
         energy :: integer(),
         shield :: integer(),
         impulse_move :: boolean(),
-        impulse_course :: [{#quadxy{}, #sectxy{}],
+        impulse_course :: [{#quadxy{}, #sectxy{}}],
         warping :: boolean(),
         docked :: boolean(),
         % next command content
