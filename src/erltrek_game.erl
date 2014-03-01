@@ -156,7 +156,6 @@ handle_info(tick_event, GameTimeState) ->
     % do interval timer task here
     {NewTick, NewGameState} = erltrek_event:timer_tasks({Tick, GameState}),
     % increment tick counter and restart timer
-    NewTick = Tick + 1,
     NewTimer = erlang:send_after(?TICK_INTERVAL, self(), tick_event),
     NewGameTimeState = {NewTick, NewTimer, NewGameState},
     {noreply, NewGameTimeState}.
