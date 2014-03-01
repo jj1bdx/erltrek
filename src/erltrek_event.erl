@@ -137,6 +137,13 @@ enterprise_command(Tick, GameState) ->
             SHIP2 = SHIP#enterprise_status{next_command = {}},
             {SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS};
         {} -> % do nothing
-            GameState
+            GameState;
+        _ -> % do nothing if something strange comes
+            io:format("~s:enterprise_command: unknown command: ~s~n",
+                [?MODULE, Command]),
+            io:format("~s:enterprise_command: status cleared~n", [?MODULE]),
+            % clear command buffer
+            SHIP2 = SHIP#enterprise_status{next_command = {}},
+            {SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS}
     end.
 
