@@ -1,4 +1,4 @@
-%%% --------------------------------------------------------------------
+%%% -------------------------------------------------------------------
 %%% Erltrek ("this software") is covered under the BSD 3-clause
 %%% license.
 %%%
@@ -81,14 +81,15 @@
 -module(erltrek_move).
 
 -export([
-        course_distance/4
+        course_distance/4,
+        track_course/4
      ]).
 
 -include("erltrek.hrl").
 
 %% Calculate course and distance between two quad/sect coordinates
 %% Input: source #quadxy, #sectxy, dest #quadxy, #sectxy
-%% Output: 
+%% Output:
 %%   difference of X,
 %%   difference of Y,
 %%   course (0-360 degrees, 0: -X direction, counter clockwise),
@@ -118,3 +119,72 @@ course_distance(SQC, SSC, DQC, DSC) ->
         false ->
             out_of_bound
     end.
+
+%% Calculate course and distance between two quad/sect coordinates
+%% and output the per-sector coordinate pair list
+%% Input: source #quadxy, #sectxy, dest #quadxy, #sectxy
+%% Output:
+%%   difference of X,
+%%   difference of Y,
+%%   course (0-360 degrees, 0: -X direction, counter clockwise),
+%%   distance (unit: sector),
+%%   list of {#quadxy, #sectxy} in the path
+
+-spec track_course(#quadxy{}, #sectxy{}, #quadxy{}, #sectxy{}) ->
+    {ok, integer(), integer(), float(), float(), [{#quadxy{}, #sectxy{}}]} | out_of_bound.
+
+track_course(SQC, SSC, DQC, DSC) ->
+    case course_distance(SQC, SSC, DQC, DSC) of
+        out_of_bound ->
+            out_of_bound;
+        {ok, DIFFX, DIFFY, CDEG, DISTSD} ->
+            case abs(DIFFX) > abs(DIFFY) of
+                true ->
+                    LQC = list_track_x(SQC, SSC, DIFFX, DIFFY);
+                false ->
+                    LQC = list_track_y(SQC, SSC, DIFFX, DIFFY)
+            end,
+            {ok, DIFFX, DIFFY, CDEG, DISTSD, LQC}
+    end.
+
+-spec list_track_x(#quadxy{}, #sectxy{}, integer(), integer()) -> [{#quadxy{}, #sectxy{}}].
+
+list_track_x(QC, SC, DIFFX, DIFFY) ->
+    IX = ((QC#quadxy.x * ?NSECTS) + SC#sectxy.x),
+    Y = float((QC#quadxy.y * ?NSECTS) + SC#sectxy.y),
+    DY = DIFFY / DIFFX,
+    list_track_x_elem(DIFFX, IX, Y, DY, []).
+
+-spec list_track_x_elem(integer(), integer(), float(), float(), [{#quadxy{}, #sectxy{}}]) ->
+    [{#quadxy{}, #sectxy{}}].
+
+list_track_x_elem(0, _IX, _Y, _DY, PATH) ->
+    lists:reverse(PATH);
+list_track_x_elem(N, IX, Y, DY, PATH) ->
+    IX2 = IX + 1,
+    Y2 = Y + DY,
+    IY = trunc(Y2 + 0.5),
+    NQ = #quadxy{x = IX2 div ?NSECTS, y = IY div ?NSECTS},
+    NC = #sectxy{x = IX2 rem ?NSECTS, y = IY rem ?NSECTS},
+    list_track_x_elem(N - 1, IX2, Y2, DY, [{NQ, NC}|PATH]).
+
+-spec list_track_y(#quadxy{}, #sectxy{}, integer(), integer()) -> [{#quadxy{}, #sectxy{}}].
+
+list_track_y(QC, SC, DIFFX, DIFFY) ->
+    X = float((QC#quadxy.x * ?NSECTS) + SC#sectxy.x),
+    IY = ((QC#quadxy.y * ?NSECTS) + SC#sectxy.y),
+    DX = DIFFX / DIFFY,
+    list_track_y_elem(DIFFY, X, IY, DX, []).
+
+-spec list_track_y_elem(integer(), float(), integer(), float(), [{#quadxy{}, #sectxy{}}]) ->
+    [{#quadxy{}, #sectxy{}}].
+
+list_track_y_elem(0, _X, _IY, _DX, PATH) ->
+    lists:reverse(PATH);
+list_track_y_elem(N, X, IY, DX, PATH) ->
+    IY2 = IY + 1,
+    X2 = X + DX,
+    IX = trunc(X2 + 0.5),
+    NQ = #quadxy{x = IX div ?NSECTS, y = IY2 div ?NSECTS},
+    NC = #sectxy{x = IX rem ?NSECTS, y = IY2 rem ?NSECTS},
+    list_track_y_elem(N - 1, X2, IY2, DX, [{NQ, NC}|PATH]).
