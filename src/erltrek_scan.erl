@@ -83,8 +83,97 @@
 -include("erltrek.hrl").
 
 -export([
+        lrscan/5,
         srscan/5
         ]).
+
+%% Return specified quadrant info string from
+%% * Quadrant coordinate #quadxy
+%% * dicts with keys of quadxy on:
+%%   * stars, values of #sectxy list (of multiple stars)
+%%   * inhabited systems, values of #inhabited_info list (one element per list)
+%%   * bases, values of #base_info list (one element per list)
+%%   * values of the number of klingons per quadrant
+
+-spec quadstr (#quadxy{}, dict(), dict(), dict(), dict()) -> string().
+
+quadstr(QC, DS, DI, DB, DKQ) ->
+    case ?INQUADQC(QC) of
+        true ->
+            case dict:is_key(QC, DS) of
+                true ->
+                    NS = length(dict:fetch(QC, DS));
+                false ->
+                    NS = 0
+            end,
+            case dict:is_key(QC, DI) of
+                true ->
+                    NS2 = NS + 1;
+                false ->
+                    NS2 = NS
+            end,
+            case dict:is_key(QC, DB) of
+                true ->
+                    NB = 1;
+                false ->
+                    NB = 0
+            end,
+            case dict:is_key(QC, DKQ) of
+                true ->
+                    NK = dict:fetch(QC, DKQ);
+                false ->
+                    NK = 0
+            end,
+            [$0 + NK, $0 + NB, $0 + NS2];
+        false ->
+            % negative energy barrier, out of quadrant range
+            " * "
+    end.
+
+%% print lrscan line for each list of X
+
+-spec lrscan_lines([integer()], [integer()], dict(), dict(), dict(), dict()) -> ok.
+
+lrscan_lines([], _LY, _DS, _DI, _DB, _DKQ) ->
+    ok;
+lrscan_lines([X|LXT], LY, DS, DI, DB, DKQ) ->
+    SX = case ?INQUAD(X) of
+        true ->
+            [32, $0 + X, 32, $!];
+        false ->
+            "   !"
+    end,
+    SY = [ " " ++ quadstr(QC, DS, DI, DB, DKQ) ++ " !" || 
+        QC <- [#quadxy{x = X, y = Y} || Y <- LY]],
+    io:format("~s~s~n", [SX, lists:append(SY)]),
+    lrscan_lines(LXT, LY, DS, DI, DB, DKQ).
+
+%% Display long range sensor output with
+%% * #enterprise_status
+%% * dicts with keys of quadxy on:
+%%   * stars, values of #sectxy list (of multiple stars)
+%%   * inhabited systems, values of #inhabited_info list (one element per list)
+%%   * bases, values of #base_info list (one element per list)
+%%   * values of the number of klingons per quadrant
+
+-spec lrscan(#enterprise_status{}, dict(), dict(), dict(), dict()) -> ok.
+
+lrscan(SHIP, DS, DI, DB, DKQ) ->
+    QC = SHIP#enterprise_status.quadxy,
+    QX = QC#quadxy.x,
+    QY = QC#quadxy.y,
+    LY = lists:seq(QY - 1, QY + 1),
+    io:format("Long range scan for Quadrant ~b,~b~n", [QX, QY]),
+    SY = [case ?INQUAD(Y) of
+              true ->
+                  "   " ++ [$0 + Y] ++ "  ";
+              false ->
+                  "      "
+          end || Y <- LY],
+    io:format("   ~s~n", [SY]),
+    io:format("   -------------------~n"),
+    lrscan_lines(lists:seq(QX - 1, QX + 1), LY, DS, DI, DB, DKQ),
+    io:format("   -------------------~n~n").
 
 %% Display current sector info and ship status with
 %% * tick time (integer)
