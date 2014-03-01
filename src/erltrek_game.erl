@@ -133,7 +133,8 @@ handle_call(start_game, _From, _State) ->
     GameTimeState = {Tick, Timer, InitState},
     {reply, ok, GameTimeState}.
 
-terminate(normal, State) ->
+terminate(normal, {_Tick, Timer, _GameState}) ->
+    erlang:cancel_timer(Timer),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
