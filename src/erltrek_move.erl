@@ -224,7 +224,7 @@ destination(SQC, SSC, COURSE, DIST) ->
 -spec impulse(non_neg_integer(), non_neg_integer(), game_state()) -> game_state().
 
 impulse(SX, SY, GameState) ->
-    {SHIP, _, _, _, _, _, _, _, _} = GameState,
+    {_, SHIP, _, _, _, _, _, _, _, _} = GameState,
     impulse(SHIP#enterprise_status.quadxy#quadxy.x,
             SHIP#enterprise_status.quadxy#quadxy.y,
             SX, SY, GameState).
@@ -299,7 +299,7 @@ course_onmove(GameState) ->
         [] -> % no more moving needed
             io:format("impulse move done~n"),
             clear_status(GameState);
-        true -> % moving to next sector
+        [_H|_T] -> % moving to next sector
             course_onmove_next(GameState)
     end.
 
