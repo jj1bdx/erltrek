@@ -320,8 +320,8 @@ course_checkend(GameState) ->
             io:format("impulse move done~n"),
             display_position(GameState),
             erltrek_scan:srscan(GameState),
-            clear_status(GameState),
-            {true, GameState};
+            GameState2 = clear_status(GameState),
+            {true, GameState2};
         [_H|_T] -> % do nothing if 
             {false, GameState}
     end.
