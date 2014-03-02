@@ -112,6 +112,7 @@ monitoring_game(GameState) ->
     % update number of Klingons in the galaxy
     NK2 = dict:fold(fun(_K, V, A) -> A + V end, 0, DKQ),
     % update ship condition
+    OldCondition = SHIP#enterprise_status.condition,
     case {dict:size(DKS) > 0,
           SHIP#enterprise_status.energy < 1000,
           SHIP#enterprise_status.docked} of
@@ -123,6 +124,13 @@ monitoring_game(GameState) ->
             Condition = cond_red;
         {false, false, false} ->
             Condition = cond_green
+    end,
+    case OldCondition =/= Condition of
+        true ->
+            io:format("Condition changed to: ~s~n",
+                [erltrek_scan:condition_string(Condition)]);
+        false ->
+            ok % do nothing
     end,
     SHIP2 = SHIP#enterprise_status{condition = Condition},
     {Tick, SHIP2, NK2, DS, DI, DB, DH, DKQ, SECT, DKS}.
