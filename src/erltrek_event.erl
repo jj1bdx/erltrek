@@ -94,10 +94,38 @@
 -spec timer_tasks(game_state()) -> game_state().
 
 timer_tasks(GameState) ->
+    % Klingon actions
+    GameState2 = klingon_actions(GameState),
     % Enterprise action
-    NewGameState = enterprise_command(GameState),
+    GameState3 = enterprise_command(GameState2),
+    % Monitoring status
+    GameState4 = monitoring_game(GameState3),
     % Set new game state
-    NewGameState.
+    GameState4.
+
+%% Monitoring current status
+
+-spec monitoring_game(game_state()) -> game_state().
+
+monitoring_game(GameState) ->
+    {Tick, SHIP, _NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
+    % update number of Klingons in the galaxy
+    NK2 = dict:fold(fun(_K, V, A) -> A + V end, 0, DKQ),
+    % update ship condition
+    case {dict:size(DKS) > 0,
+          SHIP#enterprise_status.energy < 1000,
+          SHIP#enterprise_status.docked} of
+        {_, _, true} ->
+            Condition = cond_docked;
+        {false, true, false} ->
+            Condition = cond_yellow;
+        {true, _, false} ->
+            Condition = cond_red;
+        {false, false, false} ->
+            Condition = cond_green
+    end,
+    SHIP2 = SHIP#enterprise_status{condition = Condition},
+    {Tick, SHIP2, NK2, DS, DI, DB, DH, DKQ, SECT, DKS}.
 
 %% Clear Enterprise command buffer
 
@@ -137,4 +165,12 @@ enterprise_command(GameState) ->
             io:format("~s:enterprise_command: status cleared~n", [?MODULE]),
             clear_command_buffer(GameState)
     end.
+
+%% Do Klingon actions
+
+-spec klingon_actions(game_state()) -> game_state().
+
+klingon_actions(GameState) ->
+    % skeleton
+    GameState.
 
