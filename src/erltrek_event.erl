@@ -179,6 +179,6 @@ enterprise_command(GameState) ->
 -spec klingon_actions(game_state()) -> game_state().
 
 klingon_actions(GameState) ->
-    % skeleton
-    GameState.
-
+    GameState2 = erltrek_klingon:move(GameState),
+    GameState3 = erltrek_klingon:attack(GameState2),
+    GameState3.
