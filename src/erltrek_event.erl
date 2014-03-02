@@ -166,8 +166,8 @@ enterprise_command(GameState) ->
             % does NOT clear command buffer
             erltrek_move:impulse(QX, QY, SX, SY, GameState);
         {phaser, SX, SY, ENERGY} -> % fire phaser directed to given sector
-            ok = erltrek_phaser:phaser(SX, SY, ENERGY, GameState),
-            clear_command_buffer(GameState);
+            NewGameState = erltrek_phaser:phaser(SX, SY, ENERGY, GameState),
+            clear_command_buffer(NewGameState);
         {} -> % do nothing
             GameState;
         _ -> % do nothing if something strange comes
