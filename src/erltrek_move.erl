@@ -319,7 +319,6 @@ course_checkend(GameState) ->
         [] -> % no more moving needed
             io:format("impulse move done~n"),
             display_position(GameState),
-            erltrek_scan:srscan(GameState),
             GameState2 = clear_status(GameState),
             {true, GameState2};
         [_H|_T] -> % do nothing if
@@ -356,7 +355,6 @@ course_onmove(GameState) ->
 
 force_halt(GameState) ->
     display_position(GameState),
-    erltrek_scan:srscan(GameState),
     clear_status(GameState).
 
 %% pick up next move
@@ -383,8 +381,6 @@ course_onmove_next(GameState) ->
                     % fill Enterprise in the new sector array
                     SECT3 = array:set(erltrek_setup:sectxy_index(SC), s_enterprise, SECT2),
                     GameState2 = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT3, DKS2},
-                    % scan new sector status
-                    erltrek_scan:srscan(GameState2),
                     course_checkend_noaction(GameState2);
                 false -> % sector already filled, fail to move
                     io:format("impulse move: cross-quadrant step move failed, stop~n"),
