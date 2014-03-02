@@ -107,7 +107,7 @@ phaser(SX, SY, ENERGY, GameState) ->
 fire_phaser(SX, SY, ENERGY, GameState) ->
     {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
     SHIPENERGY = SHIP#enterprise_status.energy,
-    case SHIPENERGY < ENERGY of
+    case SHIPENERGY > ENERGY of
         true ->
             prepare_phaser(SX, SY, ENERGY, GameState);
         false -> % cannot fire because of exceeding energy level
@@ -126,8 +126,8 @@ prepare_phaser(SX, SY, ENERGY, GameState) ->
     % Calculate course for each Klingon
     COURSE = erltrek_calc:sector_course(ShipSC, #sectxy{x = SX, y = SY}),
     LK = dict:fetch_keys(DKS),
-    LDIST = [erltrek_calc:sector_distance(SC, ShipSC) || SC <- LK],
-    LCOURSE = [erltrek_calc:sector_course(SC, ShipSC) || SC <- LK],
+    LDIST = [erltrek_calc:sector_distance(ShipSC, SC) || SC <- LK],
+    LCOURSE = [erltrek_calc:sector_course(ShipSC, SC) || SC <- LK],
     NewGameState = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS},
     hit_phaser(LK, LDIST, LCOURSE, ENERGY, COURSE, NewGameState).
 
@@ -146,20 +146,22 @@ hit_phaser(LK, LDIST, LCOURSE, ENERGY, COURSE, GameState) ->
     [K] = dict:fetch(SK, DKS),
     KE = K#klingon_status.energy,
     % Calculate hitting level
+    io:format("ENERGY = ~b COURSE = ~.1f SDIST = ~.1f SCOURSE = ~.1f~n",
+                [ENERGY, COURSE, SDIST, SCOURSE]),
     HIT = trunc(float(ENERGY) * math:pow(0.9, float(SDIST)) *
                 math:exp(-0.7 * abs((SCOURSE - COURSE)/2.0))),
     % Deplete energy from Klingon and update the dict
     io:format("Phaser hit to Klingon at sector ~b,~b level ~b~n",
                 [SK#sectxy.x, SK#sectxy.y, HIT]),
     NKE = KE - HIT,
-    K2 = K#klingon_status{energy = NKE},
-    case K2 > 0 of
+    case NKE > 0 of
         true -> % klingon is alive
+            K2 = K#klingon_status{energy = NKE},
             DKS2 = dict:append(SK, K2, dict:erase(SK, DKS)),
             GameState2 = {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS2},
             hit_phaser(LK2, LDIST2, LCOURSE2, ENERGY, COURSE, GameState2);
         false -> % klingon is killed
-            io:format("Klingon at sector ~b,~b killed",
+            io:format("Klingon at sector ~b,~b killed~n",
                 [SK#sectxy.x, SK#sectxy.y]),
             QC = SHIP#enterprise_status.quadxy,
             DKQ2 = dict:store(QC, dict:fetch(QC, DKQ) - 1, DKQ),
