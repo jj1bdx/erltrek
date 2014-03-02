@@ -81,159 +81,13 @@
 -module(erltrek_move).
 
 -export([
-        course_distance/4,
-        destination/4,
         impulse/3,
-        impulse/5,
-        track_course/4
-     ]).
+        impulse/5
+        ]).
 
 -include("erltrek.hrl").
 
-%% Calculate course and distance between two quad/sect coordinates
-%% Input: source #quadxy, #sectxy, dest #quadxy, #sectxy
-%% Output:
-%%   difference of X,
-%%   difference of Y,
-%%   course (0-360 degrees, 0: -X direction, clockwise (e.g., 90: +Y direction)),
-%%   distance (unit: sector, number of sectors for a quadrant = ?NSECTS )
-
--spec course_distance(#quadxy{}, #sectxy{}, #quadxy{}, #sectxy{}) ->
-    {ok, integer(), integer(), float(), float()} | out_of_bound.
-
-course_distance(SQC, SSC, DQC, DSC) ->
-    case ?INQUADQC(SQC) andalso ?INQUADQC(DQC) andalso
-        ?INSECTSC(SSC) andalso ?INSECTSC(DSC) of
-        true ->
-            DIFFX = ((DQC#quadxy.x * ?NSECTS) + DSC#sectxy.x) -
-                    ((SQC#quadxy.x * ?NSECTS) + SSC#sectxy.x),
-            DIFFY = ((DQC#quadxy.y * ?NSECTS) + DSC#sectxy.y) -
-                    ((SQC#quadxy.y * ?NSECTS) + SSC#sectxy.y),
-            CRAD = math:atan2(DIFFY, -DIFFX),
-            case CRAD < 0 of
-                true ->
-                    CRAD2 = (CRAD + (2 * math:pi()));
-                false ->
-                    CRAD2 = CRAD
-            end,
-            CDEG = CRAD2 * 180 / math:pi(),
-            DISTSD = math:sqrt((DIFFX * DIFFX) + (DIFFY * DIFFY)),
-            {ok, DIFFX, DIFFY, CDEG, DISTSD};
-        false ->
-            out_of_bound
-    end.
-
-%% Calculate course and distance between two quad/sect coordinates
-%% and output the per-sector coordinate pair list
-%% Input: source #quadxy, #sectxy, dest #quadxy, #sectxy
-%% Output:
-%%   difference of X,
-%%   difference of Y,
-%%   course (0-360 degrees)
-%%   distance (unit: sector),
-%%   list of {#quadxy, #sectxy} in the path
-
--spec track_course(#quadxy{}, #sectxy{}, #quadxy{}, #sectxy{}) ->
-    {ok, integer(), integer(), float(), float(), [{#quadxy{}, #sectxy{}}]} | out_of_bound.
-
-track_course(SQC, SSC, DQC, DSC) ->
-    case course_distance(SQC, SSC, DQC, DSC) of
-        out_of_bound ->
-            out_of_bound;
-        {ok, DIFFX, DIFFY, CDEG, DISTSD} ->
-            case DIFFX == 0 andalso DIFFY == 0 of
-                true ->
-                    LQC = [];
-                false ->
-                    LQC = list_track(SQC, SSC, DIFFX, DIFFY)
-            end,
-            {ok, DIFFX, DIFFY, CDEG, DISTSD, LQC}
-    end.
-
--spec list_track(#quadxy{}, #sectxy{}, integer(), integer()) -> [{#quadxy{}, #sectxy{}}].
-
-list_track(SQC, SSC, DIFFX, DIFFY) ->
-    case abs(DIFFX) > abs(DIFFY) of
-        true ->
-            list_track_x(SQC, SSC, DIFFX, DIFFY);
-        false ->
-            list_track_y(SQC, SSC, DIFFX, DIFFY)
-    end.
-
--spec list_track_x(#quadxy{}, #sectxy{}, integer(), integer()) -> [{#quadxy{}, #sectxy{}}].
-
-list_track_x(QC, SC, DIFFX, DIFFY) ->
-    IX = ((QC#quadxy.x * ?NSECTS) + SC#sectxy.x),
-    Y = float((QC#quadxy.y * ?NSECTS) + SC#sectxy.y),
-    N = abs(DIFFX),
-    IDX = DIFFX div N,
-    DY = DIFFY / N,
-    list_track_x_elem(N, IX, IDX, Y, DY, []).
-
--spec list_track_x_elem(integer(), integer(), integer(),
-    float(), float(), [{#quadxy{}, #sectxy{}}]) -> [{#quadxy{}, #sectxy{}}].
-
-list_track_x_elem(0, _IX, _IDX, _Y, _DY, PATH) ->
-    lists:reverse(PATH);
-list_track_x_elem(N, IX, IDX, Y, DY, PATH) ->
-    IX2 = IX + IDX,
-    Y2 = Y + DY,
-    IY = trunc(Y2 + 0.5),
-    NQC = #quadxy{x = IX2 div ?NSECTS, y = IY div ?NSECTS},
-    NSC = #sectxy{x = IX2 rem ?NSECTS, y = IY rem ?NSECTS},
-    list_track_x_elem(N - 1, IX2, IDX, Y2, DY, [{NQC, NSC}|PATH]).
-
--spec list_track_y(#quadxy{}, #sectxy{}, integer(), integer()) -> [{#quadxy{}, #sectxy{}}].
-
-list_track_y(QC, SC, DIFFX, DIFFY) ->
-    X = float((QC#quadxy.x * ?NSECTS) + SC#sectxy.x),
-    IY = ((QC#quadxy.y * ?NSECTS) + SC#sectxy.y),
-    N = abs(DIFFY),
-    IDY = DIFFY div N,
-    DX = DIFFX / N,
-    list_track_y_elem(N, X, DX, IY, IDY, []).
-
--spec list_track_y_elem(integer(), float(), float(),
-    integer(), integer(), [{#quadxy{}, #sectxy{}}]) -> [{#quadxy{}, #sectxy{}}].
-
-list_track_y_elem(0, _X, _DX, _IY, _IDY, PATH) ->
-    lists:reverse(PATH);
-list_track_y_elem(N, X, DX, IY, IDY, PATH) ->
-    IY2 = IY + IDY,
-    X2 = X + DX,
-    IX = trunc(X2 + 0.5),
-    NQC = #quadxy{x = IX div ?NSECTS, y = IY2 div ?NSECTS},
-    NSC = #sectxy{x = IX rem ?NSECTS, y = IY2 rem ?NSECTS},
-    list_track_y_elem(N - 1, X2, DX, IY2, IDY, [{NQC, NSC}|PATH]).
-
-%% Calculate the destination coordinate from given coordinate
-%% and course (0-360 degrees)
-%% and distance (unit: sector)
-%% Input: source #quadxy, #sectxy, course, distance
-%% Output:
-%% destination #quadxy, #sectxy
-
--spec destination(#quadxy{}, #sectxy{}, float(), float()) ->
-    {ok, #quadxy{}, #sectxy{}} | out_of_bound.
-
-destination(SQC, SSC, COURSE, DIST) ->
-    SX = (SQC#quadxy.x * ?NSECTS) + SSC#sectxy.x,
-    SY = (SQC#quadxy.y * ?NSECTS) + SSC#sectxy.y,
-    ANGLE = COURSE / 180 * math:pi(),
-    DIFFX = DIST * -math:cos(ANGLE),
-    DIFFY = DIST * math:sin(ANGLE),
-    DESTX = trunc(SX + DIFFX + 0.5),
-    DESTY = trunc(SY + DIFFY + 0.5),
-    DESTQC = #quadxy{x = DESTX div ?NSECTS, y = DESTY div ?NSECTS},
-    DESTSC = #sectxy{x = DESTX rem ?NSECTS, y = DESTY rem ?NSECTS},
-    case ?INQUADQC(DESTQC) andalso ?INSECTSC(DESTSC) of
-        true ->
-            {ok, DESTQC, DESTSC};
-        false ->
-            out_of_bound
-    end.
-
-%% impulse move (skeleton yet)
+%% impulse move
 
 -spec impulse(non_neg_integer(), non_neg_integer(), game_state()) -> game_state().
 
@@ -264,7 +118,7 @@ impulse(QX, QY, SX, SY, GameState) ->
 
 course_init(QX, QY, SX, SY, GameState) ->
     {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
-    case track_course(SHIP#enterprise_status.quadxy,
+    case erltrek_calc:track_course(SHIP#enterprise_status.quadxy,
             SHIP#enterprise_status.sectxy,
             #quadxy{x = QX, y = QY},
             #sectxy{x = SX, y = SY}) of
