@@ -155,7 +155,7 @@ clear_status(GameState) ->
 
 display_position(GameState) ->
     {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
-    io:format("Current position: ~b.~b/~b.~b~n",
+    io:format("Current position: ~b,~b/~b,~b~n",
         [SHIP#enterprise_status.quadxy#quadxy.x,
          SHIP#enterprise_status.quadxy#quadxy.y,
          SHIP#enterprise_status.sectxy#sectxy.x,
@@ -229,7 +229,7 @@ course_onmove_next(GameState) ->
             ENT = array:get(erltrek_setup:sectxy_index(SC), SECT2),
             case ENT =:= s_empty of
                 true -> % sector empty, move in
-                    io:format("impulse move cross-quadrant to ~b.~b/~b.~b~n",
+                    io:format("impulse move cross-quadrant to ~b,~b/~b,~b~n",
                                 [QC#quadxy.x, QC#quadxy.y,
                                  SC#sectxy.x, SC#sectxy.y]),
                     % fill Enterprise in the new sector array
@@ -244,7 +244,7 @@ course_onmove_next(GameState) ->
             ENT2 = array:get(erltrek_setup:sectxy_index(SC), SECT),
             case ENT2 =:= s_empty of
                 true -> % sector empty, move in
-                    io:format("impulse move to ~b.~b/~b.~b~n",
+                    io:format("impulse move to ~b,~b/~b,~b~n",
                                 [QC#quadxy.x, QC#quadxy.y,
                                  SC#sectxy.x, SC#sectxy.y]),
                     % clear Enterprise in the current sector array
