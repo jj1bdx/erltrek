@@ -170,7 +170,7 @@ list_track_x(QC, SC, DIFFX, DIFFY) ->
     DY = DIFFY / N,
     list_track_x_elem(N, IX, IDX, Y, DY, []).
 
--spec list_track_x_elem(integer(), integer(), integer(), 
+-spec list_track_x_elem(integer(), integer(), integer(),
     float(), float(), [{#quadxy{}, #sectxy{}}]) -> [{#quadxy{}, #sectxy{}}].
 
 list_track_x_elem(0, _IX, _IDX, _Y, _DY, PATH) ->
@@ -193,7 +193,7 @@ list_track_y(QC, SC, DIFFX, DIFFY) ->
     DX = DIFFX / N,
     list_track_y_elem(N, X, DX, IY, IDY, []).
 
--spec list_track_y_elem(integer(), float(), float(), 
+-spec list_track_y_elem(integer(), float(), float(),
     integer(), integer(), [{#quadxy{}, #sectxy{}}]) -> [{#quadxy{}, #sectxy{}}].
 
 list_track_y_elem(0, _X, _DX, _IY, _IDY, PATH) ->
@@ -322,7 +322,7 @@ course_checkend(GameState) ->
             erltrek_scan:srscan(GameState),
             GameState2 = clear_status(GameState),
             {true, GameState2};
-        [_H|_T] -> % do nothing if 
+        [_H|_T] -> % do nothing if
             {false, GameState}
     end.
 
@@ -380,7 +380,7 @@ course_onmove_next(GameState) ->
                     io:format("impulse move cross-quadrant to ~b.~b/~b.~b~n",
                                 [QC#quadxy.x, QC#quadxy.y,
                                  SC#sectxy.x, SC#sectxy.y]),
-                    % fill Enterprise in the new sector array 
+                    % fill Enterprise in the new sector array
                     SECT3 = array:set(erltrek_setup:sectxy_index(SC), s_enterprise, SECT2),
                     GameState2 = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT3, DKS2},
                     % scan new sector status
@@ -397,11 +397,11 @@ course_onmove_next(GameState) ->
                     io:format("impulse move to ~b.~b/~b.~b~n",
                                 [QC#quadxy.x, QC#quadxy.y,
                                  SC#sectxy.x, SC#sectxy.y]),
-                    % clear Enterprise in the current sector array 
+                    % clear Enterprise in the current sector array
                     SECT4 = array:set(erltrek_setup:sectxy_index(
                                         SHIP#enterprise_status.sectxy),
                                         s_empty, SECT),
-                    % fill Enterprise in the current sector array 
+                    % fill Enterprise in the current sector array
                     SECT5 = array:set(erltrek_setup:sectxy_index(SC),
                                         s_enterprise, SECT4),
                     GameState3 = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT5, DKS},
