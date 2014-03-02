@@ -165,5 +165,12 @@
         energy :: integer()
     }).
 
+%% Tuple type for saving Game State
+%% {Tick,SHIP,NK,DS,DI,DB,DH,DKQ,SECT,DKS} = GameState
+
+-type game_state() ::
+    {non_neg_integer(), #enterprise_status{}, non_neg_integer(),
+     dict(), dict(), dict(), dict(), dict(), array(), dict()}.
+
 %% vim: set ts=4 sw=4 sts=4 et :
 %% emacs: -*- mode:erlang; tab-width:4; indent-tabs-mode:nil;  -*-
