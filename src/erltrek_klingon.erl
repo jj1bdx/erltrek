@@ -93,7 +93,12 @@
 -spec attack(game_state()) -> game_state().
 
 attack(GameState) ->
-    GameState. % Skeleton
+    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
+    case dict:size(DKS) == 0 of
+        true -> % no klingon, do nothing
+            GameState;
+        false ->
+            actual_attack(GameState).
 
 %% Klingon moves in the sector
 %% {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState
@@ -101,5 +106,23 @@ attack(GameState) ->
 -spec move(game_state()) -> game_state().
 
 move(GameState) ->
-    GameState. % Skeleton
+    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
+    case dict:size(DKS) == 0 of
+        true -> % no klingon, do nothing
+            GameState;
+        false ->
+            actual_move(GameState).
 
+%% Klingon actual attacks in the sector
+%% {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState
+
+-spec actual_attack(game_state()) -> game_state().
+
+actual_attack(GameState) -> GameState. % skeleton
+
+%% Klingon actual moves in the sector
+%% {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState
+
+-spec actual_move(game_state()) -> game_state().
+
+actual_move(GameState) -> GameState. % skeleton
