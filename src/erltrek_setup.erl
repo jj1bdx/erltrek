@@ -443,10 +443,10 @@ setup_sector(QC, DS, DI, DB, DH, DKQ) ->
 %% * sector array for the current quadrant where Enterprise resides
 %% * a dict of key #sectxy with value #klingon_status for the current quadrant
 
--spec setup_state() -> {#enterprise_status{}, integer(),
-        dict(), dict(), dict(), dict(), dict(), array(), dict()}.
+-spec setup_state() -> game_state().
 
 setup_state() ->
+    Tick = ?INITTICK,
     {NK, DS, DI, DB, DH, DKQ} = erltrek_setup:setup_galaxy(),
     % put enterprise to where a base resides if possible
     LB = dict:fetch_keys(DB),
@@ -468,4 +468,4 @@ setup_state() ->
         warping = false, docked = false,
         next_command = {}},
     % return the values as a tuple
-    {SHIP, NK, DS, DI, DB, DH, DKQ, SECT2, DKS}.
+    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT2, DKS}.
