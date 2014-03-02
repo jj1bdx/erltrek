@@ -238,8 +238,8 @@ destination(SQC, SSC, COURSE, DIST) ->
 -spec sector_distance(#sectxy{}, #sectxy{}) -> float().
 
 sector_distance(SC, DC) ->
-    DX = SC#sectxy.x - DC#sectxy.x,
-    DY = SC#sectxy.y - DC#sectxy.y,
+    DX = DC#sectxy.x - SC#sectxy.x,
+    DY = DC#sectxy.y - SC#sectxy.y,
     math:sqrt((DX*DX) + (DY*DY)).
 
 %% Calculate course between two sectors
@@ -248,8 +248,8 @@ sector_distance(SC, DC) ->
 -spec sector_course(#sectxy{}, #sectxy{}) -> float().
 
 sector_course(SC, DC) ->
-    DX = SC#sectxy.x - DC#sectxy.x,
-    DY = SC#sectxy.y - DC#sectxy.y,
+    DX = DC#sectxy.x - SC#sectxy.x,
+    DY = DC#sectxy.y - SC#sectxy.y,
     CRAD = math:atan2(DY, -DX),
     case CRAD < 0 of
         true ->
