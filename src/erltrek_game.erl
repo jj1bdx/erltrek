@@ -173,8 +173,8 @@ handle_info(tick_event, GameStateAndTimer) ->
     NewGameState = erltrek_event:timer_tasks(GameState),
     % increment tick counter and restart timer
     NewTimer = erlang:send_after(?TICK_INTERVAL, self(), tick_event),
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
-    NewGameState = {Tick + 1, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS},
-    NewGameStateAndTimer = {NewTimer, NewGameState},
+    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = NewGameState,
+    NewGameState2 = {Tick + 1, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS},
+    NewGameStateAndTimer = {NewTimer, NewGameState2},
     {noreply, NewGameStateAndTimer}.
 
