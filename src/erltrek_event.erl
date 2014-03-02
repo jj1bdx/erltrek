@@ -81,52 +81,53 @@
 -module(erltrek_event).
 
 -export([
-        timer_tasks/2
-     ]).
+        clear_command_buffer/1,
+        timer_tasks/1
+        ]).
 
 -include("erltrek.hrl").
 
 %% Do timer tasks
 %% Input and output:
-%% Tick, and
-%% {SHIP,NK,DS,DI,DB,DH,DKQ,SECT,DKS} = GameState
-%% @todo isn't this spec definition clumsy?
+%% {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState
 
--spec timer_tasks(integer(), {#enterprise_status{}, integer(),
-            dict(), dict(), dict(), dict(), dict(), array(), dict()}) ->
-    {integer(), {#enterprise_status{}, integer(),
-            dict(), dict(), dict(), dict(), dict(), array(), dict()}}.
+-spec timer_tasks(game_state()) -> game_state().
 
-timer_tasks(Tick, GameState) ->
+timer_tasks(GameState) ->
     % Enterprise action
-    NewGameState = enterprise_command(Tick, GameState),
+    NewGameState = enterprise_command(GameState),
     % Set new game state
     NewGameState.
 
+%% Clear Enterprise command buffer
+
+-spec clear_command_buffer(game_state()) -> game_state().
+
+clear_command_buffer(GameState) ->
+    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
+    % clear command buffer
+    SHIP2 = SHIP#enterprise_status{next_command = {}},
+    {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS}.
+
 %% Do commands for Enterprise
 
--spec enterprise_command(integer(), {#enterprise_status{}, integer(),
-            dict(), dict(), dict(), dict(), dict(), array(), dict()}) ->
-    {#enterprise_status{}, integer(),
-        dict(), dict(), dict(), dict(), dict(), array(), dict()}.
+-spec enterprise_command(game_state()) -> game_state().
 
-enterprise_command(Tick, GameState) ->
-    {SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
+enterprise_command(GameState) ->
+    {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
     Command = SHIP#enterprise_status.next_command,
     case Command of
         {lrscan} -> % long range scanner
-            erltrek_scan:lrscan(SHIP, DS, DI, DB, DKQ),
-            % clear command buffer
-            SHIP2 = SHIP#enterprise_status{next_command = {}},
-            {SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS};
+            ok = erltrek_scan:lrscan(GameState),
+            clear_command_buffer(GameState);
         {srscan} -> % short range scanner
-            erltrek_scan:srscan(Tick, SHIP, SECT, DI, DKQ),
-            % clear command buffer
-            SHIP2 = SHIP#enterprise_status{next_command = {}},
-            {SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS};
+            ok = erltrek_scan:srscan(GameState),
+            clear_command_buffer(GameState);
         {impulse, SX, SY} -> % impulse moving in the same quadrant
+            % does NOT clear command buffer
             erltrek_move:impulse(SX, SY, GameState);
         {impulse, QX, QY, SX, SY} -> % impulse moving to the different quadrant
+            % does NOT clear command buffer
             erltrek_move:impulse(QX, QY, SX, SY, GameState);
         {} -> % do nothing
             GameState;
@@ -134,8 +135,6 @@ enterprise_command(Tick, GameState) ->
             io:format("~s:enterprise_command: unknown command: ~s~n",
                 [?MODULE, Command]),
             io:format("~s:enterprise_command: status cleared~n", [?MODULE]),
-            % clear command buffer
-            SHIP2 = SHIP#enterprise_status{next_command = {}},
-            {SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS}
+            clear_command_buffer(GameState)
     end.
 
