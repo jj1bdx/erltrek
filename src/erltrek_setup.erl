@@ -116,7 +116,7 @@ sectxy_index(QC) ->
 -spec rand_sect(array()) -> #sectxy{}.
 
 rand_sect(S) ->
-    rand_sect(S, {}, false).
+    rand_sect(S, #sectxy{}, false).
 
 -spec rand_sect(array(), #sectxy{}, boolean()) -> #sectxy{}.
 
@@ -132,7 +132,7 @@ rand_sect(S, _, false) ->
 -spec rand_quad(array()) -> #quadxy{}.
 
 rand_quad(Q) ->
-    rand_quad(Q, {}, false).
+    rand_quad(Q, #quadxy{}, false).
 
 -spec rand_quad(array(), #quadxy{}, boolean()) -> #quadxy{}.
 
