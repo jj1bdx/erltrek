@@ -155,6 +155,7 @@
         impulse_course :: [{#quadxy{}, #sectxy{}}],
         warping :: boolean(),
         docked :: boolean(),
+        condition:: 'cond_green' | 'cond_yellow' | 'cond_red' | 'cond_docked',
         % next command content
         next_command :: tuple()
     }).
