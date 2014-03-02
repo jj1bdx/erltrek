@@ -83,8 +83,8 @@
 -include("erltrek.hrl").
 
 -export([
-        lrscan/5,
-        srscan/5
+        lrscan/1,
+        srscan/1
         ]).
 
 %% Return specified quadrant info string from
@@ -95,7 +95,7 @@
 %%   * bases, values of #base_info list (one element per list)
 %%   * values of the number of klingons per quadrant
 
--spec quadstr (#quadxy{}, dict(), dict(), dict(), dict()) -> string().
+-spec quadstr(#quadxy{}, dict(), dict(), dict(), dict()) -> string().
 
 quadstr(QC, DS, DI, DB, DKQ) ->
     case ?INQUADQC(QC) of
@@ -148,17 +148,12 @@ lrscan_lines([X|LXT], LY, DS, DI, DB, DKQ) ->
     io:format("~s~s~n", [SX, lists:append(SY)]),
     lrscan_lines(LXT, LY, DS, DI, DB, DKQ).
 
-%% Display long range sensor output with
-%% * #enterprise_status
-%% * dicts with keys of quadxy on:
-%%   * stars, values of #sectxy list (of multiple stars)
-%%   * inhabited systems, values of #inhabited_info list (one element per list)
-%%   * bases, values of #base_info list (one element per list)
-%%   * values of the number of klingons per quadrant
+%% Display long range sensor output from the game state
 
--spec lrscan(#enterprise_status{}, dict(), dict(), dict(), dict()) -> ok.
+-spec lrscan(game_state()) -> ok.
 
-lrscan(SHIP, DS, DI, DB, DKQ) ->
+lrscan(GameState) ->
+    {_Tick, SHIP, _NK, DS, DI, DB, _DH, DKQ, _SECT, _DKS} = GameState,
     QC = SHIP#enterprise_status.quadxy,
     QX = QC#quadxy.x,
     QY = QC#quadxy.y,
@@ -175,21 +170,17 @@ lrscan(SHIP, DS, DI, DB, DKQ) ->
     lrscan_lines(lists:seq(QX - 1, QX + 1), LY, DS, DI, DB, DKQ),
     io:format("   -------------------~n~n").
 
-%% Display current sector info and ship status with
-%% * tick time (integer)
-%% * #enterprise_status
-%% * current sector array
-%% * dict of inhabited systems
-%% * dict of number of klingons per quadrant
+%% Display current sector info and ship status from the game state
 
--spec srscan(integer(), #enterprise_status{}, array(), dict(), dict()) -> ok.
+-spec srscan(game_state()) -> ok.
 
-srscan(T, SHIP, SECT, DI, DKQ) ->
+srscan(GameState) ->
+    {Tick, SHIP, _NK, _DS, DI, _DB, _DH, DKQ, SECT, _DKS} = GameState,
     DISP = orddict:from_list([
             {s_empty, $.}, {s_star, $*}, {s_enterprise, $E},
             {s_base, $#}, {s_inhabited, $@}, {s_klingon, $K},
             {s_hole, $H}]),
-    LT = integer_to_list(T),
+    LT = integer_to_list(Tick),
     {LT1, LT2} = lists:split(length(LT) - 2, LT),
     NK = dict:fold(fun(_K, V, A) -> A + V end, 0, DKQ),
     STATUS = [
