@@ -250,7 +250,9 @@ impulse(QX, QY, SX, SY, GameState) ->
     {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
     case SHIP#enterprise_status.impulse_move of
         false -> % course initialization needed
-            course_init(QX, QY, SX, SY, GameState);
+            GameState2 = course_init(QX, QY, SX, SY, GameState),
+            % Do the first move
+            course_onmove(GameState2);
         true -> % it's already moving
             course_onmove(GameState)
     end.
@@ -313,12 +315,12 @@ display_position(GameState) ->
 course_onmove(GameState) ->
     {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
     LQC = SHIP#enterprise_status.impulse_course,
-    case length(LQC) > 0 of
-        true -> % moving to next sector
-            course_onmove_next(GameState);
-        false -> % no more moving needed
+    case LQC of
+        [] -> % no more moving needed
             io:format("impulse move done~n"),
-            clear_status(GameState)
+            clear_status(GameState);
+        [_H|_T] -> % moving to next sector
+            course_onmove_next(GameState)
     end.
 
 %% pick up next move
@@ -332,7 +334,7 @@ course_onmove_next(GameState) ->
     {QC, SC} = LQCH,
     % Update ship status for moved state
     SHIP2 = SHIP#enterprise_status{
-        quadxy = QC, sectxy = SC, impulse_course=LQCT},
+        quadxy = QC, sectxy = SC, impulse_course = LQCT},
     case QC =/= SHIP#enterprise_status.quadxy of
         true -> % change current quadrant
             {SECT2, DKS2} = erltrek_setup:setup_sector(QC, DS, DI, DB, DH, DKQ),
