@@ -2,7 +2,6 @@
 
 * Requirement: R16B03-1
 * License: BSD 3-clause (Note: tinymt-erlang has its own license)
-* *Note well: no workable code yet*
 
 ## Goals
 
@@ -12,6 +11,15 @@
     * Weapons: phaser (torpedo is optional)
     * Not too fast but not too slow
 * Start from a simplified model but make it extendable
+
+## Functions implemented
+
+* Game field setup
+* Impulse engine for Enterprise
+
+## How to run
+
+    erl -pa ebin -run erltrek_game start_link -run erltrek_game start_game
 
 ## TODO
 
