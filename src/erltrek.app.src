@@ -5,10 +5,12 @@
     {registered, []},
     {modules, 
         [tinymt32,
+            erltrek_calc,
             erltrek_event,
             erltrek_game,
             erltrek_klingon,
             erltrek_move,
+            erltrek_phaser,
             erltrek_scan,
             erltrek_setup
         ]},
