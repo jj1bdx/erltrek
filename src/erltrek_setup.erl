@@ -466,6 +466,7 @@ setup_state() ->
         energy = ?SHIPENERGY, shield = ?SHIPSHIELD,
         impulse_move = false, impulse_course = [],
         warping = false, docked = false,
+        condition = cond_green,
         next_command = {}},
     % return the values as a tuple
     {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT2, DKS}.
