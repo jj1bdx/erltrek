@@ -180,6 +180,9 @@ srscan(GameState) ->
             {s_empty, $.}, {s_star, $*}, {s_enterprise, $E},
             {s_base, $#}, {s_inhabited, $@}, {s_klingon, $K},
             {s_hole, $H}]),
+    CONDITION = orddict:from_list([
+            {cond_green, "GREEN"}, {cond_yellow, "YELLOW"},
+            {cond_red, "RED"}, {cond_docked, "DOCKED"}]),
     LT = integer_to_list(Tick),
     {LT1, LT2} = lists:split(length(LT) - 2, LT),
     NK = dict:fold(fun(_K, V, A) -> A + V end, 0, DKQ),
@@ -190,6 +193,8 @@ srscan(GameState) ->
              SHIP#enterprise_status.quadxy#quadxy.y, 
              SHIP#enterprise_status.sectxy#sectxy.x, 
              SHIP#enterprise_status.sectxy#sectxy.y]),
+        io_lib:format("Condition:     ~s", 
+            [orddict:fetch(SHIP#enterprise_status.condition, CONDITION)]),
         io_lib:format("Energy:        ~b", [SHIP#enterprise_status.energy]),
         io_lib:format("Shield:        ~b", [SHIP#enterprise_status.shield]),
         io_lib:format("Klingons:      ~b", [NK])
