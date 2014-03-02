@@ -273,9 +273,13 @@ course_init(QX, QY, SX, SY, GameState) ->
         {ok, _DIFFX, _DIFFY, CDEG, DISTSD, LQC} ->
             io:format("impulse move: course = ~.1f, distance = ~.1f~n",
                 [CDEG, DISTSD]),
+            % decrease energy at this point
+            E = SHIP#enterprise_status.energy -
+                trunc(DISTSD * 10 + 0.5),
             % set course and moving flag
-            SHIP2 = SHIP#enterprise_status{impulse_course = LQC,
-                            impulse_move = true},
+            SHIP2 = SHIP#enterprise_status{
+                impulse_course = LQC, impulse_move = true,
+                energy = E},
             {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS}
     end.
 
@@ -326,10 +330,9 @@ course_onmove_next(GameState) ->
     LQC = SHIP#enterprise_status.impulse_course,
     [LQCH | LQCT] = LQC,
     {QC, SC} = LQCH,
-    E = SHIP#enterprise_status.energy - 10,
     % Update ship status for moved state
     SHIP2 = SHIP#enterprise_status{
-        quadxy = QC, sectxy = SC, energy = E, impulse_course=LQCT},
+        quadxy = QC, sectxy = SC, impulse_course=LQCT},
     case QC =/= SHIP#enterprise_status.quadxy of
         true -> % change current quadrant
             {SECT2, DKS2} = erltrek_setup:setup_sector(QC, DS, DI, DB, DH, DKQ),
