@@ -119,15 +119,6 @@ move(GameState) ->
             GameState
     end.
 
-%% Calculate distance between two sectors
-
--spec sector_distance(#sectxy{}, #sectxy{}) -> float().
-
-sector_distance(SC, DC) ->
-    DX = SC#sectxy.x - DC#sectxy.x,
-    DY = SC#sectxy.y - DC#sectxy.y,
-    math:sqrt((DX*DX) + (DY*DY)).
-
 %% Klingon actual attacks in the sector
 
 -spec actual_attack(game_state()) -> game_state().
@@ -136,7 +127,7 @@ actual_attack(GameState) ->
     {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, DKS} = GameState,
     ShipSC = SHIP#enterprise_status.sectxy,
     LK = dict:fetch_keys(DKS),
-    LDIST = [sector_distance(SC, ShipSC) || SC <- LK],
+    LDIST = [erltrek_calc:sector_distance(SC, ShipSC) || SC <- LK],
     % sorted with the distance
     {LDIST2, LK2} = lists:unzip(lists:sort(
             fun(A, B) -> {DA, _} = A, {DB, _} = B, DA =< DB end,
