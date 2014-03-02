@@ -221,11 +221,7 @@ destination(SQC, SSC, COURSE, DIST) ->
 
 %% impulse move (skeleton yet)
 
--spec impulse(non_neg_integer(), non_neg_integer(),
-    {#enterprise_status{}, integer(),
-     dict(), dict(), dict(), dict(), dict(), array(), dict()}) ->
-    {#enterprise_status{}, integer(),
-     dict(), dict(), dict(), dict(), dict(), array(), dict()}.
+-spec impulse(non_neg_integer(), non_neg_integer(), game_state()) -> game_state().
 
 impulse(SX, SY, GameState) ->
     {SHIP, _, _, _, _, _, _, _, _} = GameState,
@@ -234,30 +230,24 @@ impulse(SX, SY, GameState) ->
             SX, SY, GameState).
 
 -spec impulse(non_neg_integer(), non_neg_integer(),
-    non_neg_integer(), non_neg_integer(),
-    {#enterprise_status{}, integer(),
-     dict(), dict(), dict(), dict(), dict(), array(), dict()}) ->
-    {#enterprise_status{}, integer(),
-     dict(), dict(), dict(), dict(), dict(), array(), dict()}.
+    non_neg_integer(), non_neg_integer(), game_state()) -> game_state().
 
 impulse(QX, QY, SX, SY, GameState) ->
-    {SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
+    {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
     case SHIP#enterprise_status.impulse_move of
         false -> % course initialization needed
-            impulse_course_init(QX, QY, SX, SY, GameState);
+            course_init(QX, QY, SX, SY, GameState);
         true -> % it's already moving
-            impulse_course_onmove(GameState)
+            course_onmove(GameState)
     end.
 
--spec impulse_course_init(non_neg_integer(), non_neg_integer(),
-    non_neg_integer(), non_neg_integer(),
-    {#enterprise_status{}, integer(),
-     dict(), dict(), dict(), dict(), dict(), array(), dict()}) ->
-    {#enterprise_status{}, integer(),
-     dict(), dict(), dict(), dict(), dict(), array(), dict()}.
+%% initialize impulse drive course information
 
-impulse_course_init(QX, QY, SX, SY, GameState) ->
-    {SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
+-spec course_init(non_neg_integer(), non_neg_integer(),
+    non_neg_integer(), non_neg_integer(), game_state()) -> game_state().
+
+course_init(QX, QY, SX, SY, GameState) ->
+    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
     case track_course(SHIP#enterprise_status.quadxy,
             SHIP#enterprise_status.sectxy,
             #quadxy{x = QX, y = QY},
@@ -265,97 +255,102 @@ impulse_course_init(QX, QY, SX, SY, GameState) ->
         out_of_bound ->
             io:format("impulse move: course out of bound~n"),
             % clear command buffer
-            SHIP2 = SHIP#enterprise_status{next_command = {}},
-            {SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS};
-        {ok, DIFFX, DIFFY, CDEG, DISTSD, LQC} ->
+            erltrek_event:clear_command_buffer(GameState);
+        {ok, _DIFFX, _DIFFY, CDEG, DISTSD, LQC} ->
             io:format("impulse move: course = ~.1f, distance = ~.1f~n",
                 [CDEG, DISTSD]),
             % set course and moving flag
-            SHIP3 = SHIP#enterprise_status{impulse_course = LQC,
+            SHIP2 = SHIP#enterprise_status{impulse_course = LQC,
                             impulse_move = true},
-            {SHIP3, NK, DS, DI, DB, DH, DKQ, SECT, DKS}
+            {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS}
     end.
 
--spec impulse_course_onmove(
-    {#enterprise_status{}, integer(),
-     dict(), dict(), dict(), dict(), dict(), array(), dict()}) ->
-    {#enterprise_status{}, integer(),
-     dict(), dict(), dict(), dict(), dict(), array(), dict()}.
+%% clear moving flag, course info, and next command buffer
 
-impulse_course_onmove(GameState) ->
-    {SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
+-spec clear_status(game_state()) -> game_state().
+
+clear_status(GameState) ->
+    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
+    SHIP2 = SHIP#enterprise_status{impulse_move = false, impulse_course = []},
+    erltrek_event:clear_command_buffer(
+        {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS}).
+
+%% display current position (return unaltered state)
+
+-spec display_position(game_state()) -> game_state().
+
+display_position(GameState) ->
+    {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
+    io:format("Current position: ~b.~b/~b.~b~n",
+        [SHIP#enterprise_status.quadxy#quadxy.x,
+         SHIP#enterprise_status.quadxy#quadxy.y,
+         SHIP#enterprise_status.sectxy#sectxy.x,
+         SHIP#enterprise_status.sectxy#sectxy.y]),
+    GameState.
+
+%% on move: check whether moving path remains
+
+-spec course_onmove(game_state()) -> game_state().
+
+course_onmove(GameState) ->
+    {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
     LQC = SHIP#enterprise_status.impulse_course,
     case LQC of
         [] -> % no more moving needed
             io:format("impulse move done~n"),
-            SHIP2 = SHIP#enterprise_status{
-                        impulse_move = false,
-                        impulse_course = [],
-                        next_command = {}},
-            {SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS};
-        _ -> % moving to next sector
-            [LQCH | LQCT] = LQC,
-            {QC, SC} = LQCH,
-            E = SHIP#enterprise_status.energy - 10,
-            SHIP3 = SHIP#enterprise_status{quadxy = QC, sectxy = SC, energy = E},
-            case QC =/= SHIP#enterprise_status.quadxy of
-                true -> % change current quadrant
-                    {SECT2, DKS2} = erltrek_setup:setup_sector(QC,
-                                        DS, DI, DB, DH, DKQ),
-                    ENT = array:get(erltrek_setup:sectxy_index(SC), SECT2),
-                    case ENT =:= s_empty of
-                        true -> % sector empty, move in
-                            io:format("impulse move cross-quadrant to ~b.~b/~b.~b~n",
+            clear_status(GameState);
+        true -> % moving to next sector
+            course_onmove_next(GameState)
+    end.
+
+%% pick up next move
+
+-spec course_onmove_next(game_state()) -> game_state().
+
+course_onmove_next(GameState) ->
+    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
+    LQC = SHIP#enterprise_status.impulse_course,
+    [LQCH | LQCT] = LQC,
+    {QC, SC} = LQCH,
+    E = SHIP#enterprise_status.energy - 10,
+    % Update ship status for moved state
+    SHIP2 = SHIP#enterprise_status{
+        quadxy = QC, sectxy = SC, energy = E, impulse_course=LQCT},
+    case QC =/= SHIP#enterprise_status.quadxy of
+        true -> % change current quadrant
+            {SECT2, DKS2} = erltrek_setup:setup_sector(QC, DS, DI, DB, DH, DKQ),
+            ENT = array:get(erltrek_setup:sectxy_index(SC), SECT2),
+            case ENT =:= s_empty of
+                true -> % sector empty, move in
+                    io:format("impulse move cross-quadrant to ~b.~b/~b.~b~n",
                                 [QC#quadxy.x, QC#quadxy.y,
                                  SC#sectxy.x, SC#sectxy.y]),
-                            SHIP4 = SHIP3#enterprise_status{
-                                    quadxy = QC,
-                                    sectxy = SC,
-                                    impulse_course = LQCT},
-                            SECT3 = array:set(erltrek_setup:sectxy_index(SC), 
-                                        s_enterprise, SECT2),
-                            {SHIP4, NK, DS, DI, DB, DH, DKQ, SECT3, DKS2};
-                        false -> % sector already filled, fail to move
-                            io:format("impulse move: cross-quadrant step move failed, stop~n"),
-                            SHIP5 = SHIP#enterprise_status{
-                                    impulse_move = false,
-                                    impulse_course = [],
-                                    next_command = {}},
-                            io:format("impulse move back to ~b.~b/~b.~b~n",
-                                [SHIP5#enterprise_status.quadxy#quadxy.x,
-                                 SHIP5#enterprise_status.quadxy#quadxy.y,
-                                 SHIP5#enterprise_status.sectxy#sectxy.x,
-                                 SHIP5#enterprise_status.sectxy#sectxy.y]),
-                            {SHIP4, NK, DS, DI, DB, DH, DKQ, SECT, DKS}
-                    end;
-                false -> % in the same quadrant
-                    ENT2 = array:get(erltrek_setup:sectxy_index(SC), SECT),
-                    case ENT2 =:= s_empty of
-                        true -> % sector empty, move in
-                            io:format("impulse move to ~b.~b/~b.~b~n",
+                    % fill Enterprise in the new sector array 
+                    SECT3 = array:set(erltrek_setup:sectxy_index(SC), s_enterprise, SECT2),
+                    {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT3, DKS2};
+                false -> % sector already filled, fail to move
+                    io:format("impulse move: cross-quadrant step move failed, stop~n"),
+                    display_position(GameState),
+                    clear_status(GameState)
+            end;
+        false -> % in the same quadrant
+            ENT2 = array:get(erltrek_setup:sectxy_index(SC), SECT),
+            case ENT2 =:= s_empty of
+                true -> % sector empty, move in
+                    io:format("impulse move to ~b.~b/~b.~b~n",
                                 [QC#quadxy.x, QC#quadxy.y,
                                  SC#sectxy.x, SC#sectxy.y]),
-                            SECT4 = array:set(erltrek_setup:sectxy_index(
-                                        SHIP3#enterprise_status.sectxy),
+                    % clear Enterprise in the current sector array 
+                    SECT4 = array:set(erltrek_setup:sectxy_index(
+                                        SHIP#enterprise_status.sectxy),
                                         s_empty, SECT),
-                            SHIP6 = SHIP3#enterprise_status{
-                                    quadxy = QC,
-                                    sectxy = SC,
-                                    impulse_course = LQCT},
-                            SECT5 = array:set(erltrek_setup:sectxy_index(SC),
+                    % fill Enterprise in the current sector array 
+                    SECT5 = array:set(erltrek_setup:sectxy_index(SC),
                                         s_enterprise, SECT4),
-                            {SHIP6, NK, DS, DI, DB, DH, DKQ, SECT5, DKS};
-                        false -> % sector already filled, fail to move
-                            io:format("impulse move: step move failed, stop~n"),
-                            SHIP7 = SHIP#enterprise_status{
-                                    impulse_move = false,
-                                    impulse_course = [],
-                                    next_command = {}},
-                            io:format("impulse move back to ~b.~b/~b.~b~n",
-                                [SHIP7#enterprise_status.quadxy#quadxy.x,
-                                 SHIP7#enterprise_status.quadxy#quadxy.y,
-                                 SHIP7#enterprise_status.sectxy#sectxy.x,
-                                 SHIP7#enterprise_status.sectxy#sectxy.y]),
-                            {SHIP7, NK, DS, DI, DB, DH, DKQ, SECT, DKS}
-                end
-        end.
+                    {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT5, DKS};
+                false -> % sector already filled, fail to move
+                    io:format("impulse move: step move failed, stop~n"),
+                    display_position(GameState),
+                    clear_status(GameState)
+            end
+    end.
