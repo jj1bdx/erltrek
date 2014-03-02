@@ -187,14 +187,13 @@ condition_string(Condition) ->
 -spec srscan(game_state()) -> ok.
 
 srscan(GameState) ->
-    {Tick, SHIP, _NK, _DS, DI, _DB, _DH, DKQ, SECT, _DKS} = GameState,
+    {Tick, SHIP, NK, _DS, DI, _DB, _DH, _DKQ, SECT, _DKS} = GameState,
     DISP = orddict:from_list([
             {s_empty, $.}, {s_star, $*}, {s_enterprise, $E},
             {s_base, $#}, {s_inhabited, $@}, {s_klingon, $K},
             {s_hole, $H}]),
     LT = integer_to_list(Tick),
     {LT1, LT2} = lists:split(length(LT) - 2, LT),
-    NK = dict:fold(fun(_K, V, A) -> A + V end, 0, DKQ),
     STATUS = [
         io_lib:format("Stardate:      ~s.~s", [LT1, LT2]),
         io_lib:format("Position:      ~b,~b/~b,~b",
