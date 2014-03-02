@@ -94,11 +94,13 @@
 
 attack(GameState) ->
     {_Tick, _SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, DKS} = GameState,
-    case dict:size(DKS) == 0 of
-        true -> % no klingon, do nothing
-            GameState;
-        false ->
-            actual_attack(GameState)
+    % Attach if at least one Klingon is in the quadrant
+    % and do it only randomly once in 10 calls
+    case dict:size(DKS) > 0 andalso tinymt32:uniform(10) == 1 of 
+        true ->
+            actual_attack(GameState);
+        false -> % do nothing
+            GameState
     end.
 
 %% Klingon moves in the sector
@@ -108,11 +110,13 @@ attack(GameState) ->
 
 move(GameState) ->
     {_Tick, _SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, DKS} = GameState,
-    case dict:size(DKS) == 0 of
-        true -> % no klingon, do nothing
-            GameState;
-        false ->
-            actual_move(GameState)
+    % Attach if at least one Klingon is in the quadrant
+    % and do it only randomly once in five calls
+    case dict:size(DKS) > 0 andalso tinymt32:uniform(5) == 1 of 
+        true ->
+            actual_move(GameState);
+        false -> % do nothing
+            GameState
     end.
 
 %% Calculate distance between two sectors
