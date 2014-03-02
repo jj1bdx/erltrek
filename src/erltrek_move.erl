@@ -308,11 +308,11 @@ display_position(GameState) ->
          SHIP#enterprise_status.sectxy#sectxy.y]),
     GameState.
 
-%% on move: check whether moving path remains
+%% check whether moving path remains
 
--spec course_onmove(game_state()) -> game_state().
+-spec course_checkend(game_state()) -> {boolean(), game_state()}.
 
-course_onmove(GameState) ->
+course_checkend(GameState) ->
     {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
     LQC = SHIP#enterprise_status.impulse_course,
     case LQC of
@@ -320,10 +320,44 @@ course_onmove(GameState) ->
             io:format("impulse move done~n"),
             display_position(GameState),
             erltrek_scan:srscan(GameState),
-            clear_status(GameState);
-        [_H|_T] -> % moving to next sector
-            course_onmove_next(GameState)
+            clear_status(GameState),
+            {true, GameState};
+        [_H|_T] -> % do nothing if 
+            {false, GameState}
     end.
+
+%% check whether moving path remains
+%% if ends, terminate
+%% if remains, do nothing
+
+-spec course_checkend_noaction(game_state()) -> game_state().
+
+course_checkend_noaction(GameState) ->
+    {_, GameState2} = course_checkend(GameState),
+    GameState2.
+
+%% on move: check whether moving path remains
+%% if ends, terminate
+%% if remains, move to next sector
+
+-spec course_onmove(game_state()) -> game_state().
+
+course_onmove(GameState) ->
+    case course_checkend(GameState) of
+        {true, GameState2} -> % no more moving needed
+            GameState2;
+        {false, GameState3} -> % move to next sector
+            course_onmove_next(GameState3)
+    end.
+
+%% Force halt
+
+-spec force_halt(game_state()) -> game_state().
+
+force_halt(GameState) ->
+    display_position(GameState),
+    erltrek_scan:srscan(GameState),
+    clear_status(GameState).
 
 %% pick up next move
 
@@ -351,12 +385,10 @@ course_onmove_next(GameState) ->
                     GameState2 = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT3, DKS2},
                     % scan new sector status
                     erltrek_scan:srscan(GameState2),
-                    GameState2;
+                    course_checkend_noaction(GameState2);
                 false -> % sector already filled, fail to move
                     io:format("impulse move: cross-quadrant step move failed, stop~n"),
-                    display_position(GameState),
-                    erltrek_scan:srscan(GameState),
-                    clear_status(GameState)
+                    force_halt(GameState)
             end;
         false -> % in the same quadrant
             ENT2 = array:get(erltrek_setup:sectxy_index(SC), SECT),
@@ -372,11 +404,10 @@ course_onmove_next(GameState) ->
                     % fill Enterprise in the current sector array 
                     SECT5 = array:set(erltrek_setup:sectxy_index(SC),
                                         s_enterprise, SECT4),
-                    {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT5, DKS};
+                    GameState3 = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT5, DKS},
+                    course_checkend_noaction(GameState3);
                 false -> % sector already filled, fail to move
                     io:format("impulse move: step move failed, stop~n"),
-                    display_position(GameState),
-                    erltrek_scan:srscan(GameState),
-                    clear_status(GameState)
+                    force_halt(GameState)
             end
     end.
