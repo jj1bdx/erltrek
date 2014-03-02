@@ -141,13 +141,23 @@ track_course(SQC, SSC, DQC, DSC) ->
         out_of_bound ->
             out_of_bound;
         {ok, DIFFX, DIFFY, CDEG, DISTSD} ->
-            case abs(DIFFX) > abs(DIFFY) of
+            case DIFFX == 0 andalso DIFFY == 0 of
                 true ->
-                    LQC = list_track_x(SQC, SSC, DIFFX, DIFFY);
+                    LQC = [];
                 false ->
-                    LQC = list_track_y(SQC, SSC, DIFFX, DIFFY)
+                    LQC = list_track(SQC, SSC, DIFFX, DIFFY)
             end,
             {ok, DIFFX, DIFFY, CDEG, DISTSD, LQC}
+    end.
+
+-spec list_track(#quadxy{}, #sectxy{}, integer(), integer()) -> [{#quadxy{}, #sectxy{}}].
+
+list_track(SQC, SSC, DIFFX, DIFFY) ->
+    case abs(DIFFX) > abs(DIFFY) of
+        true ->
+            list_track_x(SQC, SSC, DIFFX, DIFFY);
+        false ->
+            list_track_y(SQC, SSC, DIFFX, DIFFY)
     end.
 
 -spec list_track_x(#quadxy{}, #sectxy{}, integer(), integer()) -> [{#quadxy{}, #sectxy{}}].
@@ -155,42 +165,46 @@ track_course(SQC, SSC, DQC, DSC) ->
 list_track_x(QC, SC, DIFFX, DIFFY) ->
     IX = ((QC#quadxy.x * ?NSECTS) + SC#sectxy.x),
     Y = float((QC#quadxy.y * ?NSECTS) + SC#sectxy.y),
-    DY = DIFFY / DIFFX,
-    list_track_x_elem(DIFFX, IX, Y, DY, []).
+    N = abs(DIFFX),
+    IDX = DIFFX div N,
+    DY = DIFFY / N,
+    list_track_x_elem(N, IX, IDX, Y, DY, []).
 
--spec list_track_x_elem(integer(), integer(), float(), float(), [{#quadxy{}, #sectxy{}}]) ->
-    [{#quadxy{}, #sectxy{}}].
+-spec list_track_x_elem(integer(), integer(), integer(), 
+    float(), float(), [{#quadxy{}, #sectxy{}}]) -> [{#quadxy{}, #sectxy{}}].
 
-list_track_x_elem(0, _IX, _Y, _DY, PATH) ->
+list_track_x_elem(0, _IX, _IDX, _Y, _DY, PATH) ->
     lists:reverse(PATH);
-list_track_x_elem(N, IX, Y, DY, PATH) ->
-    IX2 = IX + 1,
+list_track_x_elem(N, IX, IDX, Y, DY, PATH) ->
+    IX2 = IX + IDX,
     Y2 = Y + DY,
     IY = trunc(Y2 + 0.5),
     NQC = #quadxy{x = IX2 div ?NSECTS, y = IY div ?NSECTS},
     NSC = #sectxy{x = IX2 rem ?NSECTS, y = IY rem ?NSECTS},
-    list_track_x_elem(N - 1, IX2, Y2, DY, [{NQC, NSC}|PATH]).
+    list_track_x_elem(N - 1, IX2, IDX, Y2, DY, [{NQC, NSC}|PATH]).
 
 -spec list_track_y(#quadxy{}, #sectxy{}, integer(), integer()) -> [{#quadxy{}, #sectxy{}}].
 
 list_track_y(QC, SC, DIFFX, DIFFY) ->
     X = float((QC#quadxy.x * ?NSECTS) + SC#sectxy.x),
     IY = ((QC#quadxy.y * ?NSECTS) + SC#sectxy.y),
-    DX = DIFFX / DIFFY,
-    list_track_y_elem(DIFFY, X, IY, DX, []).
+    N = abs(DIFFY),
+    IDY = DIFFY div N,
+    DX = DIFFX / N,
+    list_track_y_elem(N, X, DX, IY, IDY, []).
 
--spec list_track_y_elem(integer(), float(), integer(), float(), [{#quadxy{}, #sectxy{}}]) ->
-    [{#quadxy{}, #sectxy{}}].
+-spec list_track_y_elem(integer(), float(), float(), 
+    integer(), integer(), [{#quadxy{}, #sectxy{}}]) -> [{#quadxy{}, #sectxy{}}].
 
-list_track_y_elem(0, _X, _IY, _DX, PATH) ->
+list_track_y_elem(0, _X, _DX, _IY, _IDY, PATH) ->
     lists:reverse(PATH);
-list_track_y_elem(N, X, IY, DX, PATH) ->
-    IY2 = IY + 1,
+list_track_y_elem(N, X, DX, IY, IDY, PATH) ->
+    IY2 = IY + IDY,
     X2 = X + DX,
     IX = trunc(X2 + 0.5),
     NQC = #quadxy{x = IX div ?NSECTS, y = IY2 div ?NSECTS},
     NSC = #sectxy{x = IX rem ?NSECTS, y = IY2 rem ?NSECTS},
-    list_track_y_elem(N - 1, X2, IY2, DX, [{NQC, NSC}|PATH]).
+    list_track_y_elem(N - 1, X2, DX, IY2, IDY, [{NQC, NSC}|PATH]).
 
 %% Calculate the destination coordinate from given coordinate
 %% and course (0-360 degrees)
@@ -295,12 +309,12 @@ display_position(GameState) ->
 course_onmove(GameState) ->
     {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
     LQC = SHIP#enterprise_status.impulse_course,
-    case LQC of
-        [] -> % no more moving needed
+    case length(LQC) > 0 of
+        true -> % moving to next sector
+            course_onmove_next(GameState);
+        false -> % no more moving needed
             io:format("impulse move done~n"),
-            clear_status(GameState);
-        [_H|_T] -> % moving to next sector
-            course_onmove_next(GameState)
+            clear_status(GameState)
     end.
 
 %% pick up next move
