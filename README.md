@@ -16,6 +16,7 @@
 
 * Game field setup
 * Impulse engine for Enterprise
+* Klingon firing to Enterprise
 
 ## How to run
 
