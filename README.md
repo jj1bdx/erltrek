@@ -12,11 +12,12 @@
     * Not too fast but not too slow
 * Start from a simplified model but make it extendable
 
-## Functions implemented
+## Functions implemented at tag `baselevel_20140302`
 
 * Game field setup
 * Impulse engine for Enterprise
 * Klingon firing to Enterprise
+* Enterprise firing phaser to Klingon
 
 ## How to run
 
