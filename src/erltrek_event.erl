@@ -132,7 +132,7 @@ enterprise_command(GameState) ->
         {} -> % do nothing
             GameState;
         _ -> % do nothing if something strange comes
-            io:format("~s:enterprise_command: unknown command: ~s~n",
+            io:format("~s:enterprise_command: unknown command: ~p~n",
                 [?MODULE, Command]),
             io:format("~s:enterprise_command: status cleared~n", [?MODULE]),
             clear_command_buffer(GameState)
