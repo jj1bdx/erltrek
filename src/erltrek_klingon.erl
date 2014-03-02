@@ -115,12 +115,77 @@ move(GameState) ->
             actual_move(GameState)
     end.
 
+%% Calculate distance between two sectors
+
+-spec sector_distance(#sectxy{}, #sectxy{}) -> float().
+
+sector_distance(SC, DC) ->
+    DX = SC#sectxy.x - DC#sectxy.x,
+    DY = SC#sectxy.y - DC#sectxy.y,
+    math:sqrt((DX*DX) + (DY*DY)).
+
 %% Klingon actual attacks in the sector
-%% {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState
 
 -spec actual_attack(game_state()) -> game_state().
 
-actual_attack(GameState) -> GameState. % skeleton
+actual_attack(GameState) ->
+    {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, DKS} = GameState,
+    ShipSC = SHIP#enterprise_status.sectxy,
+    LK = dict:fetch_keys(DKS),
+    LDIST = [sector_distance(SC, ShipSC) || SC <- LK],
+    % sorted with the distance
+    {LDIST2, LK2} = lists:unzip(lists:sort(
+            fun(A, B) -> {DA, _} = A, {DB, _} = B, DA =< DB end,
+            lists:zip(LDIST, LK))),
+    % attack from the closest one
+    perform_attack(LK2, LDIST2, GameState).
+
+%% Performing attack for each klingon
+
+-spec perform_attack([#sectxy{}], [float()], game_state()) -> game_state().
+
+perform_attack([], _, GameState) ->
+    GameState; % do nothing if klingon list is empty
+perform_attack(LK, LDIST, GameState) ->
+    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
+    [SK|LK2] = LK,
+    [SDIST|LDIST2] = LDIST,
+    [K] = dict:fetch(SK, DKS),
+    KE = K#klingon_status.energy,
+    case KE < 50 of
+        true -> % choose next one
+            perform_attack(LK2, LDIST2, GameState);
+        false -> % use this one to attack
+            % Use 30 - 50% of energy level
+            KBLAST = trunc(float(KE) * ((tinymt32:uniform() * 0.1) + 0.4)),
+            % Hit power
+            KHIT = trunc(float(KBLAST) * math:pow(0.9, float(SDIST)) * 0.8),
+            % Deplete energy from Klingon and update the dict
+            K2 = K#klingon_status{energy = KE - KBLAST},
+            % erase and append to the dict required
+            DKS2 = dict:append(SK, K2, dict:erase(SK, DKS)),
+            % subtract hitting energy from Enterprise
+            SHIPSHIELD = SHIP#enterprise_status.shield,
+            io:format("Klingon hit from sector ~b,~b level ~b~n",
+                [SK#sectxy.x, SK#sectxy.y, KHIT]),
+            % first subtract from shield
+            NSHIELD = SHIPSHIELD - KHIT,
+            case NSHIELD =< 0 of
+                true ->
+                    io:format("Shield gone~n"),
+                    DAMAGE = trunc(float(-NSHIELD * 1.3)) + 10,
+                    io:format("Damage level up to ~b~n", [DAMAGE]),
+                    NSHIPSHIELD = 0;
+                false ->
+                    io:format("Shield level down to ~b~n", [NSHIELD]),
+                    DAMAGE = 0,
+                    NSHIPSHIELD = NSHIELD
+            end,
+            SHIPENERGY = SHIP#enterprise_status.energy,
+            NENERGY = SHIPENERGY - DAMAGE,
+            SHIP2 = SHIP#enterprise_status{energy = NENERGY, shield = NSHIPSHIELD},
+            {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS2}
+    end.
 
 %% Klingon actual moves in the sector
 %% {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState
