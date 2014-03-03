@@ -25,5 +25,9 @@
 
 ## TODO
 
-* Dialyzer remote type issues incompatibility between R16B03-1 and 17.0-rc2 reported as in
-<http://erlang.org/pipermail/erlang-questions/2014-February/077945.html> and <http://erlang.org/pipermail/erlang-questions/2014-February/077955.html>.
+* Documentation in the source code (edoc or edown)
+* Eunit test cases
+* Porting to 17.0 (maps may replace most of dict functionality)
+* Note: dialyzer remote type issues incompatibility between R16B03-1 and 17.0-rc2 reported as in
+<http://erlang.org/pipermail/erlang-questions/2014-February/077945.html> and <http://erlang.org/pipermail/erlang-questions/2014-February/077955.html>; all -spec entries must be rewritten.
+
