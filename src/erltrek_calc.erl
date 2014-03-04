@@ -84,6 +84,7 @@
         course_distance/4,
         destination/4,
         sector_course/2,
+        sector_course_distance/2,
         sector_distance/2,
         track_course/4
      ]).
@@ -258,3 +259,20 @@ sector_course(SC, DC) ->
             CRAD2 = CRAD
     end,
     CRAD2 * 180 / math:pi().
+
+%% Calculate course and distance between two sectors
+%% course (0-360 degrees, 0: -X direction, clockwise (e.g., 90: +Y direction)),
+
+-spec sector_course_distance(#sectxy{}, #sectxy{}) -> {float(), float()}.
+
+sector_course_distance(SC, DC) ->
+    DX = DC#sectxy.x - SC#sectxy.x,
+    DY = DC#sectxy.y - SC#sectxy.y,
+    CRAD = math:atan2(DY, -DX),
+    case CRAD < 0 of
+        true ->
+            CRAD2 = (CRAD + (2 * math:pi()));
+        false ->
+            CRAD2 = CRAD
+    end,
+    {CRAD2 * 180 / math:pi(), math:sqrt((DX*DX) + (DY*DY))}.
