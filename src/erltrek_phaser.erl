@@ -126,8 +126,8 @@ prepare_phaser(SX, SY, ENERGY, GameState) ->
     % Calculate course for each Klingon
     COURSE = erltrek_calc:sector_course(ShipSC, #sectxy{x = SX, y = SY}),
     LK = dict:fetch_keys(DKS),
-    LDIST = [erltrek_calc:sector_distance(ShipSC, SC) || SC <- LK],
-    LCOURSE = [erltrek_calc:sector_course(ShipSC, SC) || SC <- LK],
+    {LCOURSE, LDIST} = lists:unzip(
+        [erltrek_calc:sector_course_distance(ShipSC, SC) || SC <- LK]),
     NewGameState = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS},
     hit_phaser(LK, LDIST, LCOURSE, ENERGY, COURSE, NewGameState).
 
