@@ -1,7 +1,7 @@
 # Erltrek: Star Trek Game in Erlang
 
 * Requirement: R16B03-1
-* License: BSD 3-clause (Note: tinymt-erlang has its own license)
+* License: BSD 3-clause (Note: tinymt-erlang has its own BSD license, compatible with this software)
 
 ## Goals
 
