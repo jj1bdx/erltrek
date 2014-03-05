@@ -110,15 +110,6 @@
 %% Initial Stardate * 100
 -define(INITTICK, 200000).
 
-%% check inside the quadrant
--define(INQUAD(X), ((X >= 0) andalso (X < ?NQUADS))).
--define(INQUAD2(X, Y), (?INQUAD(X) andalso ?INQUAD(Y))).
--define(INQUADQC(QC), (?INQUAD2(QC#quadxy.x, QC#quadxy.y))).
-%% check inside the sectors
--define(INSECT(X), ((X >= 0) andalso (X < ?NSECTS))).
--define(INSECT2(X, Y), (?INSECT(X) andalso ?INSECT(Y))).
--define(INSECTSC(SC), (?INSECT2(SC#sectxy.x, SC#sectxy.y))).
-
 %%% types and records
 
 %% see OTP lib/stdlib/src/orddict.erl
