@@ -99,7 +99,7 @@
 -spec quadstr(#quadxy{}, dict(), dict(), dict(), dict()) -> string().
 
 quadstr(QC, DS, DI, DB, DKQ) ->
-    case ?INQUADQC(QC) of
+    case erltrek_calc:in_quadxy(QC) of
         true ->
             case dict:is_key(QC, DS) of
                 true ->
@@ -138,7 +138,7 @@ quadstr(QC, DS, DI, DB, DKQ) ->
 lrscan_lines([], _LY, _DS, _DI, _DB, _DKQ) ->
     ok;
 lrscan_lines([X|LXT], LY, DS, DI, DB, DKQ) ->
-    SX = case ?INQUAD(X) of
+    SX = case erltrek_calc:in_quadrant(X) of
         true ->
             [32, $0 + X, 32, $!];
         false ->
@@ -160,7 +160,7 @@ lrscan(GameState) ->
     QY = QC#quadxy.y,
     LY = lists:seq(QY - 1, QY + 1),
     io:format("Long range scan for Quadrant ~b,~b~n", [QX, QY]),
-    SY = [case ?INQUAD(Y) of
+    SY = [case erltrek_calc:in_quadrant(Y) of
               true ->
                   "   " ++ [$0 + Y] ++ "  ";
               false ->
