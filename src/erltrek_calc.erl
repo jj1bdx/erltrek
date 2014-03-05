@@ -83,6 +83,12 @@
 -export([
         course_distance/4,
         destination/4,
+        in_quadrant/1,
+        in_quadrant/2,
+        in_quadxy/1,
+        in_sector/1,
+        in_sector/2,
+        in_sectxy/1,
         sector_course/2,
         sector_course_distance/2,
         sector_distance/2,
@@ -90,6 +96,38 @@
      ]).
 
 -include("erltrek.hrl").
+
+%% check inside the quadrant
+
+-spec in_quadrant(quadcoord()) -> boolean().
+
+in_quadrant(X) -> (X >= 0) andalso (X < ?NQUADS).
+
+-spec in_quadrant(quadcoord(), quadcoord()) -> boolean().
+
+in_quadrant(X, Y) ->
+    (X >= 0) andalso (X < ?NQUADS) andalso
+    (Y >= 0) andalso (Y < ?NQUADS).
+
+-spec in_quadxy(#quadxy{}) -> boolean().
+
+in_quadxy(QC) -> in_quadrant(QC#quadxy.x, QC#quadxy.y).
+
+%% check inside the sector
+
+-spec in_sector(sectcoord()) -> boolean().
+
+in_sector(X) -> (X >= 0) andalso (X < ?NSECTS).
+
+-spec in_sector(sectcoord(), sectcoord()) -> boolean().
+
+in_sector(X, Y) ->
+    (X >= 0) andalso (X < ?NSECTS) andalso
+    (Y >= 0) andalso (Y < ?NSECTS).
+
+-spec in_sectxy(#sectxy{}) -> boolean().
+
+in_sectxy(QC) -> in_sector(QC#sectxy.x, QC#sectxy.y).
 
 %% Calculate course and distance between two quad/sect coordinates
 %% Input: source #quadxy, #sectxy, dest #quadxy, #sectxy
@@ -103,8 +141,8 @@
     {ok, integer(), integer(), float(), float()} | out_of_bound.
 
 course_distance(SQC, SSC, DQC, DSC) ->
-    case ?INQUADQC(SQC) andalso ?INQUADQC(DQC) andalso
-        ?INSECTSC(SSC) andalso ?INSECTSC(DSC) of
+    case in_quadxy(SQC) andalso in_quadxy(DQC) andalso
+        in_sectxy(SSC) andalso in_sectxy(DSC) of
         true ->
             DIFFX = ((DQC#quadxy.x * ?NSECTS) + DSC#sectxy.x) -
                     ((SQC#quadxy.x * ?NSECTS) + SSC#sectxy.x),
@@ -227,7 +265,7 @@ destination(SQC, SSC, COURSE, DIST) ->
     DESTY = trunc(SY + DIFFY + 0.5),
     DESTQC = #quadxy{x = DESTX div ?NSECTS, y = DESTY div ?NSECTS},
     DESTSC = #sectxy{x = DESTX rem ?NSECTS, y = DESTY rem ?NSECTS},
-    case ?INQUADQC(DESTQC) andalso ?INSECTSC(DESTSC) of
+    case in_quadxy(DESTQC) andalso in_sectxy(DESTSC) of
         true ->
             {ok, DESTQC, DESTSC};
         false ->
