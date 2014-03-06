@@ -23,6 +23,11 @@
 
     erl -pa ebin -run erltrek_game start_link -run erltrek_game start_game
 
+## Another way to run
+
+    erl -args_file ./initgame.txt
+    % Discover src/e.erl for all the shortcuts
+   
 ## TODO
 
 * Documentation in the source code (edoc or edown)
