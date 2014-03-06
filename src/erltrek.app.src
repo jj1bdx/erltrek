@@ -5,6 +5,7 @@
     {registered, []},
     {modules, 
         [tinymt32,
+            e, %% is this OK?
             erltrek_calc,
             erltrek_event,
             erltrek_game,
