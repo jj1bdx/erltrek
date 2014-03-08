@@ -24,6 +24,11 @@
     ./game.sh
     % Discover src/e.erl for all the shortcuts
 
+## Or on Elixir iex?
+
+    iex -pa ./ebin -e ":erltrek_game.start_link" -e ":erltrek_game.start_game" -e ":e.s"
+    % This makes the command input faster...
+
 ## On random number initialization
 
 Seeding of tinymt32 module is intentionally omitted to make casual testing
