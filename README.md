@@ -28,6 +28,12 @@
     erl -args_file ./initgame.txt
     % Discover src/e.erl for all the shortcuts
    
+## Related YouTube Talk
+
+(Courtesy Erlang Solutions)
+
+* <http://youtu.be/1mJUhUDipuo>
+
 ## TODO
 
 * Documentation in the source code (edoc or edown)
