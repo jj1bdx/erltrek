@@ -21,14 +21,17 @@
 
 ## How to run
 
-    erl -pa ebin -run erltrek_game start_link -run erltrek_game start_game
-
-## Another way to run
-
-    erl -args_file ./initgame.txt
+    ./game.sh
     % Discover src/e.erl for all the shortcuts
-   
-## Related YouTube Talk
+
+## On random number initialization
+
+Seeding of tinymt32 module is intentionally omitted to make casual testing
+easier. The players will see the same internal state every time when
+`erltrek_game:game_start/0` is invoked.  *This feature will surely be removed
+in later versions.*
+
+## Related YouTube Talk at Erlang Factory SF Bay 2014
 
 (Courtesy Erlang Solutions)
 
