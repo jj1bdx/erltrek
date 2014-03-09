@@ -44,6 +44,7 @@ in later versions.*
 
 ## TODO
 
+* Introducing new Erlang process for asynchronous entities (=not synchronizing with the timer in `erltrek_game` gen\_server)
 * Documentation in the source code (edoc or edown)
 * Eunit test cases
 * Porting to 17.0 (maps may replace most of dict functionality)
