@@ -275,15 +275,16 @@ setup_galaxy_sector(QX, -1, LB, LI, DINAME, DS, DI, DB, DH) ->
 setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
     QC = #quadxy{x = QX, y = QY},
     SECT = init_sect(),
-    case lists:member(QC, LB) of
+    {SECT2, DB2} = case lists:member(QC, LB) of
         true ->
+            % fill the sector map
             SC = rand_sect(SECT),
-            SECT2 = array:set(sectxy_index(SC), s_base, SECT),
+            {array:set(sectxy_index(SC), s_base, SECT),
+            % add the base info
             % @todo add attacked, etc
-            DB2 = dict:append(QC, #base_info{xy = SC}, DB);
+            dict:append(QC, #base_info{xy = SC}, DB)};
         false ->
-            SECT2 = SECT,
-            DB2 = DB
+            {SECT, DB}
     end,
     case lists:member(QC, LI) of
         true ->
