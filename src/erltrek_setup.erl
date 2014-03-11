@@ -286,28 +286,28 @@ setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
         false ->
             {SECT, DB}
     end,
-    case lists:member(QC, LI) of
+    {NINHABITED, SECT3, DI2} = case lists:member(QC, LI) of
         true ->
-            NINHABITED = 1,
             SC2 = rand_sect(SECT),
-            SECT3 = array:set(sectxy_index(SC2), s_inhabited, SECT2),
             SYSTEMNAME = dict:fetch(QC, DINAME),
+            {1,
+            array:set(sectxy_index(SC2), s_inhabited, SECT2),
             % @todo add distressed, etc
-            DI2 = dict:append(QC, #inhabited_info{xy = SC2, systemname = SYSTEMNAME}, DI);
+            dict:append(QC,
+                #inhabited_info{xy = SC2,
+                    systemname = SYSTEMNAME},
+                DI)};
         false ->
-            NINHABITED = 0,
-            SECT3 = SECT2,
-            DI2 = DI
+            {0, SECT2, DI}
     end,
     % the number of stars includes the inhabited star
     NSTARS = tinymt32:uniform(9) - NINHABITED,
-    case NSTARS > 0 of
+    {SECT4, DS2} = case NSTARS > 0 of
         true ->
-            {SECT4, STARLIST} = gen_sect_list(NSTARS, s_star, SECT3),
-            DS2 = dict:append_list(QC, STARLIST, DS);
+            {SECT31, STARLIST} = gen_sect_list(NSTARS, s_star, SECT3),
+            {SECT31, dict:append_list(QC, STARLIST, DS)};
         false ->
-            SECT4 = SECT3,
-            DS2 = DS
+            {SECT3, DS}
     end,
     NHOLES = tinymt32:uniform(3) - 1,
     {_SECT5, HOLELIST} = gen_sect_list(NHOLES, s_hole, SECT4),
