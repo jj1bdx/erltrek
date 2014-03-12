@@ -149,11 +149,9 @@ course_distance(SQC, SSC, DQC, DSC) ->
             DIFFY = ((DQC#quadxy.y * ?NSECTS) + DSC#sectxy.y) -
                     ((SQC#quadxy.y * ?NSECTS) + SSC#sectxy.y),
             CRAD = math:atan2(DIFFY, -DIFFX),
-            case CRAD < 0 of
-                true ->
-                    CRAD2 = (CRAD + (2 * math:pi()));
-                false ->
-                    CRAD2 = CRAD
+            CRAD2 = case CRAD < 0 of
+                true -> (CRAD + (2 * math:pi()));
+                false -> CRAD
             end,
             CDEG = CRAD2 * 180 / math:pi(),
             DISTSD = math:sqrt((DIFFX * DIFFX) + (DIFFY * DIFFY)),
@@ -180,11 +178,9 @@ track_course(SQC, SSC, DQC, DSC) ->
         out_of_bound ->
             out_of_bound;
         {ok, DIFFX, DIFFY, CDEG, DISTSD} ->
-            case DIFFX == 0 andalso DIFFY == 0 of
-                true ->
-                    LQC = [];
-                false ->
-                    LQC = list_track(SQC, SSC, DIFFX, DIFFY)
+            LQC = case DIFFX == 0 andalso DIFFY == 0 of
+                true -> [];
+                false -> list_track(SQC, SSC, DIFFX, DIFFY)
             end,
             {ok, DIFFX, DIFFY, CDEG, DISTSD, LQC}
     end.
@@ -290,11 +286,9 @@ sector_course(SC, DC) ->
     DX = DC#sectxy.x - SC#sectxy.x,
     DY = DC#sectxy.y - SC#sectxy.y,
     CRAD = math:atan2(DY, -DX),
-    case CRAD < 0 of
-        true ->
-            CRAD2 = (CRAD + (2 * math:pi()));
-        false ->
-            CRAD2 = CRAD
+    CRAD2 = case CRAD < 0 of
+        true -> (CRAD + (2 * math:pi()));
+        false -> CRAD
     end,
     CRAD2 * 180 / math:pi().
 
@@ -307,10 +301,8 @@ sector_course_distance(SC, DC) ->
     DX = DC#sectxy.x - SC#sectxy.x,
     DY = DC#sectxy.y - SC#sectxy.y,
     CRAD = math:atan2(DY, -DX),
-    case CRAD < 0 of
-        true ->
-            CRAD2 = (CRAD + (2 * math:pi()));
-        false ->
-            CRAD2 = CRAD
+    CRAD2 = case CRAD < 0 of
+        true -> (CRAD + (2 * math:pi()));
+        false -> CRAD
     end,
     {CRAD2 * 180 / math:pi(), math:sqrt((DX*DX) + (DY*DY))}.
