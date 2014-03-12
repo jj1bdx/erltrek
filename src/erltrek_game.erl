@@ -146,7 +146,9 @@ handle_call({enterprise_command, Command}, _From, GameStateAndTimer) ->
             {reply, ok, NewGameStateAndTimer};
         false ->
             {reply, command_refused, GameStateAndTimer}
-    end.
+    end;
+handle_call(get_state, _From, State) ->
+    {reply, State, State}.
 
 terminate(normal, {Timer, _GameState}) ->
     erlang:cancel_timer(Timer),
