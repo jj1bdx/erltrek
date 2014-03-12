@@ -113,17 +113,13 @@ monitoring_game(GameState) ->
     NK2 = dict:fold(fun(_K, V, A) -> A + V end, 0, DKQ),
     % update ship condition
     OldCondition = SHIP#enterprise_status.condition,
-    case {dict:size(DKS) > 0,
+    Condition = case {dict:size(DKS) > 0,
           SHIP#enterprise_status.energy < 1000,
           SHIP#enterprise_status.docked} of
-        {_, _, true} ->
-            Condition = cond_docked;
-        {false, true, false} ->
-            Condition = cond_yellow;
-        {true, _, false} ->
-            Condition = cond_red;
-        {false, false, false} ->
-            Condition = cond_green
+        {_, _, true} -> cond_docked;
+        {false, true, false} -> cond_yellow;
+        {true, _, false} -> cond_red;
+        {false, false, false} -> cond_green
     end,
     case OldCondition =/= Condition of
         true ->
