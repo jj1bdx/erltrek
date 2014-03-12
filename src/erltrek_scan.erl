@@ -101,29 +101,21 @@
 quadstr(QC, DS, DI, DB, DKQ) ->
     case erltrek_calc:in_quadxy(QC) of
         true ->
-            case dict:is_key(QC, DS) of
-                true ->
-                    NS = length(dict:fetch(QC, DS));
-                false ->
-                    NS = 0
+            NS = case dict:is_key(QC, DS) of
+                true -> length(dict:fetch(QC, DS));
+                false -> 0
             end,
-            case dict:is_key(QC, DI) of
-                true ->
-                    NS2 = NS + 1;
-                false ->
-                    NS2 = NS
+            NS2 = case dict:is_key(QC, DI) of
+                true -> NS + 1;
+                false -> NS
             end,
-            case dict:is_key(QC, DB) of
-                true ->
-                    NB = 1;
-                false ->
-                    NB = 0
+            NB = case dict:is_key(QC, DB) of
+                true -> 1;
+                false -> 0
             end,
-            case dict:is_key(QC, DKQ) of
-                true ->
-                    NK = dict:fetch(QC, DKQ);
-                false ->
-                    NK = 0
+            NK = case dict:is_key(QC, DKQ) of
+                true -> dict:fetch(QC, DKQ);
+                false -> 0
             end,
             [$0 + NK, $0 + NB, $0 + NS2];
         false ->
@@ -229,13 +221,14 @@ srscan_xline(X, SL, SECT, DISP) ->
     io:format("~c ", [X + $0]),
     srscan_ypos(0, X, SECT, DISP),
     io:format("~c  ", [X + $0]),
-    case length(SL) > 0 of
+    SL2 = case length(SL) > 0 of
         true ->
-            [H|SL2] = SL,
-            io:format("~s~n", [H]);
+            [H|T] = SL,
+            io:format("~s~n", [H]),
+            T;
         false ->
-            SL2 = SL,
-            io:format("~n")
+            io:format("~n"),
+            SL
     end,
     srscan_xline(X + 1, SL2, SECT, DISP).
     
