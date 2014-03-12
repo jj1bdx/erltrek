@@ -9,6 +9,9 @@ compile:
 clean:
 	$(REBAR) clean
 
+dialyzer:
+	dialyzer src/*.erl
+
 doc:
 	$(REBAR) doc
 
