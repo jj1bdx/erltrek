@@ -165,16 +165,15 @@ perform_attack(LK, LDIST, GameState) ->
                 [SK#sectxy.x, SK#sectxy.y, KHIT]),
             % first subtract from shield
             NSHIELD = SHIPSHIELD - KHIT,
-            case NSHIELD =< 0 of
+            {DAMAGE, NSHIPSHIELD} = case NSHIELD =< 0 of
                 true ->
                     io:format("Shield gone~n"),
-                    DAMAGE = trunc(float(-NSHIELD * 1.3)) + 10,
-                    io:format("Damage level up to ~b~n", [DAMAGE]),
-                    NSHIPSHIELD = 0;
+                    DAMAGELEVEL = trunc(float(-NSHIELD * 1.3)) + 10,
+                    io:format("Damage level up to ~b~n", [DAMAGELEVEL]),
+                    {DAMAGELEVEL, 0};
                 false ->
                     io:format("Shield level down to ~b~n", [NSHIELD]),
-                    DAMAGE = 0,
-                    NSHIPSHIELD = NSHIELD
+                    {0, NSHIELD}
             end,
             SHIPENERGY = SHIP#enterprise_status.energy,
             NENERGY = SHIPENERGY - DAMAGE,
