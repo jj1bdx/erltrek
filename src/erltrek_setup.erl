@@ -323,28 +323,27 @@ setup_klingon_numbers(0, DKQ) ->
     DKQ;
 setup_klingon_numbers(NKALL, DKQ) ->
     N = tinymt32:uniform(4),
-    case N > NKALL of
+    NKADD = case N > NKALL of
         true ->
-            NKADD = NKALL;
+            NKALL;
         false ->
-            NKADD = N
+            N
     end,
     QC = #quadxy{x = tinymt32:uniform(?NQUADS) - 1,
                  y = tinymt32:uniform(?NQUADS) - 1},
-    case dict:is_key(QC, DKQ) of
+    NKOLD = case dict:is_key(QC, DKQ) of
         true ->
-            NKOLD = dict:fetch(QC, DKQ);
+            dict:fetch(QC, DKQ);
         false ->
-            NKOLD = 0
+            0
     end,
     NKNEW = NKOLD + NKADD,
-    case NKNEW =< ?MAXKLQUAD of
+    {DKQ2, NKALL2} = case NKNEW =< ?MAXKLQUAD of
         true ->
-            DKQ2 = dict:store(QC, NKNEW, DKQ),
-            NKALL2 = NKALL - NKNEW;
+            {dict:store(QC, NKNEW, DKQ),
+                NKALL - NKNEW};
         false ->
-            DKQ2 = DKQ,
-            NKALL2 = NKALL
+            {DKQ, NKALL}
     end,
     setup_klingon_numbers(NKALL2, DKQ2).
 
@@ -387,48 +386,42 @@ fill_klingons(N, SECT, DKS) ->
 setup_sector(QC, DS, DI, DB, DH, DKQ) ->
     SECT = init_sect(),
     % stars
-    case dict:is_key(QC, DS) of
+    SECT2 = case dict:is_key(QC, DS) of
         true ->
-            LS = dict:fetch(QC, DS),
-            SECT2 = fill_sector(LS, s_star, SECT);
+            fill_sector(dict:fetch(QC, DS), s_star, SECT);
         false ->
-            SECT2 = SECT
+            SECT
     end,
     % inhabited systems
-    case dict:is_key(QC, DI) of
+    SECT3 = case dict:is_key(QC, DI) of
         true ->
-            LI = dict:fetch(QC, DI),
-            [TI] = LI,
-            SECT3 = fill_sector([TI#inhabited_info.xy], s_inhabited, SECT2);
+            [TI] = dict:fetch(QC, DI),
+            fill_sector([TI#inhabited_info.xy], s_inhabited, SECT2);
         false ->
-            SECT3 = SECT2
+            SECT2
     end,
     % bases
-    case dict:is_key(QC, DB) of
+    SECT4 = case dict:is_key(QC, DB) of
         true ->
-            LB = dict:fetch(QC, DB),
-            [TB] = LB,
-            SECT4 = fill_sector([TB#base_info.xy], s_base, SECT3);
+            [TB] = dict:fetch(QC, DB),
+            fill_sector([TB#base_info.xy], s_base, SECT3);
         false ->
-            SECT4 = SECT3
+            SECT3
     end,
     % holes
-    case dict:is_key(QC, DH) of
+    SECT5 = case dict:is_key(QC, DH) of
         true ->
-            LH = dict:fetch(QC, DH),
-            SECT5 = fill_sector(LH, s_hole, SECT4);
+            fill_sector(dict:fetch(QC, DH), s_hole, SECT4);
         false ->
-            SECT5 = SECT4
+            SECT4
     end,
     % klingons
     DKS = dict:new(),
-    case dict:is_key(QC, DKQ) of
+    {SECT6, DKS2} = case dict:is_key(QC, DKQ) of
         true ->
-            NH = dict:fetch(QC, DKQ),
-            {SECT6, DKS2} = fill_klingons(NH, SECT5, DKS);
+            fill_klingons(dict:fetch(QC, DKQ), SECT5, DKS);
         false ->
-            SECT6 = SECT5,
-            DKS2 = DKS
+            {SECT5, DKS}
     end,
     {SECT6, DKS2}.
 
@@ -451,12 +444,12 @@ setup_state() ->
     {NK, DS, DI, DB, DH, DKQ} = erltrek_setup:setup_galaxy(),
     % put enterprise to where a base resides if possible
     LB = dict:fetch_keys(DB),
-    case length(LB) > 0 of
+    QC = case length(LB) > 0 of
         true ->
-            QC = hd(LB);
+            hd(LB);
         false ->
-            QC = #quadxy{x = tinymt32:uniform(?NQUADS) - 1,
-                         y = tinymt32:uniform(?NQUADS) - 1}
+            #quadxy{x = tinymt32:uniform(?NQUADS) - 1,
+                    y = tinymt32:uniform(?NQUADS) - 1}
     end,
     {SECT, DKS} = erltrek_setup:setup_sector(QC, DS, DI, DB, DH, DKQ),
     % put enterprise in the current quadrant
