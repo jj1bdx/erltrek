@@ -51,3 +51,13 @@ in later versions.*
 * Note: dialyzer remote type issues incompatibility between R16B03-1 and 17.0-rc2 reported as in
 <http://erlang.org/pipermail/erlang-questions/2014-February/077945.html> and <http://erlang.org/pipermail/erlang-questions/2014-February/077955.html>; all -spec entries must be rewritten.
 
+## Acknowledgments
+
+* Andreas Stenius
+* Cimarron Taylor
+* Eric Allman
+* Francesco Cesarini
+* Fréd Hébert
+* Kyoko Rikitake
+* Loïc Hoguin
+* Robert Virding
