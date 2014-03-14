@@ -1,4 +1,4 @@
-%%% --------------------------------------------------------------------
+%%% -------------------------------------------------------------------
 %%% Erltrek ("this software") is covered under the BSD 3-clause
 %%% license.
 %%%
@@ -6,6 +6,7 @@
 %%% California, Berkeley and its contributors.
 %%%
 %%% Copyright (c) 2014 Kenji Rikitake. All rights reserved.
+%%% Copyright (c) 2014 Andreas Stenius. All rights reserved.
 %%%
 %%% Redistribution and use in source and binary forms, with or without
 %%% modification, are permitted provided that the following conditions
@@ -78,103 +79,100 @@
 %%% [End of LICENSE]
 %%% --------------------------------------------------------------------
 
--module(erltrek_game).
--behaviour(gen_server).
+-module(erltrek_terminal).
 
--export([
-         code_change/3,
-         enterprise_command/1,
-         handle_call/3,
-         handle_cast/2,
-         handle_info/2,
-         init/1,
-         lose/1,
-         start_game/0,
-         start_link/0,
-         start_link/1,
-         stop/0,
-         terminate/2,
-         won/1
-     ]).
+-export([init/1, handle_event/2, terminate/2]).
 
 -include("erltrek.hrl").
 
-%% public APIs
+init(_Args) -> {ok, []}.
 
-start_link() ->
-    start_link([]).
+terminate(_Arg, _State) -> ok.
 
-start_link(Args) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, Args, []).
-
-start_game() ->
-    gen_server:call(?MODULE, start_game).
-
-stop() ->
-    gen_server:cast(?MODULE, {stop, stop}).
-
-lose(Message) ->
-    gen_server:cast(?MODULE, {stop, {lose, Message}}).
-
-won(Message) ->
-    gen_server:cast(?MODULE, {stop, {won, Message}}).
-
-enterprise_command(Command) ->
-    gen_server:call(?MODULE, {enterprise_command, Command}).
-
-%% Callbacks
-
-init([]) ->
-    %% todo: add application and supervisor infrastructure to get proper startup sequence..
-    %%       for now, simply get it running..
-    ok = erltrek_event:start_link([{erltrek_terminal, []}]),
-
-    {ok, []}.
-
-handle_call(start_game, _From, _State) ->
-    % Initialize {Tick,SHIP,NK,DS,DI,DB,DH,DKQ,SECT,DKS} 
-    InitState = erltrek_setup:setup_state(),
-    % wait one second to start the game
-    Timer = erlang:send_after(1000, self(), tick_event),
-    % build gen_server State
-    GameStateAndTimer = {Timer, InitState},
-    {reply, ok, GameStateAndTimer};
-handle_call({enterprise_command, Command}, _From, GameStateAndTimer) ->
-    {Timer, GameState} = GameStateAndTimer,
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
-    case SHIP#enterprise_status.next_command =:= {} of
-        true ->
-            SHIP2 = SHIP#enterprise_status{next_command = Command},
-            NewGameState = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS},
-            NewGameStateAndTimer = {Timer, NewGameState},
-            {reply, ok, NewGameStateAndTimer};
-        false ->
-            {reply, command_refused, GameStateAndTimer}
-    end;
-handle_call(get_state, _From, State) ->
-    {reply, State, State}.
-
-terminate(normal, {Timer, _GameState}) ->
-    erlang:cancel_timer(Timer),
-    ok.
-
-code_change(_OldVsn, State, _Extra) ->
-        {ok, State}.
-
-handle_cast({stop, Event}, State) ->
-    ok = erltrek_event:sync_notify(Event),
-    {stop, normal, State}.
-
-handle_info(tick_event, GameStateAndTimer) ->
-    {OldTimer, GameState} = GameStateAndTimer,
-    erlang:cancel_timer(OldTimer),
-    % do interval timer task here
-    % CAUTION: DO NOT change Tick value inside!
-    NewGameState = erltrek_event:timer_tasks(GameState),
-    % increment tick counter and restart timer
-    NewTimer = erlang:send_after(?TICK_INTERVAL, self(), tick_event),
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = NewGameState,
-    NewGameState2 = {Tick + 1, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS},
-    NewGameStateAndTimer = {NewTimer, NewGameState2},
-    {noreply, NewGameStateAndTimer}.
-
+handle_event({lost, Message}, State) ->
+    ok = io:format("Game lost: ~s~n", [Message]),
+    {ok, State};
+handle_event({won, Message}, State) ->
+    ok = io:format("Game won: ~s~n", [Message]),
+    {ok, State};
+handle_event(stop, State) ->
+    ok = io:format("Game stopped~n"),
+    {ok, State};
+handle_event({move, out_of_bound}, State) ->
+    ok = io:format("impulse move: course out of bound~n"),
+    {ok, State};
+handle_event({move, CDEG, DISTSD}, State) ->
+    ok = io:format("impulse move: course = ~.1f, distance = ~.1f~n",
+                   [CDEG, DISTSD]),
+    {ok, State};
+handle_event({move_quad, QC, SC}, State) ->
+    ok = io:format("impulse move cross-quadrant to ~b,~b/~b,~b~n",
+                   [QC#quadxy.x, QC#quadxy.y,
+                    SC#sectxy.x, SC#sectxy.y]),
+    {ok, State};
+handle_event({move_quad, failed}, State) ->
+    ok = io:format("impulse move: cross-quadrant step move failed, stop~n"),
+    {ok, State};
+handle_event({move_sect, QC, SC}, State) ->
+    ok = io:format("impulse move to ~b,~b/~b,~b~n",
+                   [QC#quadxy.x, QC#quadxy.y,
+                    SC#sectxy.x, SC#sectxy.y]),
+    {ok, State};
+handle_event({move_sect, failed}, State) ->
+    ok = io:format("impulse move: step move failed, stop~n"),
+    {ok, State};
+handle_event(move_done, State) ->
+    ok = io:format("impulse move done~n"),
+    {ok, State};
+handle_event({display_position, GameState}, State) ->
+    {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
+    ok = io:format("Current position: ~b,~b/~b,~b~n",
+                   [SHIP#enterprise_status.quadxy#quadxy.x,
+                    SHIP#enterprise_status.quadxy#quadxy.y,
+                    SHIP#enterprise_status.sectxy#sectxy.x,
+                    SHIP#enterprise_status.sectxy#sectxy.y]),
+    {ok, State};
+handle_event({lrscan, GameState}, State) ->
+    ok = io:format("~s", [erltrek_scan:lrscan_string(GameState)]),
+    {ok, State};
+handle_event({srscan, GameState}, State) ->
+    ok = io:format("~s", [erltrek_scan:srscan_string(GameState)]),
+    {ok, State};
+handle_event({hit, SK, KHIT}, State) ->
+    ok = io:format("Klingon hit from sector ~b,~b level ~b~n",
+                   [SK#sectxy.x, SK#sectxy.y, KHIT]),
+    {ok, State};
+handle_event({phaser_hit, SK, HIT}, State) ->
+    ok = io:format("Phaser hit to Klingon at sector ~b,~b level ~b~n",
+                   [SK#sectxy.x, SK#sectxy.y, HIT]),
+    {ok, State};
+handle_event({killed, SK}, State) ->
+    ok = io:format("Klingon at sector ~b,~b killed~n",
+                   [SK#sectxy.x, SK#sectxy.y]),
+    {ok, State};
+handle_event(shields_gone, State) ->
+    ok = io:format("Shield gone~n"),
+    {ok, State};
+handle_event({damage_level, DAMAGELEVEL}, State) ->
+    ok = io:format("Damage level up to ~b~n", [DAMAGELEVEL]),
+    {ok, State};
+handle_event({shield_level, NSHIELD}, State) ->
+    ok = io:format("Shield level down to ~b~n", [NSHIELD]),
+    {ok, State};
+handle_event({condition, Condition}, State) ->
+    ok = io:format("Condition changed to: ~s~n",
+                   [erltrek_scan:condition_string(Condition)]),
+    {ok, State};
+handle_event({unknown_command, Command}, State) ->
+    ok = io:format("enterprise_command: unknown command: ~p~n", [Command]),
+    ok = io:format("enterprise_command: status cleared~n", []),
+    {ok, State};
+handle_event(no_target, State) ->
+    ok = io:format("No Klingon in sector, phaser not fired~n"),
+    {ok, State};
+handle_event(fire_level, State) ->
+    ok = io:format("Firing level exceeds availably energy, phaser not fired~n"),
+    {ok, State};
+handle_event(Event, State) ->
+    ok = io:format("~p: unknown event: ~p~n", [?MODULE, Event]),
+    {ok, State}.

@@ -13,7 +13,8 @@
             erltrek_move,
             erltrek_phaser,
             erltrek_scan,
-            erltrek_setup
+            erltrek_setup,
+            erltrek_terminal
         ]},
     {applications, [kernel, stdlib]}
 ]}.
