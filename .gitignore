@@ -1,3 +1,4 @@
 ebin
 .rebar
 TAGS
+erl_crash.dump

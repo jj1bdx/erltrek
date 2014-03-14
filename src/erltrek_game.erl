@@ -125,10 +125,6 @@ enterprise_command(Command) ->
 %% Callbacks
 
 init([]) ->
-    %% todo: add application and supervisor infrastructure to get proper startup sequence..
-    %%       for now, simply get it running..
-    ok = erltrek_event:start_link([{erltrek_terminal, []}]),
-
     {ok, []}.
 
 handle_call(start_game, _From, _State) ->

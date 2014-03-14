@@ -2,7 +2,8 @@
 {application, erltrek,
  [{description, "An Erlang Star Trek game"},
   {vsn, git},
-  {env, []},
   {registered, [erltrek_game, erltrek_event]},
-  {applications, [kernel, stdlib]}
+  {applications, [kernel, stdlib]},
+  {mod, {erltrek_app, []}},
+  {env, []}
  ]}.

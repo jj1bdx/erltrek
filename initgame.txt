@@ -1,6 +1,6 @@
 # Initialize the trek game
 # Use this as erl -args_file ./initgame.txt
 -pa ./ebin
--run erltrek_game start_link
+-run erltrek start
 -run erltrek_game start_game
 -run e s
