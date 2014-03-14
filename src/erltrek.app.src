@@ -1,20 +1,8 @@
-{application, erltrek, [
-    {description, "An Erlang Star Trek game"},
-    {vsn, "0.0.0"},
-    {env, []},
-    {registered, []},
-    {modules, 
-        [tinymt32,
-            e, %% is this OK?
-            erltrek_calc,
-            erltrek_event,
-            erltrek_game,
-            erltrek_klingon,
-            erltrek_move,
-            erltrek_phaser,
-            erltrek_scan,
-            erltrek_setup,
-            erltrek_terminal
-        ]},
-    {applications, [kernel, stdlib]}
-]}.
+%% -*- erlang -*-
+{application, erltrek,
+ [{description, "An Erlang Star Trek game"},
+  {vsn, git},
+  {env, []},
+  {registered, [erltrek_game, erltrek_event]},
+  {applications, [kernel, stdlib]}
+ ]}.
