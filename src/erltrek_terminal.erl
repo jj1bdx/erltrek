@@ -5,8 +5,8 @@
 %%% This product includes software developed by the University of
 %%% California, Berkeley and its contributors.
 %%%
-%%% Copyright (c) 2014 Kenji Rikitake. All rights reserved.
-%%% Copyright (c) 2014 Andreas Stenius. All rights reserved.
+%%% Copyright (c) 2014 Kenji Rikitake and Andreas Stenius.
+%%% All rights reserved.
 %%%
 %%% Redistribution and use in source and binary forms, with or without
 %%% modification, are permitted provided that the following conditions
@@ -20,10 +20,10 @@
 %%%   disclaimer in the documentation and/or other materials provided
 %%%   with the distribution.
 %%%
-%%% * Neither the name of Kenji Rikitake, k2r.org, nor the names of
-%%%   its contributors may be used to endorse or promote products
-%%%   derived from this software without specific prior written
-%%%   permission.
+%%% * Neither the name of Kenji Rikitake, Andreas Stenius, k2r.org,
+%%%   nor the names of its contributors may be used to endorse or
+%%%   promote products derived from this software without specific
+%%%   prior written permission.
 %%%
 %%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 %%% CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
