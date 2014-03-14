@@ -123,12 +123,11 @@ course_init(QX, QY, SX, SY, GameState) ->
             #quadxy{x = QX, y = QY},
             #sectxy{x = SX, y = SY}) of
         out_of_bound ->
-            io:format("impulse move: course out of bound~n"),
+            erltrek_event:notify({move, out_of_bound}),
             % clear command buffer
             erltrek_event:clear_command_buffer(GameState);
         {ok, _DIFFX, _DIFFY, CDEG, DISTSD, LQC} ->
-            io:format("impulse move: course = ~.1f, distance = ~.1f~n",
-                [CDEG, DISTSD]),
+            erltrek_event:notify({move, CDEG, DISTSD}),
             % decrease energy at this point
             E = SHIP#enterprise_status.energy -
                 trunc(DISTSD * 10 + 0.5),
@@ -154,12 +153,7 @@ clear_status(GameState) ->
 -spec display_position(game_state()) -> game_state().
 
 display_position(GameState) ->
-    {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
-    io:format("Current position: ~b,~b/~b,~b~n",
-        [SHIP#enterprise_status.quadxy#quadxy.x,
-         SHIP#enterprise_status.quadxy#quadxy.y,
-         SHIP#enterprise_status.sectxy#sectxy.x,
-         SHIP#enterprise_status.sectxy#sectxy.y]),
+    erltrek_event:notify({display_position, GameState}),
     GameState.
 
 %% check whether moving path remains
@@ -171,7 +165,7 @@ course_checkend(GameState) ->
     LQC = SHIP#enterprise_status.impulse_course,
     case LQC of
         [] -> % no more moving needed
-            io:format("impulse move done~n"),
+            erltrek_event:notify(move_done),
             display_position(GameState),
             GameState2 = clear_status(GameState),
             {true, GameState2};
@@ -229,24 +223,20 @@ course_onmove_next(GameState) ->
             ENT = array:get(erltrek_setup:sectxy_index(SC), SECT2),
             case ENT =:= s_empty of
                 true -> % sector empty, move in
-                    io:format("impulse move cross-quadrant to ~b,~b/~b,~b~n",
-                                [QC#quadxy.x, QC#quadxy.y,
-                                 SC#sectxy.x, SC#sectxy.y]),
+                    erltrek_event:notify({move_quad, QC, SC}),
                     % fill Enterprise in the new sector array
                     SECT3 = array:set(erltrek_setup:sectxy_index(SC), s_enterprise, SECT2),
                     GameState2 = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT3, DKS2},
                     course_checkend_noaction(GameState2);
                 false -> % sector already filled, fail to move
-                    io:format("impulse move: cross-quadrant step move failed, stop~n"),
+                    erltrek_event:notify({move_quad}),
                     force_halt(GameState)
             end;
         false -> % in the same quadrant
             ENT2 = array:get(erltrek_setup:sectxy_index(SC), SECT),
             case ENT2 =:= s_empty of
                 true -> % sector empty, move in
-                    io:format("impulse move to ~b,~b/~b,~b~n",
-                                [QC#quadxy.x, QC#quadxy.y,
-                                 SC#sectxy.x, SC#sectxy.y]),
+                    erltrek_event:notify({move_sect, QC, SC}),
                     % clear Enterprise in the current sector array
                     SECT4 = array:set(erltrek_setup:sectxy_index(
                                         SHIP#enterprise_status.sectxy),
@@ -257,7 +247,7 @@ course_onmove_next(GameState) ->
                     GameState3 = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT5, DKS},
                     course_checkend_noaction(GameState3);
                 false -> % sector already filled, fail to move
-                    io:format("impulse move: step move failed, stop~n"),
+                    erltrek_event:notify({move_sect, failed}),
                     force_halt(GameState)
             end
     end.

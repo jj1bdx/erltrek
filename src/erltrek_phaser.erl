@@ -98,7 +98,7 @@ phaser(SX, SY, ENERGY, GameState) ->
         true ->
             fire_phaser(SX, SY, ENERGY, GameState);
         false -> % do nothing
-            io:format("No Klingon in sector, phaser not fired~n"),
+            erltrek_event:notify(no_target),
             GameState
     end.
 
@@ -111,7 +111,7 @@ fire_phaser(SX, SY, ENERGY, GameState) ->
         true ->
             prepare_phaser(SX, SY, ENERGY, GameState);
         false -> % cannot fire because of exceeding energy level
-            io:format("Firing level exceeds availably energy, phaser not fired~n"),
+            erltrek_event:notify(fire_level),
             GameState
     end.
 
@@ -146,13 +146,13 @@ hit_phaser(LK, LDIST, LCOURSE, ENERGY, COURSE, GameState) ->
     [K] = dict:fetch(SK, DKS),
     KE = K#klingon_status.energy,
     % Calculate hitting level
+    %% debug print?
     io:format("ENERGY = ~b COURSE = ~.1f SDIST = ~.1f SCOURSE = ~.1f~n",
                 [ENERGY, COURSE, SDIST, SCOURSE]),
     HIT = trunc(float(ENERGY) * math:pow(0.9, float(SDIST)) *
                 math:exp(-0.7 * abs((SCOURSE - COURSE)/2.0))),
+    erltrek_event:notify({phaser_hit, SK, HIT}),
     % Deplete energy from Klingon and update the dict
-    io:format("Phaser hit to Klingon at sector ~b,~b level ~b~n",
-                [SK#sectxy.x, SK#sectxy.y, HIT]),
     NKE = KE - HIT,
     case NKE > 0 of
         true -> % klingon is alive
@@ -161,8 +161,7 @@ hit_phaser(LK, LDIST, LCOURSE, ENERGY, COURSE, GameState) ->
             GameState2 = {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS2},
             hit_phaser(LK2, LDIST2, LCOURSE2, ENERGY, COURSE, GameState2);
         false -> % klingon is killed
-            io:format("Klingon at sector ~b,~b killed~n",
-                [SK#sectxy.x, SK#sectxy.y]),
+            erltrek_event:notify({killed, SK}),
             QC = SHIP#enterprise_status.quadxy,
             DKQ2 = dict:store(QC, dict:fetch(QC, DKQ) - 1, DKQ),
             DKS3 = dict:erase(SK, DKS),

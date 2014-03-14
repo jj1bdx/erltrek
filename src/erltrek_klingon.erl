@@ -161,18 +161,17 @@ perform_attack(LK, LDIST, GameState) ->
             DKS2 = dict:append(SK, K2, dict:erase(SK, DKS)),
             % subtract hitting energy from Enterprise
             SHIPSHIELD = SHIP#enterprise_status.shield,
-            io:format("Klingon hit from sector ~b,~b level ~b~n",
-                [SK#sectxy.x, SK#sectxy.y, KHIT]),
+            erltrek_event:notify({hit, SK, KHIT}),
             % first subtract from shield
             NSHIELD = SHIPSHIELD - KHIT,
             {DAMAGE, NSHIPSHIELD} = case NSHIELD =< 0 of
                 true ->
-                    io:format("Shield gone~n"),
+                    erltrek_event:notify(shields_gone),
                     DAMAGELEVEL = trunc(float(-NSHIELD * 1.3)) + 10,
-                    io:format("Damage level up to ~b~n", [DAMAGELEVEL]),
+                    erltrek_event:notify({damage_level, DAMAGELEVEL}),
                     {DAMAGELEVEL, 0};
                 false ->
-                    io:format("Shield level down to ~b~n", [NSHIELD]),
+                    erltrek_event:notify({shield_level, NSHIELD}),
                     {0, NSHIELD}
             end,
             SHIPENERGY = SHIP#enterprise_status.energy,

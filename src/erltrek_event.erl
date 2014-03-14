@@ -80,12 +80,31 @@
 
 -module(erltrek_event).
 
--export([
-        clear_command_buffer/1,
-        timer_tasks/1
+-export([clear_command_buffer/1,
+         timer_tasks/1,
+
+         start_link/1,
+         notify/1,
+         sync_notify/1
         ]).
 
 -include("erltrek.hrl").
+
+-spec start_link(Handlers) -> ok when
+      Handlers :: list({atom(), term()}).
+
+start_link(Handlers) ->
+    {ok, _} = gen_event:start_link({local, ?MODULE}),
+    [ok = gen_event:add_handler(?MODULE, Handler, Args)
+     || {Handler, Args} <- Handlers],
+    ok.
+
+-spec notify(term()) -> ok.
+notify(Event) -> gen_event:notify(?MODULE, Event).
+
+-spec sync_notify(term()) -> ok.
+sync_notify(Event) -> gen_event:sync_notify(?MODULE, Event).
+
 
 %% Do timer tasks
 %% Input and output:
@@ -122,11 +141,8 @@ monitoring_game(GameState) ->
         {false, false, false} -> cond_green
     end,
     case OldCondition =/= Condition of
-        true ->
-            io:format("Condition changed to: ~s~n",
-                [erltrek_scan:condition_string(Condition)]);
-        false ->
-            ok % do nothing
+        true -> notify({condition, Condition});
+        false -> ok % do nothing
     end,
     SHIP2 = SHIP#enterprise_status{condition = Condition},
     {Tick, SHIP2, NK2, DS, DI, DB, DH, DKQ, SECT, DKS}.
@@ -167,9 +183,7 @@ enterprise_command(GameState) ->
         {} -> % do nothing
             GameState;
         _ -> % do nothing if something strange comes
-            io:format("~s:enterprise_command: unknown command: ~p~n",
-                [?MODULE, Command]),
-            io:format("~s:enterprise_command: status cleared~n", [?MODULE]),
+            notify({unknown_command, Command}),
             clear_command_buffer(GameState)
     end.
 
