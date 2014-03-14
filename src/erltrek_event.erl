@@ -94,10 +94,10 @@
       Handlers :: list({atom(), term()}).
 
 start_link(Handlers) ->
-    {ok, _} = gen_event:start_link({local, ?MODULE}),
+    {ok, Pid} = gen_event:start_link({local, ?MODULE}),
     [ok = gen_event:add_handler(?MODULE, Handler, Args)
      || {Handler, Args} <- Handlers],
-    ok.
+    {ok, Pid}.
 
 -spec notify(term()) -> ok.
 notify(Event) -> gen_event:notify(?MODULE, Event).

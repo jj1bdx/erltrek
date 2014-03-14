@@ -85,7 +85,9 @@
 
 -include("erltrek.hrl").
 
-init(_Args) -> {ok, []}.
+init(_Args) ->
+    spawn_link(fun() -> captains_loop() end),
+    {ok, []}.
 
 terminate(_Arg, _State) -> ok.
 
@@ -176,3 +178,49 @@ handle_event(fire_level, State) ->
 handle_event(Event, State) ->
     ok = io:format("~p: unknown event: ~p~n", [?MODULE, Event]),
     {ok, State}.
+
+
+%%% Terminal Input Loop
+%% runs in its own process, linked to the terminal event handler
+captains_loop() ->
+    case io:get_line("Command > ") of
+        Command when is_list(Command) ->
+            dispatch_command(
+              string:tokens(Command, "\n ")),
+            captains_loop();
+        eof ->
+            io:format("End of commands~n"),
+            init:stop();
+        {error, Desc} ->
+            io:format("Read command failed: ~s~n",
+                      [io:format_error(Desc)]),
+            captains_loop()
+    end.
+
+-define(CMD(C), erltrek_game:enterprise_command(C)).
+
+dispatch_command(["srscan"|_]) ->
+    ?CMD({srscan});
+dispatch_command(["lrscan"|_]) ->
+    ?CMD({lrscan});
+dispatch_command(["impulse"|Args]) ->
+    case parse_args(Args) of
+        [SX, SY] -> ?CMD({impulse, SX, SY});
+        [QX, QY, SX, SY] -> ?CMD({impulse, QX, QY, SX, SY});
+        [] -> io:format("I need direction, Captain!~n");
+        Error -> io:format("Invalid impulse directions, Captain: ~p~n", [Error])
+    end;
+dispatch_command(["quit"]) ->
+    io:format("Abandon ship!~n"),
+    init:stop();
+dispatch_command(Command) ->
+    io:format("My sincere apologies, Captain, I do not understand your command: ~p~n", [Command]).
+
+parse_args(Args) ->
+    [parse_arg(Arg) || Arg <- Args].
+
+parse_arg([C|_]=Arg)
+  when C >= $0, C =< $9 ->
+    erlang:list_to_integer(Arg);
+parse_arg(Arg) ->
+    io_lib:format("I do not understand: ~p~n", [Arg]).
