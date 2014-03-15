@@ -186,7 +186,7 @@ captains_loop() ->
     case io:get_line("Command > ") of
         Command when is_list(Command) ->
             dispatch_command(
-              string:tokens(Command, "\n ")),
+              string:tokens(Command, "\n ,")),
             captains_loop();
         eof ->
             io:format("End of commands~n"),
