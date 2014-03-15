@@ -81,7 +81,7 @@
 
 -module(erltrek_terminal).
 
--export([init/1, handle_event/2, terminate/2]).
+-export([init/1, handle_event/2, handle_info/2, terminate/2]).
 
 -include("erltrek.hrl").
 
@@ -90,6 +90,9 @@ init(_Args) ->
     {ok, []}.
 
 terminate(_Arg, _State) -> ok.
+
+handle_info(_Msg, State) ->
+    {ok, State}.
 
 handle_event({lost, Message}, State) ->
     ok = io:format("Game lost: ~s~n", [Message]),
@@ -212,7 +215,8 @@ dispatch_command(["impulse"|Args]) ->
     end;
 dispatch_command(["quit"]) ->
     io:format("Abandon ship!~n"),
-    init:stop();
+    init:stop(),
+    exit(normal);
 dispatch_command(Command) ->
     io:format("My sincere apologies, Captain, I do not understand your command: ~p~n", [Command]).
 
