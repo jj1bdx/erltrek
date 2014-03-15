@@ -81,7 +81,7 @@
 
 -module(erltrek_terminal).
 
--export([init/1, handle_event/2, terminate/2]).
+-export([init/1, handle_event/2, handle_info/2, terminate/2]).
 
 -include("erltrek.hrl").
 
@@ -179,6 +179,14 @@ handle_event(Event, State) ->
     ok = io:format("~p: unknown event: ~p~n", [?MODULE, Event]),
     {ok, State}.
 
+%% This happens when CTRL/D is received
+handle_info({'EXIT', Pid, normal}, State) ->
+    ok = io:format("~p: normally exited, Pid: ~p~n", [?MODULE, Pid]),
+    {ok, State};
+handle_info({'EXIT', Pid, Reason}, State) ->
+    ok = io:format("~p: 'EXIT' received, Pid: ~p, Reason:~p~n",
+        [?MODULE, Pid, file:format_error(Reason)]),
+    {ok, State}.
 
 %%% Terminal Input Loop
 %% runs in its own process, linked to the terminal event handler
