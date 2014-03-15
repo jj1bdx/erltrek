@@ -193,7 +193,7 @@ captains_loop() ->
             init:stop();
         {error, Desc} ->
             io:format("Read command failed: ~s~n",
-                      [io:format_error(Desc)]),
+                      [file:format_error(Desc)]),
             captains_loop()
     end.
 
