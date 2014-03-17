@@ -139,7 +139,7 @@ find_command(Token, Cmds) ->
             NameR = lists:reverse(atom_to_list(Name)),
             case (get_expand_fun())(NameR) of
                 {yes, Suffix, _} ->
-                    find_command(list_to_atom(lists:reverse(NameR, Suffix)), Cmds);
+                    find_command1(list_to_atom(lists:reverse(NameR, Suffix)), Cmds);
                 {_, _, []} ->
                     undefined;
                 {_, _, Matches} ->
@@ -164,13 +164,17 @@ get_expand_fun() ->
             {yes, "", [Name || {_, #command{ name=Name }} <- Commands]};
         (Input) ->
             %% note: Input is the current command line, reversed!
-            Command = lists:last(string:tokens(Input, " ")),
+            Tokens = string:tokens(Input, " "),
+            Command = lists:last(Tokens),
             Matches = lists:filter(
                         fun ({Name, _}) -> lists:suffix(Command, Name) end,
                         Commands),
             case Matches of
                 [{_, #command{ name=Name, desc=Desc }}] ->
-                    {yes, lists:nthtail(length(Command), Name), [Desc]};
+                    {yes, if length(Tokens) == 1 ->
+                                  lists:nthtail(length(Command), Name);
+                             true -> ""
+                          end, [Desc]};
                 [] -> {no, "", []};
                 _ -> {no, "", [Name || {_, #command{ name=Name }} <- Matches]}
             end
