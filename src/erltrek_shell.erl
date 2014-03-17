@@ -212,6 +212,14 @@ commands() ->
                    end
        },
      #command{
+        name = phaser,
+        desc = "Sector X, Y, Energy",
+        help = "Fire with ship pasers on sector.",
+        dispatch = fun ([?I(SX), ?I(SY), ?I(E)]) -> ?CMD({phaser, SX, SY, E});
+                       (_) -> io:format("I need data, Captain!~n")
+                   end
+       },
+     #command{
         name = help,
         desc = "[commands ...]",
         help = "List available commands, or show help for specific commands.",
