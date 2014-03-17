@@ -229,7 +229,7 @@ course_onmove_next(GameState) ->
                     GameState2 = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT3, DKS2},
                     course_checkend_noaction(GameState2);
                 false -> % sector already filled, fail to move
-                    erltrek_event:notify({move_quad}),
+                    erltrek_event:notify({move_quad, failed}),
                     force_halt(GameState)
             end;
         false -> % in the same quadrant
