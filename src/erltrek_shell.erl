@@ -85,6 +85,7 @@
 
 -record(command, {
           name :: atom(),
+          expand = true :: boolean(), %% tab complete command? (default: yes)
           desc = "(no arguments)" :: string(), %% printed on expand command
           help = "No help available for this command." :: string(),
           dispatch :: fun((list()) -> ok)
@@ -131,8 +132,22 @@ token_to_name({_,_,Name}) -> Name;
 token_to_name({Name,_}) -> Name;
 token_to_name(Name) -> Name.
 
-find_command(Name, Cmds) ->
-    find_command1(token_to_name(Name), Cmds).
+find_command(Token, Cmds) ->
+    Name = token_to_name(Token),
+    case find_command1(Name, Cmds) of
+        undefined ->
+            NameR = lists:reverse(atom_to_list(Name)),
+            case (get_expand_fun())(NameR) of
+                {yes, Suffix, _} ->
+                    find_command(list_to_atom(lists:reverse(NameR, Suffix)), Cmds);
+                {_, _, []} ->
+                    undefined;
+                {_, _, Matches} ->
+                    io:format("Your command, Captain, is ambiguous for any of the following: ~s~n",
+                              [string:join([atom_to_list(N) || #command{ name=N } <- Matches], ", ")])
+                end;
+        Cmd -> Cmd
+    end.
 
 find_command1(_, []) -> undefined;
 find_command1(Name, [#command{ name=Name }=Cmd|_]) -> Cmd;
@@ -142,7 +157,9 @@ get_expand_fun() ->
     Commands = [begin
                     NameL = atom_to_list(Name),
                     {lists:reverse(NameL), Cmd#command{ name=NameL }}
-                end || #command{ name=Name }=Cmd <- commands()],
+                end
+                || #command{ name=Name, expand=Expand }=Cmd <- commands(),
+                   Expand =:= true],
     fun ("") ->
             {yes, "", [Name || {_, #command{ name=Name }} <- Commands]};
         (Input) ->
@@ -210,6 +227,7 @@ commands() ->
        },
      #command{
         name = quit,
+        expand = false, %% require user to type "quit", no shortcuts..
         help = "Quit ErlTrek.",
         dispatch = fun ([]) ->
                            io:format("Abandon ship!~n"),
