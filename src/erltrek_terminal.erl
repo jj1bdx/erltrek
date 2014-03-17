@@ -90,9 +90,6 @@ init(_Args) ->
 
 terminate(_Arg, _State) -> ok.
 
-handle_info(_Msg, State) ->
-    {ok, State}.
-
 handle_event({lost, Message}, State) ->
     ok = io:format("Game lost: ~s~n", [Message]),
     {ok, State};
@@ -179,4 +176,13 @@ handle_event(fire_level, State) ->
     {ok, State};
 handle_event(Event, State) ->
     ok = io:format("~p: unknown event: ~p~n", [?MODULE, Event]),
+    {ok, State}.
+
+%% This happens when CTRL/D is received
+handle_info({'EXIT', Pid, normal}, State) ->
+    ok = io:format("~p: normally exited, Pid: ~p~n", [?MODULE, Pid]),
+    {ok, State};
+handle_info({'EXIT', Pid, Reason}, State) ->
+    ok = io:format("~p: 'EXIT' received, Pid: ~p, Reason:~p~n",
+                   [?MODULE, Pid, Reason]),
     {ok, State}.

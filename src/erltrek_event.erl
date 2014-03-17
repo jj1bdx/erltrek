@@ -90,8 +90,10 @@
 
 -include("erltrek.hrl").
 
--spec start_link(Handlers) -> ok when
-      Handlers :: list({atom(), term()}).
+-type handler() :: atom() | {atom(), term()}.
+
+-spec start_link(Handlers) -> {ok, pid()} when
+    Handlers :: list(handler()).
 
 start_link(Handlers) ->
     {ok, Pid} = gen_event:start_link({local, ?MODULE}),
