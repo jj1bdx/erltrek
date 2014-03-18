@@ -91,6 +91,8 @@
           dispatch :: fun((list()) -> ok)
          }).
 
+-define(DEFAULT_PHASER_ENERGY, 100).
+
 start() ->
     spawn(fun server/0).
 
@@ -138,8 +140,8 @@ parse_command({ok, [Name|Args], _}) ->
 parse_command({ok, [], _}) -> ok;
 parse_command({error, Info, _Location}) -> Info.
 
-token_to_name({_,_,Name}) -> Name;
-token_to_name({Name,_}) -> Name;
+token_to_name({_, _, Name}) -> Name;
+token_to_name({Name, _}) -> Name;
 token_to_name(Name) -> Name.
 
 find_command(Token) ->
@@ -147,7 +149,12 @@ find_command(Token) ->
     Cmds = commands(),
     case find_command(Name, Cmds) of
         undefined ->
-            NameR = lists:reverse(atom_to_list(Name)),
+            NameR = if is_atom(Name) ->
+                            lists:reverse(atom_to_list(Name));
+                       is_list(Name) ->
+                            lists:reverse(Name);
+                       true -> ignore
+                    end,
             case (get_expand_fun())(NameR) of
                 {yes, Suffix, _} ->
                     find_command(list_to_atom(lists:reverse(NameR, Suffix)), Cmds);
@@ -173,7 +180,7 @@ get_expand_fun() ->
                    Expand =:= true],
     fun ("") ->
             {yes, "", [Name || {_, #command{ name=Name }} <- Commands]};
-        (Input) ->
+        (Input) when is_list(Input) ->
             %% note: Input is the current command line, reversed!
             Tokens = string:tokens(Input, " "),
             Command = lists:last(Tokens),
@@ -188,12 +195,42 @@ get_expand_fun() ->
                           end, [Desc]};
                 [] -> {no, "", []};
                 _ -> {no, "", [Name || {_, #command{ name=Name }} <- Matches]}
-            end
+            end;
+        (ignore) -> {no, "", []}
     end.
 
 
 -define(CMD(C), erltrek_game:enterprise_command(C)).
--define(I(V), {integer,_, V}).
+-define(I(V), {integer, _, V}).
+
+-spec get_coord(string(), Default) -> {integer(), integer()} | Default.
+get_coord(Prompt, Default) ->
+    case io:get_line(Prompt) of
+        "\n" -> Default;
+        Rsp when is_list(Rsp) ->
+            case erl_scan:string(Rsp) of
+                {ok, [?I(X), ?I(Y)], _} -> {X, Y};
+                {ok, [?I(X), {',', _}, ?I(Y)], _} -> {X, Y};
+                _ ->
+                    io:format("Please provide X and Y coordinates, or no value for ~p.~n", [Default]),
+                    get_coord(Prompt, Default)
+            end;
+        _ -> Default
+    end.
+
+-spec get_integer(string(), Default) -> integer() | Default.
+get_integer(Prompt, Default) ->
+    case io:get_line(Prompt) of
+        "\n" -> Default;
+        Rsp when is_list(Rsp) ->
+            case erl_scan:string(Rsp) of
+                {ok, [?I(V)], _} -> V;
+                _ ->
+                    io:format("Please provide integer value, or no value for ~p.~n", [Default]),
+                    get_integer(Prompt, Default)
+            end;
+        _ -> Default
+    end.
 
 commands() ->
     [#command{
@@ -218,16 +255,33 @@ commands() ->
         help = "Start impulse engine, heading for given sector (in current or specified quadrant).",
         dispatch = fun ([?I(SX), ?I(SY)]) -> ?CMD({impulse, SX, SY});
                        ([?I(QX), ?I(QY), ?I(SX), ?I(SY)]) -> ?CMD({impulse, QX, QY, SX, SY});
-                       ([]) -> io:format("I need direction, Captain!~n");
+                       ([]) ->
+                           Q = get_coord("Quadrant: ", default),
+                           S = get_coord("Sector: ", abort),
+                           case {Q, S} of
+                               {{QX, QY}, {SX, SY}} ->
+                                   ?CMD({impulse, QX, QY, SX, SY});
+                               {default, {SX, SY}} ->
+                                   ?CMD({impulse, SX, SY});
+                               _ -> nop
+                           end;
                        (_) -> io:format("Bad impulse directions, Captain!~n")
                    end
        },
      #command{
         name = phaser,
         desc = "Sector X, Y, Energy",
-        help = "Fire with ship pasers on sector.",
+        help = "Fire with ship phasers on sector.",
         dispatch = fun ([?I(SX), ?I(SY), ?I(E)]) -> ?CMD({phaser, SX, SY, E});
-                       (_) -> io:format("I need data, Captain!~n")
+                       ([]) ->
+                           S = get_coord("Sector: ", abort),
+                           E = get_integer("Energy: ", ?DEFAULT_PHASER_ENERGY),
+                           case {S, E} of
+                               {{SX, SY}, E} ->
+                                   ?CMD({phaser, SX, SY, E});
+                               _ -> nop
+                           end;
+                       (_) -> io:format("Bad phaser command, Captain!~n")
                    end
        },
      #command{
