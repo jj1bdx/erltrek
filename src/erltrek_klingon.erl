@@ -162,21 +162,28 @@ perform_attack(LK, LDIST, GameState) ->
             % subtract hitting energy from Enterprise
             SHIPSHIELD = SHIP#enterprise_status.shield,
             erltrek_event:notify({hit, SK, KHIT}),
-            % first subtract from shield
-            NSHIELD = SHIPSHIELD - KHIT,
-            {DAMAGE, NSHIPSHIELD} = case NSHIELD =< 0 of
+            SHIP2 = case SHIP#enterprise_status.docked of
                 true ->
-                    erltrek_event:notify(shields_gone),
-                    DAMAGELEVEL = trunc(float(-NSHIELD * 1.3)) + 10,
-                    erltrek_event:notify({damage_level, DAMAGELEVEL}),
-                    {DAMAGELEVEL, 0};
+                    % no energy depletion when docked
+                    erltrek_event:notify({hit, protected_by_starbase}),
+                    SHIP;
                 false ->
-                    erltrek_event:notify({shield_level, NSHIELD}),
-                    {0, NSHIELD}
+                    % first subtract from shield
+                    NSHIELD = SHIPSHIELD - KHIT,
+                    {DAMAGE, NSHIPSHIELD} = case NSHIELD =< 0 of
+                        true ->
+                            erltrek_event:notify(shields_gone),
+                            DAMAGELEVEL = trunc(float(-NSHIELD * 1.3)) + 10,
+                            erltrek_event:notify({damage_level, DAMAGELEVEL}),
+                            {DAMAGELEVEL, 0};
+                        false ->
+                            erltrek_event:notify({shield_level, NSHIELD}),
+                            {0, NSHIELD}
+                    end,
+                    SHIPENERGY = SHIP#enterprise_status.energy,
+                    NENERGY = SHIPENERGY - DAMAGE,
+                    SHIP#enterprise_status{energy = NENERGY, shield = NSHIPSHIELD}
             end,
-            SHIPENERGY = SHIP#enterprise_status.energy,
-            NENERGY = SHIPENERGY - DAMAGE,
-            SHIP2 = SHIP#enterprise_status{energy = NENERGY, shield = NSHIPSHIELD},
             {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS2}
     end.
 
