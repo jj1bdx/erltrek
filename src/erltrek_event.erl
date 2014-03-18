@@ -182,6 +182,12 @@ enterprise_command(GameState) ->
         {phaser, SX, SY, ENERGY} -> % fire phaser directed to given sector
             NewGameState = erltrek_phaser:phaser(SX, SY, ENERGY, GameState),
             clear_command_buffer(NewGameState);
+        {dock} -> % docking the starbase
+            NewGameState = erltrek_dock:dock(GameState),
+            clear_command_buffer(NewGameState);
+        {undock} -> % undocking from the starbase
+            NewGameState = erltrek_dock:undock(GameState),
+            clear_command_buffer(NewGameState);
         {} -> % do nothing
             GameState;
         _ -> % do nothing if something strange comes
