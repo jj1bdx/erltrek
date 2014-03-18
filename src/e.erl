@@ -81,11 +81,13 @@
 -module(e).
 
 -export([
+        d/0,
         i/2,
         i/4,
         l/0,
         p/3,
-        s/0
+        s/0,
+        u/0
         ]).
 
 -include("erltrek.hrl").
@@ -94,6 +96,8 @@
 
 %% These are shortcuts for the real commands only
 
+-spec d() -> ok.
+d() -> ?E({dock}).
 -spec i(sectcoord(), sectcoord()) -> ok.
 i(SX, SY) -> ?E({impulse, SX, SY}).
 -spec i(quadcoord(), quadcoord(), sectcoord(), sectcoord()) -> ok.
@@ -104,3 +108,5 @@ l() -> ?E({lrscan}).
 p(SX, SY, ENERGY) -> ?E({phaser, SX, SY, ENERGY}).
 -spec s() -> ok.
 s() -> ?E({srscan}).
+-spec u() -> ok.
+u() -> ?E({undock}).
