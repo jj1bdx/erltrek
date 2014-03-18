@@ -102,14 +102,12 @@ server() ->
 server_loop() ->
     case io:get_line("Command > ") of
         Command when is_list(Command) ->
-            case parse_command(erl_scan:string(Command)) of
-                {#command{ dispatch=Dispatch }, Args} ->
-                    Dispatch(Args);
-                {undefined, _} ->
+            case dispatch_command(Command) of
+                not_found ->
                     io:format("My sincere apologies, Captain, I do not understand your command: ~s", [Command]);
-                {_Location, Mod, Desc} ->
-                    io:format("Hrrm.. you need to quit slurring, Captain~n  (~p)~n", [Mod:format_error(Desc)]);
-                ok -> ok
+                {error, Message} ->
+                    io:format("Hrrm.. you need to quit slurring, Captain~n  (~s)~n", [Message]);
+                {ok, _} -> nop
             end,
             server_loop();
         eof ->
@@ -121,8 +119,20 @@ server_loop() ->
             server_loop()
     end.
 
+dispatch_command(Command) ->
+    case parse_command(erl_scan:string(Command)) of
+        {#command{ dispatch=Dispatch }, Args} ->
+            {ok, Dispatch(Args)};
+        {undefined, _} ->
+            not_found;
+        {_Location, Mod, Desc} ->
+            {error, Mod:format_error(Desc)};
+        ok ->
+            {ok, skipped}
+    end.
+
 parse_command({ok, [Name|Args], _}) ->
-    {find_command(Name, commands()),
+    {find_command(Name),
      [Arg || Arg <- Args, element(1, Arg) =/= ',']
     };
 parse_command({ok, [], _}) -> ok;
@@ -132,14 +142,15 @@ token_to_name({_,_,Name}) -> Name;
 token_to_name({Name,_}) -> Name;
 token_to_name(Name) -> Name.
 
-find_command(Token, Cmds) ->
+find_command(Token) ->
     Name = token_to_name(Token),
-    case find_command1(Name, Cmds) of
+    Cmds = commands(),
+    case find_command(Name, Cmds) of
         undefined ->
             NameR = lists:reverse(atom_to_list(Name)),
             case (get_expand_fun())(NameR) of
                 {yes, Suffix, _} ->
-                    find_command1(list_to_atom(lists:reverse(NameR, Suffix)), Cmds);
+                    find_command(list_to_atom(lists:reverse(NameR, Suffix)), Cmds);
                 {_, _, []} ->
                     undefined;
                 {_, _, Matches} ->
@@ -149,9 +160,9 @@ find_command(Token, Cmds) ->
         Cmd -> Cmd
     end.
 
-find_command1(_, []) -> undefined;
-find_command1(Name, [#command{ name=Name }=Cmd|_]) -> Cmd;
-find_command1(Name, [_|Cmds]) -> find_command1(Name, Cmds).
+find_command(_, []) -> undefined;
+find_command(Name, [#command{ name=Name }=Cmd|_]) -> Cmd;
+find_command(Name, [_|Cmds]) -> find_command(Name, Cmds).
 
 get_expand_fun() ->
     Commands = [begin
