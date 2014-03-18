@@ -220,6 +220,22 @@ commands() ->
                    end
        },
      #command{
+        name = dock,
+        help = "Dock a starbase in adjacent sectors.",
+        dispatch = fun ([]) -> ?CMD({dock});
+                       (_) -> io:format("Docking is docking, Captain..~n"),
+                              ?CMD({dock})
+                   end
+       },
+     #command{
+        name = undock,
+        help = "Undock from a starbase currently docked.",
+        dispatch = fun ([]) -> ?CMD({undock});
+                       (_) -> io:format("Undocking is undocking, Captain..~n"),
+                              ?CMD({undock})
+                   end
+       },
+     #command{
         name = help,
         desc = "[commands ...]",
         help = "List available commands, or show help for specific commands.",
