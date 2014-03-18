@@ -144,7 +144,7 @@ try_docking(GameState) ->
                     SHIP
             end;
         false ->
-            erltrek_event:nofify({dock, base_not_in_quadrant}),
+            erltrek_event:notify({dock, base_not_in_quadrant}),
             SHIP
     end,
     {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS}.
