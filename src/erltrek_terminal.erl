@@ -164,6 +164,24 @@ handle_event({condition, Condition}, State) ->
     ok = io:format("Condition changed to: ~s~n",
                    [erltrek_scan:condition_string(Condition)]),
     {ok, State};
+handle_event({dock, already_docked}, State) ->
+    ok = io:format("The ship is already docked~n"),
+    {ok, State};
+handle_event({dock, dock_complete}, State) ->
+    ok = io:format("Docking the ship complete~n"),
+    {ok, State};
+handle_event({dock, base_not_adjacent}, State) ->
+    ok = io:format("No starbase in adjacent sectors, unable to dock~n"),
+    {ok, State};
+handle_event({dock, base_not_in_quadrant}, State) ->
+    ok = io:format("No starbase in the quadrant~n"),
+    {ok, State};
+handle_event({undock, not_docked}, State) ->
+    ok = io:format("The ship is not docked~n"),
+    {ok, State};
+handle_event({undock, undock_complete}, State) ->
+    ok = io:format("The ship is now undocked~n"),
+    {ok, State};
 handle_event({unknown_command, Command}, State) ->
     ok = io:format("enterprise_command: unknown command: ~p~n", [Command]),
     ok = io:format("enterprise_command: status cleared~n", []),
