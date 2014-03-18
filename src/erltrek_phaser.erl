@@ -98,7 +98,7 @@ phaser(SX, SY, ENERGY, GameState) ->
         true ->
             fire_phaser(SX, SY, ENERGY, GameState);
         false -> % do nothing
-            erltrek_event:notify(no_target),
+            erltrek_event:notify({phaser, no_target}),
             GameState
     end.
 
@@ -106,13 +106,20 @@ phaser(SX, SY, ENERGY, GameState) ->
 
 fire_phaser(SX, SY, ENERGY, GameState) ->
     {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
-    SHIPENERGY = SHIP#enterprise_status.energy,
-    case SHIPENERGY > ENERGY of
-        true ->
-            prepare_phaser(SX, SY, ENERGY, GameState);
-        false -> % cannot fire because of exceeding energy level
-            erltrek_event:notify(fire_level),
-            GameState
+    % You cannot fire phaser while docked
+    case SHIP#enterprise_status.docked of
+        true -> % You can't move when docked at a starbase
+            erltrek_event:notify({phaser, docked}),
+            GameState;
+        false ->
+            SHIPENERGY = SHIP#enterprise_status.energy,
+            case SHIPENERGY > ENERGY of
+                true ->
+                    prepare_phaser(SX, SY, ENERGY, GameState);
+                false -> % cannot fire because of exceeding energy level
+                    erltrek_event:notify({phaser, fire_level}),
+                    GameState
+            end
     end.
 
 -spec prepare_phaser(integer(), integer(), integer(), game_state()) -> game_state().
