@@ -12,22 +12,20 @@
     * Not too fast but not too slow
 * Start from a simplified model but make it extendable
 
-## Functions implemented at tag `baselevel_20140302`
+## Functions implemented at tag `baselevel_20140318`
 
 * Game field setup
 * Impulse engine for Enterprise
 * Klingon firing to Enterprise
 * Enterprise firing phaser to Klingon
+* Enterprise can dock/undock to/from the starbase
+* The Game is now a proper Erlang application (by Andreas Stenius)
+* Game message handled by an gen\_event server (by Andreas Stenius)
+* Dedicated command shell (by Andreas Stenius)
 
-## How to run
+## How to run (will invoke a dedicated shell)
 
     ./game.sh
-    % Discover src/e.erl for all the shortcuts
-
-## Or on Elixir iex?
-
-    iex -pa ./ebin -e ":erltrek_game.start_link" -e ":erltrek_game.start_game" -e ":e.s"
-    % This makes the command input faster...
 
 ## On random number initialization
 
