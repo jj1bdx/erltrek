@@ -188,15 +188,18 @@ handle_event({undock, not_docked}, State) ->
 handle_event({undock, undock_complete}, State) ->
     ok = io:format("The ship is now undocked~n"),
     {ok, State};
+handle_event({phaser, docked}, State) ->
+    ok = io:format("Sorry Captain, we can't fire phaser when docked~n"),
+    {ok, State};
+handle_event({phaser, no_target}, State) ->
+    ok = io:format("No Klingon in sector, phaser not fired~n"),
+    {ok, State};
+handle_event({phaser, fire_level}, State) ->
+    ok = io:format("Firing level exceeds availably energy, phaser not fired~n"),
+    {ok, State};
 handle_event({unknown_command, Command}, State) ->
     ok = io:format("enterprise_command: unknown command: ~p~n", [Command]),
     ok = io:format("enterprise_command: status cleared~n", []),
-    {ok, State};
-handle_event(no_target, State) ->
-    ok = io:format("No Klingon in sector, phaser not fired~n"),
-    {ok, State};
-handle_event(fire_level, State) ->
-    ok = io:format("Firing level exceeds availably energy, phaser not fired~n"),
     {ok, State};
 handle_event(Event, State) ->
     ok = io:format("~p: unknown event: ~p~n", [?MODULE, Event]),
