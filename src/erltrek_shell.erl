@@ -84,7 +84,7 @@
 -export([start/0]).
 
 -record(command, {
-          name :: atom(),
+          name :: atom() | list(atom()),
           expand = true :: boolean(), %% tab complete command? (default: yes)
           desc = "(no arguments)" :: string(), %% printed on expand command
           help = "No help available for this command." :: string(),
