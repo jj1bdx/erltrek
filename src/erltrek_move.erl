@@ -102,13 +102,20 @@ impulse(SX, SY, GameState) ->
 
 impulse(QX, QY, SX, SY, GameState) ->
     {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
-    case SHIP#enterprise_status.impulse_move of
-        false -> % course initialization needed
-            GameState2 = course_init(QX, QY, SX, SY, GameState),
-            % Do the first move
-            course_onmove(GameState2);
-        true -> % it's already moving
-            course_onmove(GameState)
+    case SHIP#enterprise_status.docked of
+        true -> % You can't move when docked at a starbase
+            erltrek_event:notify({move, docked}),
+            % clear command buffer
+            erltrek_event:clear_command_buffer(GameState);
+        false ->
+            case SHIP#enterprise_status.impulse_move of
+                false -> % course initialization needed
+                    GameState2 = course_init(QX, QY, SX, SY, GameState),
+                    % Do the first move
+                    course_onmove(GameState2);
+                true -> % it's already moving
+                    course_onmove(GameState)
+            end
     end.
 
 %% initialize impulse drive course information
