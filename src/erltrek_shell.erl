@@ -85,6 +85,7 @@
 
 -record(command, {
           name :: atom(),
+          expand = true :: boolean(), %% tab complete command? (default: yes)
           desc = "(no arguments)" :: string(), %% printed on expand command
           help = "No help available for this command." :: string(),
           dispatch :: fun((list()) -> ok)
@@ -131,8 +132,22 @@ token_to_name({_,_,Name}) -> Name;
 token_to_name({Name,_}) -> Name;
 token_to_name(Name) -> Name.
 
-find_command(Name, Cmds) ->
-    find_command1(token_to_name(Name), Cmds).
+find_command(Token, Cmds) ->
+    Name = token_to_name(Token),
+    case find_command1(Name, Cmds) of
+        undefined ->
+            NameR = lists:reverse(atom_to_list(Name)),
+            case (get_expand_fun())(NameR) of
+                {yes, Suffix, _} ->
+                    find_command1(list_to_atom(lists:reverse(NameR, Suffix)), Cmds);
+                {_, _, []} ->
+                    undefined;
+                {_, _, Matches} ->
+                    io:format("Your command, Captain, is ambiguous for any of the following: ~s~n",
+                              [string:join([atom_to_list(N) || #command{ name=N } <- Matches], ", ")])
+                end;
+        Cmd -> Cmd
+    end.
 
 find_command1(_, []) -> undefined;
 find_command1(Name, [#command{ name=Name }=Cmd|_]) -> Cmd;
@@ -142,18 +157,24 @@ get_expand_fun() ->
     Commands = [begin
                     NameL = atom_to_list(Name),
                     {lists:reverse(NameL), Cmd#command{ name=NameL }}
-                end || #command{ name=Name }=Cmd <- commands()],
+                end
+                || #command{ name=Name, expand=Expand }=Cmd <- commands(),
+                   Expand =:= true],
     fun ("") ->
             {yes, "", [Name || {_, #command{ name=Name }} <- Commands]};
         (Input) ->
             %% note: Input is the current command line, reversed!
-            Command = lists:last(string:tokens(Input, " ")),
+            Tokens = string:tokens(Input, " "),
+            Command = lists:last(Tokens),
             Matches = lists:filter(
                         fun ({Name, _}) -> lists:suffix(Command, Name) end,
                         Commands),
             case Matches of
                 [{_, #command{ name=Name, desc=Desc }}] ->
-                    {yes, lists:nthtail(length(Command), Name), [Desc]};
+                    {yes, if length(Tokens) == 1 ->
+                                  lists:nthtail(length(Command), Name);
+                             true -> ""
+                          end, [Desc]};
                 [] -> {no, "", []};
                 _ -> {no, "", [Name || {_, #command{ name=Name }} <- Matches]}
             end
@@ -191,6 +212,14 @@ commands() ->
                    end
        },
      #command{
+        name = phaser,
+        desc = "Sector X, Y, Energy",
+        help = "Fire with ship pasers on sector.",
+        dispatch = fun ([?I(SX), ?I(SY), ?I(E)]) -> ?CMD({phaser, SX, SY, E});
+                       (_) -> io:format("I need data, Captain!~n")
+                   end
+       },
+     #command{
         name = help,
         desc = "[commands ...]",
         help = "List available commands, or show help for specific commands.",
@@ -210,6 +239,7 @@ commands() ->
        },
      #command{
         name = quit,
+        expand = false, %% require user to type "quit", no shortcuts..
         help = "Quit ErlTrek.",
         dispatch = fun ([]) ->
                            io:format("Abandon ship!~n"),
