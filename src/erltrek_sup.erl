@@ -55,6 +55,9 @@ init(_Args) ->
                 %% todo: make this configurable by
                 %% placing it in the app enviorment or some such..
                 [[{erltrek_terminal, []}]]},
-               permanent, brutal_kill, worker, dynamic}
+               permanent, brutal_kill, worker, dynamic},
+              {galaxy,
+               {erltrek_galaxy, start_link, []},
+               permanent, 5000, worker, [erltrek_galaxy]}
              ],
     {ok, {{RestartStrategy, MaxRestarts, MaxTime}, Childs}}.
