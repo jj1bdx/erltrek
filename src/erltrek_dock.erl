@@ -138,7 +138,11 @@ try_docking(GameState) ->
             case abs(SX - BX) =< 1 andalso abs(SY - BY) =< 1 of
                 true ->
                     erltrek_event:notify({dock, dock_complete}),
-                    SHIP#enterprise_status{docked = true};
+                    % Dock and restore energy and shield
+                    SHIP#enterprise_status{
+                        docked = true,
+                        energy = ?SHIPENERGY,
+                        shield = ?SHIPSHIELD};
                 false ->
                     erltrek_event:notify({dock, base_not_adjacent}),
                     SHIP
