@@ -268,30 +268,6 @@ destination(SQC, SSC, COURSE, DIST) ->
             out_of_bound
     end.
 
-%% Calculate distance between two sectors
-
--spec sector_distance(#sectxy{}, #sectxy{}) -> float().
-
-sector_distance(SC, DC) ->
-    DX = DC#sectxy.x - SC#sectxy.x,
-    DY = DC#sectxy.y - SC#sectxy.y,
-    math:sqrt((DX*DX) + (DY*DY)).
-
-%% Calculate course between two sectors
-%% course (0-360 degrees, 0: -X direction, clockwise (e.g., 90: +Y direction)),
-
--spec sector_course(#sectxy{}, #sectxy{}) -> float().
-
-sector_course(SC, DC) ->
-    DX = DC#sectxy.x - SC#sectxy.x,
-    DY = DC#sectxy.y - SC#sectxy.y,
-    CRAD = math:atan2(DY, -DX),
-    CRAD2 = case CRAD < 0 of
-        true -> (CRAD + (2 * math:pi()));
-        false -> CRAD
-    end,
-    CRAD2 * 180 / math:pi().
-
 %% Calculate course and distance between two sectors
 %% course (0-360 degrees, 0: -X direction, clockwise (e.g., 90: +Y direction)),
 
@@ -306,3 +282,19 @@ sector_course_distance(SC, DC) ->
         false -> CRAD
     end,
     {CRAD2 * 180 / math:pi(), math:sqrt((DX*DX) + (DY*DY))}.
+
+%% Calculate course between two sectors
+
+-spec sector_course(#sectxy{}, #sectxy{}) -> float().
+
+sector_course(SC, DC) ->
+    {COURSE, _DISTANCE} = sector_course_distance(SC, DC),
+    COURSE.
+
+%% Calculate distance between two sectors
+
+-spec sector_distance(#sectxy{}, #sectxy{}) -> float().
+
+sector_distance(SC, DC) ->
+    {_COURSE, DISTANCE} = sector_course_distance(SC, DC),
+    DISTANCE.
