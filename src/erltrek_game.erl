@@ -88,7 +88,7 @@
          handle_cast/2,
          handle_info/2,
          init/1,
-         lose/1,
+         lost/1,
          start_game/0,
          start_link/0,
          start_link/1,
@@ -113,8 +113,8 @@ start_game() ->
 stop() ->
     gen_server:cast(?MODULE, {stop, stop}).
 
-lose(Message) ->
-    gen_server:cast(?MODULE, {stop, {lose, Message}}).
+lost(Message) ->
+    gen_server:cast(?MODULE, {stop, {lost, Message}}).
 
 won(Message) ->
     gen_server:cast(?MODULE, {stop, {won, Message}}).
