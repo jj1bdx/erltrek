@@ -83,11 +83,13 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/0, spawn_ship/1]).
 
 %% Callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          code_change/3, terminate/2]).
+
+-import(erltrek_calc, [index_quadxy/1, index_sectxy/1]).
 
 -include("erltrek.hrl").
 
@@ -102,8 +104,22 @@
           sect
          }).
 
+%%% --------------------------------------------------------------------
+%%% API
+%%% --------------------------------------------------------------------
+
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+-spec spawn_ship(#ship_def{}) -> {ok, pid()}.
+spawn_ship(Ship) when is_record(Ship, ship_def)->
+    {ok, Pid} = erltrek_ship_sup:start_ship([Ship]),
+    ok = gen_server:cast(?MODULE, {new_ship, Ship#ship_def.class, Pid}),
+    {ok, Pid}.
+
+%%% --------------------------------------------------------------------
+%%% Callbacks
+%%% --------------------------------------------------------------------
 
 init([]) ->
     {_NK, DS, DI, DB, DH, DKQ} = erltrek_setup:setup_galaxy(),
@@ -127,6 +143,11 @@ handle_cast(_Cast, State) ->
 
 handle_info({register_ship, Pid, Ship}, #state{ ships=Ships }=State) ->
     {noreply, State#state{ ships=orddict:store(Pid, Ship, Ships) }};
+handle_info({new_ship, Class, Pid}, State0) ->
+    {QC, SC, State} = place_object({Class, Pid}, State0),
+    handle_info({register_ship, Pid,
+                 #ship_state{ class=Class, quad=QC, sect=SC }},
+                State);
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -141,8 +162,23 @@ terminate(_Reason, _State) ->
 %%% Internal functions
 %%% --------------------------------------------------------------------
 
+quadxy_index(QI) when is_integer(QI) -> QI;
+quadxy_index(QC) -> erltrek_calc:quadxy_index(QC).
+
+sectxy_index(SI) when is_integer(SI) -> SI;
+sectxy_index(SC) -> erltrek_calc:sectxy_index(SC).
+
+get_sector(QC, #state{ galaxy=G }) ->
+    array:get(quadxy_index(QC), G).
+
+set_sector(QC, SECT, #state{ galaxy=G }=State) ->
+    State#state{ galaxy=array:set(quadxy_index(QC), SECT, G) }.
+
 update_sector(SC, Value, SECT) ->
-    array:set(erltrek_calc:sectxy_index(SC), Value, SECT).
+    array:set(sectxy_index(SC), Value, SECT).
+
+lookup_sector(SC, SECT) ->
+    array:get(sectxy_index(SC), SECT).
 
 spawn_klingons(DKS, QC, SECT0) ->
     dict:fold(
@@ -157,3 +193,38 @@ spawn_klingons(DKS, QC, SECT0) ->
                            quad=QC, sect=SC }},
               update_sector(SC, {s_klingon, Ship}, SECT)
       end, SECT0, DKS).
+
+place_object(Object, State) ->
+    {QI, SI}=Pos = find_empty_sector(State),
+    {index_quadxy(QI), index_sectxy(SI),
+     place_object(Object, Pos, State)}.
+
+place_object(Object, {QI, SI}, State) ->
+    set_sector(
+      QI, update_sector(
+            SI, Object,
+            get_sector(QI, State)),
+      State).
+
+find_empty_sector(#state{ galaxy=G }=State) ->
+    S = array:size(G),
+    %% make sure we eventually have searched all sectors before giving up
+    %% by starting somewhere in 2*NQUADS..NQUADS, and downto 0.
+    QI = tinymt32:uniform(S) + S,
+    find_empty_sector(QI, State).
+
+find_empty_sector(QI, State) ->
+    SECT = get_sector(QI, State),
+    SI = tinymt32:uniform(array:size(SECT)),
+    find_empty_sector(QI, SI, SECT, State).
+
+find_empty_sector(QI, SI, SECT, State) ->
+    case lookup_sector(SI, SECT) of
+        s_empty -> {QI, SI};
+        _ when SI > 0 ->
+            find_empty_sector(QI, SI - 1, SECT, State);
+        _ when QI > 0 ->
+            find_empty_sector(QI - 1, State);
+        _ ->
+            no_empty_sector_found
+    end.
