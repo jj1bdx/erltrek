@@ -193,16 +193,26 @@ perform_attack(LK, LDIST, GameState) ->
 -spec actual_move(game_state()) -> game_state().
 
 actual_move(GameState) -> 
-    {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, SECT, DKS} = GameState,
+    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
     _ShipSC = SHIP#enterprise_status.sectxy,
     LK = dict:fetch_keys(DKS),
-    % choose a Klingon ship randomly
+    % choose a Klingon ship in the sector randomly
     SK = lists:nth(tinymt32:uniform(length(LK)), LK),
     % scan movable empty sector coordinates
     LM = [ S ||
         {S, E} <- erltrek_scan:adjacent_sector_contents(SK, SECT),
         E =:= s_empty],
-    % DEBUG: list movable points
-    io:format("Klingon at ~b,~b can move to: ~p~n",
-        [SK#sectxy.x, SK#sectxy.y, LM]),
-    GameState. % skeleton
+    % choose randomly from the possible choice
+    SKM = lists:nth(tinymt32:uniform(length(LM)), LM),
+    % move in to new position
+    % erltrek_event:notify({move_sect, QC, SC}),
+    % update database of Klingons in the sector
+    [K] = dict:fetch(SK, DKS),
+    DKS2 = dict:append(SKM, K, dict:erase(SK, DKS)),
+    % clear Enterprise in the current sector array
+    SECT2 = array:set(erltrek_setup:sectxy_index(SK),
+                s_empty, SECT),
+    % fill Enterprise in the current sector array
+    SECT3 = array:set(erltrek_setup:sectxy_index(SKM),
+                s_klingon, SECT2),
+    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT3, DKS2}.
