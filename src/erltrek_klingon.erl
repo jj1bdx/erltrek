@@ -94,7 +94,7 @@
 
 attack(GameState) ->
     {_Tick, _SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, DKS} = GameState,
-    % Attach if at least one Klingon is in the quadrant
+    % Attack if at least one Klingon is in the quadrant
     % and do it only randomly once in 10 calls
     case dict:size(DKS) > 0 andalso tinymt32:uniform(10) == 1 of 
         true ->
@@ -110,7 +110,7 @@ attack(GameState) ->
 
 move(GameState) ->
     {_Tick, _SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, DKS} = GameState,
-    % Attach if at least one Klingon is in the quadrant
+    % Attack if at least one Klingon is in the quadrant
     % and do it only randomly once in five calls
     case dict:size(DKS) > 0 andalso tinymt32:uniform(5) == 1 of 
         true ->
