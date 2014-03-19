@@ -81,21 +81,22 @@
 -module(erltrek_calc).
 
 -export([
-        course_distance/4,
-        destination/4,
-        in_quadrant/1,
-        in_quadrant/2,
-        in_quadxy/1,
-        in_sector/1,
-        in_sector/2,
-        in_sectxy/1,
-        sector_course/2,
-        sector_course_distance/2,
-        sector_distance/2,
-        track_course/4,
-        quadxy_index/1,
-        sectxy_index/1
-     ]).
+         course_distance/4,
+         destination/4,
+         in_quadrant/1,
+         in_quadrant/2,
+         in_quadxy/1,
+         in_sector/1,
+         in_sector/2,
+         in_sectxy/1,
+         sector_course/2,
+         sector_course_distance/2,
+         sector_distance/2,
+         track_course/4,
+         quadxy_index/1,
+         sectxy_index/1,
+         index_quadxy/1
+        ]).
 
 -include("erltrek.hrl").
 
@@ -310,3 +311,12 @@ quadxy_index(QC) ->
 
 sectxy_index(QC) ->
     (QC#sectxy.x * ?NSECTS) + QC#sectxy.y.
+
+%% convert quadrant array index to coordinate
+
+-spec index_quadxy(non_neg_integer()) -> #quadxy{}.
+
+index_quadxy(QI) when is_integer(QI), QI >= 0 ->
+    %% make the index wrap in case it goes out of bounds
+    B = QI rem (?NQUADS * ?NQUADS),
+    #quadxy{ x = B div ?NQUADS, y = B rem ?NQUADS }.
