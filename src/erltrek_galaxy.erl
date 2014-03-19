@@ -96,6 +96,8 @@
 -include("erltrek.hrl").
 
 -record(state, {
+          stardate=?INITTICK,
+          sync,
           ships,
           galaxy,
           stars, inhabited, bases, holes
@@ -128,6 +130,7 @@ my_data() ->
 init([]) ->
     {_NK, DS, DI, DB, DH, DKQ} = erltrek_setup:setup_galaxy(),
     {ok, #state{
+            sync=os:timestamp(),
             ships=orddict:new(),
             galaxy=array:map(
                      fun (QI, _) ->
@@ -144,7 +147,7 @@ init([]) ->
            }}.
 
 handle_call(get_stardate, _From, State) ->
-    {reply, 12345, State};
+    {reply, get_stardate(State), State};
 handle_call(get_my_data, {Pid, _Ref}, #state{ ships=Ships }=State) ->
     case orddict:find(Pid, Ships) of
         {ok, #ship_data{ quad=QC }=Data} ->
@@ -257,3 +260,9 @@ find_empty_sector(QI, SI, SECT, State) ->
         _ ->
             no_empty_sector_found
     end.
+
+get_stardate(#state{ stardate=SD, sync=Sync }) ->
+    SD + elapsed(os:timestamp(), Sync).
+
+elapsed({M1, S1, _}, {M2, S2, _}) ->
+    (M1 - M2) * 1000000 + (S1 - S2).
