@@ -194,7 +194,6 @@ perform_attack(LK, LDIST, GameState) ->
 
 actual_move(GameState) -> 
     {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
-    _ShipSC = SHIP#enterprise_status.sectxy,
     LK = dict:fetch_keys(DKS),
     % choose a Klingon ship in the sector randomly
     SK = lists:nth(tinymt32:uniform(length(LK)), LK),
@@ -202,17 +201,23 @@ actual_move(GameState) ->
     LM = [ S ||
         {S, E} <- erltrek_scan:adjacent_sector_contents(SK, SECT),
         E =:= s_empty],
-    % choose randomly from the possible choice
-    SKM = lists:nth(tinymt32:uniform(length(LM)), LM),
-    % move in to new position
-    erltrek_event:notify({klingon_move, SK, SKM}),
-    % update database of Klingons in the sector
-    [K] = dict:fetch(SK, DKS),
-    DKS2 = dict:append(SKM, K, dict:erase(SK, DKS)),
-    % clear Enterprise in the current sector array
-    SECT2 = array:set(erltrek_setup:sectxy_index(SK),
-                s_empty, SECT),
-    % fill Enterprise in the current sector array
-    SECT3 = array:set(erltrek_setup:sectxy_index(SKM),
-                s_klingon, SECT2),
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT3, DKS2}.
+    NM = length(LM),
+    case NM > 0 of
+        false -> % do nothing if cannot move
+            GameState;
+        true ->
+            % choose randomly from the possible choice
+            SKM = lists:nth(tinymt32:uniform(NM), LM),
+            % move in to new position
+            erltrek_event:notify({klingon_move, SK, SKM}),
+            % update database of Klingons in the sector
+            [K] = dict:fetch(SK, DKS),
+            DKS2 = dict:append(SKM, K, dict:erase(SK, DKS)),
+            % clear the Klingon ship in the current sector array
+            SECT2 = array:set(erltrek_setup:sectxy_index(SK),
+                    s_empty, SECT),
+            % fill the Klingon ship in the current sector array
+            SECT3 = array:set(erltrek_setup:sectxy_index(SKM),
+                    s_klingon, SECT2),
+            {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT3, DKS2}
+    end.
