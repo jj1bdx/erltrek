@@ -250,6 +250,10 @@ srscan_ypos(Y, X, SECT, DISP) ->
                            SECT), DISP)])
      | srscan_ypos(Y + 1, X, SECT, DISP)].
 
+%% Return the list of adjacent sectors
+%% with the tuple of sector coordinates and contents
+%% (content is out_of_bound if outside the sector)
+
 -spec adjacent_sector_contents(#sectxy{}, array()) ->
     [{#sectxy{}, sector_entity() | out_of_bound}].
 
