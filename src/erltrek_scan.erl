@@ -82,11 +82,13 @@
 
 -include("erltrek.hrl").
 
--export([lrscan/1, srscan/1,
-
-        condition_string/1,
-        lrscan_string/1,
-        srscan_string/1
+-export([lrscan/1,
+         srscan/1,
+         adjacent_sector_contents/2,
+         %
+         condition_string/1,
+         lrscan_string/1,
+         srscan_string/1
         ]).
 
 -spec lrscan(game_state()) -> ok.
@@ -199,11 +201,11 @@ srscan_string(GameState) ->
     STATUS = [
         io_lib:format("Stardate:      ~s.~s", [LT1, LT2]),
         io_lib:format("Position:      ~b,~b/~b,~b",
-            [SHIP#enterprise_status.quadxy#quadxy.x, 
-             SHIP#enterprise_status.quadxy#quadxy.y, 
-             SHIP#enterprise_status.sectxy#sectxy.x, 
+            [SHIP#enterprise_status.quadxy#quadxy.x,
+             SHIP#enterprise_status.quadxy#quadxy.y,
+             SHIP#enterprise_status.sectxy#sectxy.x,
              SHIP#enterprise_status.sectxy#sectxy.y]),
-        io_lib:format("Condition:     ~s", 
+        io_lib:format("Condition:     ~s",
             [condition_string(SHIP#enterprise_status.condition)]),
         io_lib:format("Energy:        ~b", [SHIP#enterprise_status.energy]),
         io_lib:format("Shield:        ~b", [SHIP#enterprise_status.shield]),
@@ -237,14 +239,34 @@ srscan_xline(X, SL, SECT, DISP) ->
      io_lib:format("~c  ", [X + $0]),
      Status, "\n"
      | srscan_xline(X + 1, SLT, SECT, DISP)].
-    
+
 -spec srscan_ypos(non_neg_integer(), non_neg_integer(), array(), orddict()) -> iolist().
 
 srscan_ypos(?NSECTS, _X, _SECT, _DISP) -> [];
 srscan_ypos(Y, X, SECT, DISP) ->
     [io_lib:format(
        "~c ", [orddict:fetch(
-                 array:get(erltrek_setup:sectxy_index(#sectxy{x = X, y = Y}), 
+                 array:get(erltrek_setup:sectxy_index(#sectxy{x = X, y = Y}),
                            SECT), DISP)])
      | srscan_ypos(Y + 1, X, SECT, DISP)].
 
+-spec adjacent_sector_contents(#sectxy{}, array()) ->
+    [{#sectxy{}, sector_entity() | out_of_bound}].
+
+adjacent_sector_contents(SC, SECT) ->
+    SX = SC#sectxy.x,
+    SY = SC#sectxy.y,
+    [{#sectxy{x = X, y = Y}, sector_content(X, Y, SECT)} ||
+        X <- [SX - 1, SX, SX + 1], Y <- [SY - 1, SY, SY + 1]].
+
+-spec sector_content(sectcoord(), sectcoord(), array()) ->
+    sector_entity() | out_of_bound.
+
+sector_content(SX, SY, SECT) ->
+    case erltrek_calc:in_sector(SX, SY) of
+        false ->
+            out_of_bound;
+        true ->
+            array:get(erltrek_setup:sectxy_index(
+                    #sectxy{x = SX, y = SY}), SECT)
+    end.
