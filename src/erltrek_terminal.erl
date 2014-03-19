@@ -149,6 +149,11 @@ handle_event({hit, SK, KHIT}, State) ->
 handle_event({hit, protected_by_starbase}, State) ->
     ok = io:format("Starbase shields protect the ship~n"),
     {ok, State};
+handle_event({klingon_move, SK, SKM}, State) ->
+    ok = io:format("Klingon moved from sector ~b,~b to ~b,~b~n",
+                   [SK#sectxy.x, SK#sectxy.y,
+                       SKM#sectxy.x, SKM#sectxy.y]),
+    {ok, State};
 handle_event({phaser_hit, SK, HIT}, State) ->
     ok = io:format("Phaser hit to Klingon at sector ~b,~b level ~b~n",
                    [SK#sectxy.x, SK#sectxy.y, HIT]),
