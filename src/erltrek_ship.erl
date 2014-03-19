@@ -163,5 +163,5 @@ handle_command({srscan}, State) ->
     %% But for this to work, no event handler (directly or indirectly)
     %% may call into any of the processes in our call chain!
     {erltrek_event:sync_notify({srscan, {Stardate, [State|Data]}}), State};
-handle_command(_, State) ->
-    {unknown_command, State}.
+handle_command(Cmd, State) ->
+    {{unknown_command, Cmd}, State}.

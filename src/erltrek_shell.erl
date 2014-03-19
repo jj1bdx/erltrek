@@ -109,6 +109,15 @@ server_loop() ->
                     io:format("My sincere apologies, Captain, I do not understand your command: ~s", [Command]);
                 {error, Message} ->
                     io:format("Hrrm.. you need to quit slurring, Captain~n  (~s)~n", [Message]);
+                {ok, {unknown_command, Cmd}} ->
+                    io:format(
+                      "~n"
+                      "Your command seems valid Captain, however there is no one onboard this ship"
+                      " that knows how to carry it out.~n"
+                      "Our sincere apologies, perhaps notify the ship manufacturer for updated manuals:"
+                      " (https://github.com/jj1bdx/erltrek/issues)~n"
+                      "Please include the following: ~p~n~n",
+                      [Cmd]);
                 {ok, _} -> nop
             end,
             server_loop();
