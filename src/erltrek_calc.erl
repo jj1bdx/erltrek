@@ -95,7 +95,8 @@
          track_course/4,
          quadxy_index/1,
          sectxy_index/1,
-         index_quadxy/1
+         index_quadxy/1,
+         index_sectxy/1
         ]).
 
 -include("erltrek.hrl").
@@ -320,3 +321,12 @@ index_quadxy(QI) when is_integer(QI), QI >= 0 ->
     %% make the index wrap in case it goes out of bounds
     B = QI rem (?NQUADS * ?NQUADS),
     #quadxy{ x = B div ?NQUADS, y = B rem ?NQUADS }.
+
+%% convert sector array index to coordinate
+
+-spec index_sectxy(non_neg_integer()) -> #sectxy{}.
+
+index_sectxy(SI) when is_integer(SI), SI >= 0 ->
+    %% make the index wrap in case it goes out of bounds
+    B = SI rem (?NSECTS * ?NSECTS),
+    #sectxy{ x = B div ?NSECTS, y = B rem ?NSECTS }.
