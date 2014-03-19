@@ -192,4 +192,17 @@ perform_attack(LK, LDIST, GameState) ->
 
 -spec actual_move(game_state()) -> game_state().
 
-actual_move(GameState) -> GameState. % skeleton
+actual_move(GameState) -> 
+    {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, SECT, DKS} = GameState,
+    _ShipSC = SHIP#enterprise_status.sectxy,
+    LK = dict:fetch_keys(DKS),
+    % choose a Klingon ship randomly
+    SK = lists:nth(tinymt32:uniform(length(LK)), LK),
+    % scan movable empty sector coordinates
+    LM = [ S ||
+        {S, E} <- erltrek_scan:adjacent_sector_contents(SK, SECT),
+        E =:= s_empty],
+    % DEBUG: list movable points
+    io:format("Klingon at ~b,~b can move to: ~p~n",
+        [SK#sectxy.x, SK#sectxy.y, LM]),
+    GameState. % skeleton
