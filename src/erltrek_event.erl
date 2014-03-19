@@ -147,6 +147,18 @@ monitoring_game(GameState) ->
         false -> ok % do nothing
     end,
     SHIP2 = SHIP#enterprise_status{condition = Condition},
+    % Win if the number of Klingons is zero or minus
+    case NK2 =< 0 of
+        true ->
+            erltrek_game:won("Klingons were all wiped out from the galaxy");
+        false -> ok % do nothing
+    end,
+    % Lose if Enterprise energy level is zero of minus
+    case SHIP2#enterprise_status.energy =< 0 of
+        true ->
+            erltrek_game:lose("Enterprise has no enery left");
+        false -> ok % do nothing
+    end,
     {Tick, SHIP2, NK2, DS, DI, DB, DH, DKQ, SECT, DKS}.
 
 %% Clear Enterprise command buffer
