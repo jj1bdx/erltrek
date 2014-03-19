@@ -153,7 +153,13 @@ handle_call(get_my_data, {Pid, _Ref}, #state{ ships=Ships }=State) ->
         {ok, #ship_data{ quad=QC }=Data} ->
             {reply,
              [Data,
-              {quad, get_quad(QC, State)}
+              {quad, get_quad(QC, State)},
+              {klingons, orddict:fold(
+                          fun (_, #ship_data{ class=s_klingon }, Count) ->
+                                  Count + 1;
+                              (_, _, Count) ->
+                                  Count
+                          end, 0, Ships)}
               |case dict:find(QC, State#state.inhabited) of
                    {ok, Value} -> Value;
                    _ -> []

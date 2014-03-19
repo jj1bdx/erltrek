@@ -204,6 +204,7 @@ srscan_string({Stardate, Scan}) ->
     Ship = lists:keyfind(ship_state, 1, Scan),
     Data = lists:keyfind(ship_data, 1, Scan),
     Quad = proplists:get_value(quad, Scan),
+    Klingons = proplists:get_value(klingons, Scan, unknown),
 
     LT = integer_to_list(Stardate),
     {LT1, LT2} = lists:split(length(LT) - 2, LT),
@@ -218,7 +219,7 @@ srscan_string({Stardate, Scan}) ->
                        [condition_string(Ship#ship_state.condition)]),
          io_lib:format("Energy:        ~b", [Ship#ship_state.energy]),
          io_lib:format("Shield:        ~b", [Ship#ship_state.shield]),
-         io_lib:format("Klingons:      ?? (todo)", [])
+         io_lib:format("Klingons:      ~p", [Klingons])
         ],
     %% begin iolist result
     ["Short range sensor scan\n",
