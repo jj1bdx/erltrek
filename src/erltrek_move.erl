@@ -227,12 +227,12 @@ course_onmove_next(GameState) ->
     case QC =/= SHIP#enterprise_status.quadxy of
         true -> % change current quadrant
             {SECT2, DKS2} = erltrek_setup:setup_sector(QC, DS, DI, DB, DH, DKQ),
-            ENT = array:get(erltrek_setup:sectxy_index(SC), SECT2),
+            ENT = array:get(erltrek_calc:sectxy_index(SC), SECT2),
             case ENT =:= s_empty of
                 true -> % sector empty, move in
                     erltrek_event:notify({move_quad, QC, SC}),
                     % fill Enterprise in the new sector array
-                    SECT3 = array:set(erltrek_setup:sectxy_index(SC), s_enterprise, SECT2),
+                    SECT3 = array:set(erltrek_calc:sectxy_index(SC), s_enterprise, SECT2),
                     GameState2 = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT3, DKS2},
                     course_checkend_noaction(GameState2);
                 false -> % sector already filled, fail to move
@@ -240,16 +240,16 @@ course_onmove_next(GameState) ->
                     force_halt(GameState)
             end;
         false -> % in the same quadrant
-            ENT2 = array:get(erltrek_setup:sectxy_index(SC), SECT),
+            ENT2 = array:get(erltrek_calc:sectxy_index(SC), SECT),
             case ENT2 =:= s_empty of
                 true -> % sector empty, move in
                     erltrek_event:notify({move_sect, QC, SC}),
                     % clear Enterprise in the current sector array
-                    SECT4 = array:set(erltrek_setup:sectxy_index(
+                    SECT4 = array:set(erltrek_calc:sectxy_index(
                                         SHIP#enterprise_status.sectxy),
                                         s_empty, SECT),
                     % fill Enterprise in the current sector array
-                    SECT5 = array:set(erltrek_setup:sectxy_index(SC),
+                    SECT5 = array:set(erltrek_calc:sectxy_index(SC),
                                         s_enterprise, SECT4),
                     GameState3 = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT5, DKS},
                     course_checkend_noaction(GameState3);

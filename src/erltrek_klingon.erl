@@ -214,10 +214,10 @@ actual_move(GameState) ->
             [K] = dict:fetch(SK, DKS),
             DKS2 = dict:append(SKM, K, dict:erase(SK, DKS)),
             % clear the Klingon ship in the current sector array
-            SECT2 = array:set(erltrek_setup:sectxy_index(SK),
+            SECT2 = array:set(erltrek_calc:sectxy_index(SK),
                     s_empty, SECT),
             % fill the Klingon ship in the current sector array
-            SECT3 = array:set(erltrek_setup:sectxy_index(SKM),
+            SECT3 = array:set(erltrek_calc:sectxy_index(SKM),
                     s_klingon, SECT2),
             {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT3, DKS2}
     end.

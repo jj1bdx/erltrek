@@ -81,19 +81,23 @@
 -module(erltrek_calc).
 
 -export([
-        course_distance/4,
-        destination/4,
-        in_quadrant/1,
-        in_quadrant/2,
-        in_quadxy/1,
-        in_sector/1,
-        in_sector/2,
-        in_sectxy/1,
-        sector_course/2,
-        sector_course_distance/2,
-        sector_distance/2,
-        track_course/4
-     ]).
+         course_distance/4,
+         destination/4,
+         in_quadrant/1,
+         in_quadrant/2,
+         in_quadxy/1,
+         in_sector/1,
+         in_sector/2,
+         in_sectxy/1,
+         sector_course/2,
+         sector_course_distance/2,
+         sector_distance/2,
+         track_course/4,
+         quadxy_index/1,
+         sectxy_index/1,
+         index_quadxy/1,
+         index_sectxy/1
+        ]).
 
 -include("erltrek.hrl").
 
@@ -105,13 +109,11 @@ in_quadrant(X) -> (X >= 0) andalso (X < ?NQUADS).
 
 -spec in_quadrant(quadcoord(), quadcoord()) -> boolean().
 
-in_quadrant(X, Y) ->
-    (X >= 0) andalso (X < ?NQUADS) andalso
-    (Y >= 0) andalso (Y < ?NQUADS).
+in_quadrant(X, Y) -> in_quadrant(X) andalso in_quadrant(Y).
 
 -spec in_quadxy(#quadxy{}) -> boolean().
 
-in_quadxy(QC) -> in_quadrant(QC#quadxy.x, QC#quadxy.y).
+in_quadxy(#quadxy{ x=X, y=Y }) -> in_quadrant(X, Y).
 
 %% check inside the sector
 
@@ -121,13 +123,11 @@ in_sector(X) -> (X >= 0) andalso (X < ?NSECTS).
 
 -spec in_sector(sectcoord(), sectcoord()) -> boolean().
 
-in_sector(X, Y) ->
-    (X >= 0) andalso (X < ?NSECTS) andalso
-    (Y >= 0) andalso (Y < ?NSECTS).
+in_sector(X, Y) -> in_sector(X) andalso in_sector(Y).
 
 -spec in_sectxy(#sectxy{}) -> boolean().
 
-in_sectxy(QC) -> in_sector(QC#sectxy.x, QC#sectxy.y).
+in_sectxy(#sectxy{ x=X, y=Y }) -> in_sector(X, Y).
 
 %% Calculate course and distance between two quad/sect coordinates
 %% Input: source #quadxy, #sectxy, dest #quadxy, #sectxy
@@ -298,3 +298,35 @@ sector_course(SC, DC) ->
 sector_distance(SC, DC) ->
     {_COURSE, DISTANCE} = sector_course_distance(SC, DC),
     DISTANCE.
+
+%% convert quadrant coordinate record to Quad array position
+
+-spec quadxy_index(#quadxy{}) -> non_neg_integer().
+
+quadxy_index(QC) ->
+    (QC#quadxy.x * ?NQUADS) + QC#quadxy.y.
+
+%% convert sector coordinate record to Sect array position
+
+-spec sectxy_index(#sectxy{}) -> non_neg_integer().
+
+sectxy_index(QC) ->
+    (QC#sectxy.x * ?NSECTS) + QC#sectxy.y.
+
+%% convert quadrant array index to coordinate
+
+-spec index_quadxy(non_neg_integer()) -> #quadxy{}.
+
+index_quadxy(QI) when is_integer(QI), QI >= 0 ->
+    %% make the index wrap in case it goes out of bounds
+    B = QI rem (?NQUADS * ?NQUADS),
+    #quadxy{ x = B div ?NQUADS, y = B rem ?NQUADS }.
+
+%% convert sector array index to coordinate
+
+-spec index_sectxy(non_neg_integer()) -> #sectxy{}.
+
+index_sectxy(SI) when is_integer(SI), SI >= 0 ->
+    %% make the index wrap in case it goes out of bounds
+    B = SI rem (?NSECTS * ?NSECTS),
+    #sectxy{ x = B div ?NSECTS, y = B rem ?NSECTS }.

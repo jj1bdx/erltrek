@@ -171,7 +171,7 @@ hit_phaser(LK, LDIST, LCOURSE, ENERGY, COURSE, GameState) ->
             DKQ2 = dict:store(QC, dict:fetch(QC, DKQ) - 1, DKQ),
             DKS3 = dict:erase(SK, DKS),
             NK2 = NK - 1,
-            SECT2 = array:set(erltrek_setup:sectxy_index(SK), s_empty, SECT),
+            SECT2 = array:set(erltrek_calc:sectxy_index(SK), s_empty, SECT),
             GameState3 = {Tick, SHIP, NK2, DS, DI, DB, DH, DKQ2, SECT2, DKS3},
             hit_phaser(LK2, LDIST2, LCOURSE2, ENERGY, COURSE, GameState3)
     end.
