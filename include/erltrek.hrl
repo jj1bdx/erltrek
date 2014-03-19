@@ -144,7 +144,8 @@
         shield :: integer(),
         impulse_move :: boolean(),
         impulse_course :: [{#quadxy{}, #sectxy{}}],
-        warping :: boolean(),
+        warp_move :: boolean(),
+        warp_course :: [{#quadxy{}, #sectxy{}}],
         docked :: boolean(),
         condition:: 'cond_green' | 'cond_yellow' | 'cond_red' | 'cond_docked',
         % next command content
