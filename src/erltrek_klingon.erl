@@ -205,7 +205,7 @@ actual_move(GameState) ->
     % choose randomly from the possible choice
     SKM = lists:nth(tinymt32:uniform(length(LM)), LM),
     % move in to new position
-    % erltrek_event:notify({move_sect, QC, SC}),
+    erltrek_event:notify({klingon_move, SK, SKM}),
     % update database of Klingons in the sector
     [K] = dict:fetch(SK, DKS),
     DKS2 = dict:append(SKM, K, dict:erase(SK, DKS)),
