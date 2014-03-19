@@ -83,7 +83,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1, start_link/2]).
+-export([start_link/1, start_link/2, command/2]).
 
 %% Callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -91,11 +91,10 @@
 
 -include("erltrek.hrl").
 
--record(state, {
-          ship :: #ship_def{},
-          energy :: pos_integer(),
-          shield :: non_neg_integer()
-         }).
+
+%%% --------------------------------------------------------------------
+%%% API
+%%% --------------------------------------------------------------------
 
 -spec start_link(#ship_def{}) -> {ok, pid()} | ignore | {error, term()}.
 
@@ -111,6 +110,14 @@ start_link(Ship, Args)
     gen_server:start_link(?MODULE, [{ship, Ship}|Args], []).
 
 
+command(Ship, Command) ->
+    gen_server:call(Ship, {command, Command}).
+
+
+%%% --------------------------------------------------------------------
+%%% Callbacks
+%%% --------------------------------------------------------------------
+
 init([{ship, Ship}|Args]) ->
     case proplists:get_value(commander, Args) of
         undefined -> nop;
@@ -118,8 +125,11 @@ init([{ship, Ship}|Args]) ->
             {ok, _} = Commander:start(self())
     end,
     #ship_def{ max_energy=E, max_shield=S } = Ship,
-    {ok, #state{ ship = Ship, energy = E, shield = S }}.
+    {ok, #ship_state{ ship = Ship, energy = E, shield = S }}.
 
+handle_call({command, Command}, _From, State0) ->
+    {Reply, State} = handle_command(Command, State0),
+    {reply, Reply, State};
 handle_call(_Call, _From, State) ->
     {reply, ok, State}.
 
@@ -134,3 +144,24 @@ code_change(_OldVsn, State, _Extra) ->
 
 terminate(_Reason, _State) ->
     ok.
+
+
+%%% --------------------------------------------------------------------
+%%% Internal functions
+%%% --------------------------------------------------------------------
+
+handle_command({srscan}, State) ->
+    %% todo: we can check for damaged scanner device here.. ;)
+    
+    %% collect data (i.e. perform the scan) here, now, then send that
+    %% off as a short range scan result for output.
+    
+    Stardate = erltrek_galaxy:stardate(),
+    Data = erltrek_galaxy:my_data(),
+
+    %% Using sync notify so the output is presented before returning.
+    %% But for this to work, no event handler (directly or indirectly)
+    %% may call into any of the processes in our call chain!
+    {erltrek_event:sync_notify({srscan, {Stardate, [State|Data]}}), State};
+handle_command(_, State) ->
+    {unknown_command, State}.

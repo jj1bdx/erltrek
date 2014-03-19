@@ -83,7 +83,9 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, spawn_ship/1]).
+-export([start_link/0, spawn_ship/1,
+         stardate/0, my_data/0
+        ]).
 
 %% Callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -95,14 +97,10 @@
 
 -record(state, {
           ships,
-          galaxy
+          galaxy,
+          stars, inhabited, bases, holes
          }).
 
--record(ship_state, {
-          class,
-          quad,
-          sect
-         }).
 
 %%% --------------------------------------------------------------------
 %%% API
@@ -116,6 +114,12 @@ spawn_ship(Ship) when is_record(Ship, ship_def)->
     {ok, Pid} = erltrek_ship_sup:start_ship([Ship]),
     ok = gen_server:cast(?MODULE, {new_ship, Ship#ship_def.class, Pid}),
     {ok, Pid}.
+
+stardate() ->
+    gen_server:call(?MODULE, get_stardate).
+
+my_data() ->
+    gen_server:call(?MODULE, get_my_data).
 
 %%% --------------------------------------------------------------------
 %%% Callbacks
@@ -132,16 +136,36 @@ init([]) ->
                                              QC, DS, DI, DB, DH, DKQ),
                              spawn_klingons(DKS, QC, SECT)
                      end,
-                     erltrek_setup:init_quad())
+                     erltrek_setup:init_quad()),
+            stars = DS,
+            inhabited = DI,
+            bases = DB,
+            holes = DH
            }}.
 
+handle_call(get_stardate, _From, State) ->
+    {reply, 12345, State};
+handle_call(get_my_data, {Pid, _Ref}, #state{ ships=Ships }=State) ->
+    case orddict:find(Pid, Ships) of
+        {ok, #ship_data{ quad=QC }=Data} ->
+            {reply,
+             [Data,
+              {quad, get_quad(QC, State)}
+              |case dict:find(QC, State#state.inhabited) of
+                   {ok, Value} -> Value;
+                   _ -> []
+               end],
+             State};
+        _ ->
+            {reply, [], State}
+    end;
 handle_call(_Call, _From, State) ->
     {reply, ok, State}.
 
 handle_cast({new_ship, Class, Pid}, State0) ->
     {QC, SC, State} = place_object({Class, Pid}, State0),
     handle_info({register_ship, Pid,
-                 #ship_state{ class=Class, quad=QC, sect=SC }},
+                 #ship_data{ class=Class, quad=QC, sect=SC }},
                 State);
 handle_cast(_Cast, State) ->
     {noreply, State}.
@@ -151,7 +175,7 @@ handle_info({register_ship, Pid, Ship}, #state{ ships=Ships }=State) ->
     {noreply, State#state{ ships=orddict:store(Pid, Ship, Ships) }};
 handle_info({'DOWN', _Ref, process, Pid, _Info}, #state{ ships=Ships }=State0) ->
     State = case orddict:find(Pid, Ships) of
-                {ok, #ship_state{ class=Class, quad=QC, sect=SC }} ->
+                {ok, #ship_data{ class=Class, quad=QC, sect=SC }} ->
                     erltrek_event:notify({killed, Class, QC, SC}),
                     update_sector(QC, SC, s_empty, State0);
                 _ -> State0
@@ -177,14 +201,14 @@ quadxy_index(QC) -> erltrek_calc:quadxy_index(QC).
 sectxy_index(SI) when is_integer(SI) -> SI rem (?NSECTS * ?NSECTS);
 sectxy_index(SC) -> erltrek_calc:sectxy_index(SC).
 
-get_sector(QC, #state{ galaxy=G }) ->
+get_quad(QC, #state{ galaxy=G }) ->
     array:get(quadxy_index(QC), G).
 
-set_sector(QC, SECT, #state{ galaxy=G }=State) ->
+set_quad(QC, SECT, #state{ galaxy=G }=State) ->
     State#state{ galaxy=array:set(quadxy_index(QC), SECT, G) }.
 
 update_sector(QC, SC, Value, State) ->
-    set_sector(QC, update_sector(SC, Value, get_sector(QC, State)), State).
+    set_quad(QC, update_sector(SC, Value, get_quad(QC, State)), State).
 
 update_sector(SC, Value, SECT) ->
     array:set(sectxy_index(SC), Value, SECT).
@@ -200,7 +224,7 @@ spawn_klingons(DKS, QC, SECT0) ->
                              [ShipDef,
                               [{commander, erltrek_klingon_commander}]]),
               self() ! {register_ship, Ship,
-                        #ship_state{
+                        #ship_data{
                            class=ShipDef#ship_def.class,
                            quad=QC, sect=SC }},
               update_sector(SC, {s_klingon, Ship}, SECT)
@@ -219,7 +243,7 @@ find_empty_sector(#state{ galaxy=G }=State) ->
     find_empty_sector(QI, State).
 
 find_empty_sector(QI, State) ->
-    SECT = get_sector(QI, State),
+    SECT = get_quad(QI, State),
     SI = tinymt32:uniform(array:size(SECT)),
     find_empty_sector(QI, SI, SECT, State).
 

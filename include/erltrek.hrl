@@ -136,6 +136,7 @@
 -record(inhabited_info, { xy :: #sectxy{}, systemname :: string()}).
 
 %% Enterprise status
+-type ship_condition() :: 'cond_green' | 'cond_yellow' | 'cond_red' | 'cond_docked'.
 
 -record(enterprise_status, {
         quadxy :: #quadxy{},
@@ -147,7 +148,7 @@
         warp_move :: boolean(),
         warp_course :: [{#quadxy{}, #sectxy{}}],
         docked :: boolean(),
-        condition:: 'cond_green' | 'cond_yellow' | 'cond_red' | 'cond_docked',
+        condition :: ship_condition(),
         % next command content
         next_command :: tuple()
     }).
@@ -168,8 +169,8 @@
 %% Ship data used by erltrek_ship
 -record(ship_def, {
           class :: s_enterprise | s_klingon | atom(),
-          max_energy :: pos_integer(),
-          max_shield :: non_neg_integer()
+          max_energy=1 :: pos_integer(),
+          max_shield=0 :: non_neg_integer()
          }).
 
 -define(enterprise_ship,
@@ -185,6 +186,21 @@
            max_energy = ?KLINGONENERGY,
            max_shield = 0
           }).
+
+%% Ship state used by erltrek_ship (also used in some event notifications)
+-record(ship_state, {
+          ship=#ship_def{} :: #ship_def{},
+          energy=1 :: pos_integer(),
+          shield=0 :: non_neg_integer(),
+          condition=cond_green :: ship_condition()
+         }).
+
+%% galaxy data about ship used by erltrek_galaxy
+-record(ship_data, {
+          class,
+          quad,
+          sect
+         }).
 
 %% vim: set ts=4 sw=4 sts=4 et :
 %% emacs: -*- mode:erlang; tab-width:4; indent-tabs-mode:nil;  -*-

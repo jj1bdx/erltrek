@@ -125,14 +125,18 @@ won(Message) ->
     gen_server:cast(?MODULE, {stop, {won, Message}}).
 
 enterprise_command(Command) ->
-    gen_server:call(?MODULE, {enterprise_command, Command}).
+    %% gen_server:call(?MODULE, {enterprise_command, Command}).
+    gen_server:call(?MODULE, {ship, Command}).
 
 %% Callbacks
 
 init([]) ->
-    {ok, []}.
+    erltrek_galaxy:spawn_ship(?enterprise_ship).
 
+handle_call({ship, Command}, _From, Ship) ->
+    {reply, erltrek_ship:command(Ship, Command), Ship};
 handle_call(start_game, _From, _State) ->
+    exit(do_not_call_start_game),
     % Initialize {Tick,SHIP,NK,DS,DI,DB,DH,DKQ,SECT,DKS} 
     InitState = erltrek_setup:setup_state(),
     % wait one second to start the game
