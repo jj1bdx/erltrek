@@ -89,11 +89,30 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          code_change/3, terminate/2]).
 
-start_link() -> 
+-include("erltrek.hrl").
+
+-record(state, {
+          %%stars, isystems, bases, holes,
+          galaxy
+         }).
+
+start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init([]) ->
-    {ok, []}.
+    {_NK, DS, DI, DB, DH, DKQ} = erltrek_setup:setup_galaxy(),
+    {ok, #state{
+            %%stars=DS, isystems=DI, bases=DB, holes=DH,
+            galaxy=array:map(
+                     fun (QI, _) ->
+                             {SECT, _DKS} = erltrek_setup:setup_sector(
+                                              erltrek_calc:index_quadxy(QI),
+                                              DS, DI, DB, DH, DKQ),
+                             %% todo: spawn klingons from DKS
+                             SECT
+                     end,
+                     erltrek_setup:init_quad())
+           }}.
 
 handle_call(_Call, _From, State) ->
     {reply, ok, State}.
