@@ -154,7 +154,7 @@ hit_phaser(LK, LDIST, LCOURSE, ENERGY, COURSE, GameState) ->
     KE = K#klingon_status.energy,
     % Calculate hitting level
     HIT = trunc(float(ENERGY) * math:pow(0.9, float(SDIST)) *
-                math:exp(-0.7 * abs((SCOURSE - COURSE)/2.0))),
+                math:exp(-0.7 * abs((SCOURSE - COURSE)/10.0))),
     % Notify how much phaser actually causes damage to Klingon
     erltrek_event:notify({phaser_hit, SK, HIT}),
     % Deplete energy from Klingon and update the dict
