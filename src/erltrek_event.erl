@@ -156,7 +156,7 @@ monitoring_game(GameState) ->
     % Lose if Enterprise energy level is zero of minus
     case SHIP2#enterprise_status.energy =< 0 of
         true ->
-            erltrek_game:lose("Enterprise has no enery left");
+            erltrek_game:lost("Enterprise has no enery left");
         false -> ok % do nothing
     end,
     {Tick, SHIP2, NK2, DS, DI, DB, DH, DKQ, SECT, DKS}.
