@@ -153,12 +153,15 @@ hit_phaser(LK, LDIST, LCOURSE, ENERGY, COURSE, GameState) ->
     [K] = dict:fetch(SK, DKS),
     KE = K#klingon_status.energy,
     % Calculate hitting level
-    %% debug print?
-    io:format("ENERGY = ~b COURSE = ~.1f SDIST = ~.1f SCOURSE = ~.1f~n",
-                [ENERGY, COURSE, SDIST, SCOURSE]),
     HIT = trunc(float(ENERGY) * math:pow(0.9, float(SDIST)) *
                 math:exp(-0.7 * abs((SCOURSE - COURSE)/2.0))),
-    erltrek_event:notify({phaser_hit, SK, HIT}),
+    % Notify only when phaser actually causes damage to Klingon
+    case HIT > 0 of
+        true ->
+            erltrek_event:notify({phaser_hit, SK, HIT});
+        false ->
+            ok % do nothing
+    end,
     % Deplete energy from Klingon and update the dict
     NKE = KE - HIT,
     case NKE > 0 of
