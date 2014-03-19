@@ -105,13 +105,11 @@ in_quadrant(X) -> (X >= 0) andalso (X < ?NQUADS).
 
 -spec in_quadrant(quadcoord(), quadcoord()) -> boolean().
 
-in_quadrant(X, Y) ->
-    (X >= 0) andalso (X < ?NQUADS) andalso
-    (Y >= 0) andalso (Y < ?NQUADS).
+in_quadrant(X, Y) -> in_quadrant(X) andalso in_quadrant(Y).
 
 -spec in_quadxy(#quadxy{}) -> boolean().
 
-in_quadxy(QC) -> in_quadrant(QC#quadxy.x, QC#quadxy.y).
+in_quadxy(#quadxy{ x=X, y=Y }) -> in_quadrant(X, Y).
 
 %% check inside the sector
 
@@ -121,13 +119,11 @@ in_sector(X) -> (X >= 0) andalso (X < ?NSECTS).
 
 -spec in_sector(sectcoord(), sectcoord()) -> boolean().
 
-in_sector(X, Y) ->
-    (X >= 0) andalso (X < ?NSECTS) andalso
-    (Y >= 0) andalso (Y < ?NSECTS).
+in_sector(X, Y) -> in_sector(X) andalso in_sector(Y).
 
 -spec in_sectxy(#sectxy{}) -> boolean().
 
-in_sectxy(QC) -> in_sector(QC#sectxy.x, QC#sectxy.y).
+in_sectxy(#sectxy{ x=X, y=Y }) -> in_sector(X, Y).
 
 %% Calculate course and distance between two quad/sect coordinates
 %% Input: source #quadxy, #sectxy, dest #quadxy, #sectxy
