@@ -92,23 +92,33 @@
 -include("erltrek.hrl").
 
 -record(state, {
-          args
+          ship :: #ship_def{},
+          energy :: pos_integer(),
+          shield :: non_neg_integer()
          }).
 
-start_link(Args) ->
-    gen_server:start_link(?MODULE, Args, []).
+-spec start_link(#ship_def{}) -> {ok, pid()} | ignore | {error, term()}.
 
-start_link(Commander, Args) ->
-    case start_link(Args) of
-        {ok, Pid}=Res ->
-            {ok, _} = Commander:start(Pid),
-            Res;
-        Err ->
-            Err
-    end.
+start_link(Ship)
+  when is_record(Ship, ship_def) ->
+    start_link(Ship, []).
 
-init(Args) ->
-    {ok, #state{ args=Args }}.
+
+-spec start_link(#ship_def{}, list()) -> {ok, pid()} | ignore | {error, term()}.
+
+start_link(Ship, Args)
+  when is_record(Ship, ship_def), is_list(Args) ->
+    gen_server:start_link(?MODULE, [{ship, Ship}|Args], []).
+
+
+init([{ship, Ship}|Args]) ->
+    case proplists:get_value(commander, Args) of
+        undefined -> nop;
+        Commander ->
+            {ok, _} = Commander:start(self())
+    end,
+    #ship_def{ max_energy=E, max_shield=S } = Ship,
+    {ok, #state{ ship = Ship, energy = E, shield = S }}.
 
 handle_call(_Call, _From, State) ->
     {reply, ok, State}.

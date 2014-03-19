@@ -146,12 +146,14 @@ update_sector(SC, Value, SECT) ->
 
 spawn_klingons(DKS, QC, SECT0) ->
     dict:fold(
-      fun (SC, #klingon_status{}, SECT) ->
+      fun (SC, [#klingon_status{}], SECT) ->
+              ShipDef = ?klingon_ship,
               {ok, Ship} = erltrek_ship_sup:start_ship(
-                             [erltrek_klingon_commander, []]),
+                             [ShipDef,
+                              [{commander, erltrek_klingon_commander}]]),
               self() ! {register_ship, Ship,
                         #ship_state{
-                           class=s_klingon,
+                           class=ShipDef#ship_def.class,
                            quad=QC, sect=SC }},
               update_sector(SC, {s_klingon, Ship}, SECT)
       end, SECT0, DKS).

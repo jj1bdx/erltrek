@@ -108,7 +108,12 @@ start_link(Args) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, Args, []).
 
 start_game() ->
-    gen_server:call(?MODULE, start_game).
+    case whereis(?MODULE) of
+        undefined ->
+            receive after 100 -> start_game() end;
+        _ ->
+            gen_server:call(?MODULE, start_game)
+    end.
 
 stop() ->
     gen_server:cast(?MODULE, {stop, stop}).

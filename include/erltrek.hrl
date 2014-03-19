@@ -165,5 +165,26 @@
     {non_neg_integer(), #enterprise_status{}, non_neg_integer(),
      dict(), dict(), dict(), dict(), dict(), array(), dict()}.
 
+%% Ship data used by erltrek_ship
+-record(ship_def, {
+          class :: s_enterprise | s_klingon | atom(),
+          max_energy :: pos_integer(),
+          max_shield :: non_neg_integer()
+         }).
+
+-define(enterprise_ship,
+        #ship_def{
+           class = s_enterprise,
+           max_energy = ?SHIPENERGY,
+           max_shield = ?SHIPSHIELD
+          }).
+
+-define(klingon_ship,
+        #ship_def{
+           class = s_klingon,
+           max_energy = ?KLINGONENERGY,
+           max_shield = 0
+          }).
+
 %% vim: set ts=4 sw=4 sts=4 et :
 %% emacs: -*- mode:erlang; tab-width:4; indent-tabs-mode:nil;  -*-
