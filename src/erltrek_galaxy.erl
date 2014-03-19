@@ -138,16 +138,25 @@ init([]) ->
 handle_call(_Call, _From, State) ->
     {reply, ok, State}.
 
-handle_cast(_Cast, State) ->
-    {noreply, State}.
-
-handle_info({register_ship, Pid, Ship}, #state{ ships=Ships }=State) ->
-    {noreply, State#state{ ships=orddict:store(Pid, Ship, Ships) }};
-handle_info({new_ship, Class, Pid}, State0) ->
+handle_cast({new_ship, Class, Pid}, State0) ->
     {QC, SC, State} = place_object({Class, Pid}, State0),
     handle_info({register_ship, Pid,
                  #ship_state{ class=Class, quad=QC, sect=SC }},
                 State);
+handle_cast(_Cast, State) ->
+    {noreply, State}.
+
+handle_info({register_ship, Pid, Ship}, #state{ ships=Ships }=State) ->
+    monitor(process, Pid),
+    {noreply, State#state{ ships=orddict:store(Pid, Ship, Ships) }};
+handle_info({'DOWN', _Ref, process, Pid, _Info}, #state{ ships=Ships }=State0) ->
+    State = case orddict:find(Pid, Ships) of
+                {ok, #ship_state{ class=Class, quad=QC, sect=SC }} ->
+                    erltrek_event:notify({killed, Class, QC, SC}),
+                    update_sector(QC, SC, s_empty, State0);
+                _ -> State0
+            end,
+    {noreply, State#state{ ships=orddict:erase(Pid, Ships) }};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -162,10 +171,10 @@ terminate(_Reason, _State) ->
 %%% Internal functions
 %%% --------------------------------------------------------------------
 
-quadxy_index(QI) when is_integer(QI) -> QI;
+quadxy_index(QI) when is_integer(QI) -> QI rem (?NQUADS * ?NQUADS);
 quadxy_index(QC) -> erltrek_calc:quadxy_index(QC).
 
-sectxy_index(SI) when is_integer(SI) -> SI;
+sectxy_index(SI) when is_integer(SI) -> SI rem (?NSECTS * ?NSECTS);
 sectxy_index(SC) -> erltrek_calc:sectxy_index(SC).
 
 get_sector(QC, #state{ galaxy=G }) ->
@@ -173,6 +182,9 @@ get_sector(QC, #state{ galaxy=G }) ->
 
 set_sector(QC, SECT, #state{ galaxy=G }=State) ->
     State#state{ galaxy=array:set(quadxy_index(QC), SECT, G) }.
+
+update_sector(QC, SC, Value, State) ->
+    set_sector(QC, update_sector(SC, Value, get_sector(QC, State)), State).
 
 update_sector(SC, Value, SECT) ->
     array:set(sectxy_index(SC), Value, SECT).
@@ -195,16 +207,9 @@ spawn_klingons(DKS, QC, SECT0) ->
       end, SECT0, DKS).
 
 place_object(Object, State) ->
-    {QI, SI}=Pos = find_empty_sector(State),
+    {QI, SI} = find_empty_sector(State),
     {index_quadxy(QI), index_sectxy(SI),
-     place_object(Object, Pos, State)}.
-
-place_object(Object, {QI, SI}, State) ->
-    set_sector(
-      QI, update_sector(
-            SI, Object,
-            get_sector(QI, State)),
-      State).
+     update_sector(QI, SI, Object, State)}.
 
 find_empty_sector(#state{ galaxy=G }=State) ->
     S = array:size(G),
