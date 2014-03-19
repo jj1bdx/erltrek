@@ -88,28 +88,14 @@
         inhabited_names/0,
         init_quad/0,
         init_sect/0,
-        quadxy_index/1,
         rand_quad/1,
         rand_sect/1,
-        sectxy_index/1,
         setup_galaxy/0,
         setup_sector/6,
         setup_state/0
         ]).
 
-%% convert quadrant coordinate record to Quad array position
-
--spec quadxy_index(#quadxy{}) -> non_neg_integer().
-
-quadxy_index(QC) ->
-    (QC#quadxy.x * ?NQUADS) + QC#quadxy.y.
-
-%% convert sector coordinate record to Sect array position
-
--spec sectxy_index(#sectxy{}) -> non_neg_integer().
-
-sectxy_index(QC) ->
-    (QC#sectxy.x * ?NSECTS) + QC#sectxy.y.
+-import(erltrek_calc, [quadxy_index/1, sectxy_index/1]).
 
 %% return empty {sx, sy} in the Sector array
 

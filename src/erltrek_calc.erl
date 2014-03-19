@@ -92,7 +92,9 @@
         sector_course/2,
         sector_course_distance/2,
         sector_distance/2,
-        track_course/4
+        track_course/4,
+        quadxy_index/1,
+        sectxy_index/1
      ]).
 
 -include("erltrek.hrl").
@@ -294,3 +296,17 @@ sector_course(SC, DC) ->
 sector_distance(SC, DC) ->
     {_COURSE, DISTANCE} = sector_course_distance(SC, DC),
     DISTANCE.
+
+%% convert quadrant coordinate record to Quad array position
+
+-spec quadxy_index(#quadxy{}) -> non_neg_integer().
+
+quadxy_index(QC) ->
+    (QC#quadxy.x * ?NQUADS) + QC#quadxy.y.
+
+%% convert sector coordinate record to Sect array position
+
+-spec sectxy_index(#sectxy{}) -> non_neg_integer().
+
+sectxy_index(QC) ->
+    (QC#sectxy.x * ?NSECTS) + QC#sectxy.y.

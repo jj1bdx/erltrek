@@ -246,7 +246,7 @@ srscan_ypos(?NSECTS, _X, _SECT, _DISP) -> [];
 srscan_ypos(Y, X, SECT, DISP) ->
     [io_lib:format(
        "~c ", [orddict:fetch(
-                 array:get(erltrek_setup:sectxy_index(#sectxy{x = X, y = Y}),
+                 array:get(erltrek_calc:sectxy_index(#sectxy{x = X, y = Y}),
                            SECT), DISP)])
      | srscan_ypos(Y + 1, X, SECT, DISP)].
 
@@ -271,6 +271,6 @@ sector_content(SX, SY, SECT) ->
         false ->
             out_of_bound;
         true ->
-            array:get(erltrek_setup:sectxy_index(
+            array:get(erltrek_calc:sectxy_index(
                     #sectxy{x = SX, y = SY}), SECT)
     end.
