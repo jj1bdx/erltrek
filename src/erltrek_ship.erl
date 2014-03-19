@@ -157,11 +157,13 @@ handle_command({srscan}, State) ->
     %% off as a short range scan result for output.
     
     Stardate = erltrek_galaxy:stardate(),
-    Data = erltrek_galaxy:my_data(),
+    Data = erltrek_galaxy:srscan(),
 
     %% Using sync notify so the output is presented before returning.
     %% But for this to work, no event handler (directly or indirectly)
     %% may call into any of the processes in our call chain!
     {erltrek_event:sync_notify({srscan, {Stardate, [State|Data]}}), State};
+handle_command({lrscan}, State) ->
+    {erltrek_event:sync_notify({lrscan, erltrek_galaxy:lrscan()}), State};
 handle_command(Cmd, State) ->
     {{unknown_command, Cmd}, State}.

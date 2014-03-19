@@ -151,10 +151,41 @@ lrscan_lines([X|LXT], LY, DS, DI, DB, DKQ) ->
      "\n"
      | lrscan_lines(LXT, LY, DS, DI, DB, DKQ)].
 
+lrscan_lines(X, Scan) ->
+    [case erltrek_calc:in_quadrant(X) of
+         true -> [32, $0 + X, 32, $!];
+         false -> "   !"
+     end,
+     [io_lib:format(
+       " ~3.b !",
+       [lists:foldl(
+         fun ({stars, S}, C) -> C + S;
+             ({bases, B}, C) -> C + 10 * B;
+             ({klingons, K}, C) -> C + 100 * K
+         end, 0, Props)])
+      || {#quadxy{ x=QX }, Props} <- Scan, QX == X],
+     "\n"].
+
 %% Display long range sensor output from the game state
 
--spec lrscan_string(game_state()) -> iolist().
+-spec lrscan_string(game_state()) -> iolist();
+                   (list()) -> iolist().
 
+lrscan_string([Data|Scan]) ->
+    #ship_data{ quad=#quadxy{ x=QX, y=QY } } = Data,
+    %% begin iolist result
+    [io_lib:format("Long range scan for Quadrant ~b,~b~n", [QX, QY]),
+     "   ",
+     [case erltrek_calc:in_quadrant(Y) of
+              true ->
+                  "   " ++ [$0 + Y] ++ "  ";
+              false ->
+                  "      "
+      end || Y <- lists:seq(QY - 1, QY + 1)],
+     "\n"
+     "   -------------------\n",
+     [lrscan_lines(X, Scan) || X <- lists:seq(QX - 1, QX + 1)],
+     "   -------------------\n\n"];
 lrscan_string(GameState) ->
     {_Tick, SHIP, _NK, DS, DI, DB, _DH, DKQ, _SECT, _DKS} = GameState,
     QC = SHIP#enterprise_status.quadxy,

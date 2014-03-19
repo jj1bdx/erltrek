@@ -84,7 +84,7 @@
 
 %% API
 -export([start_link/0, spawn_ship/1,
-         stardate/0, my_data/0
+         stardate/0, srscan/0, lrscan/0
         ]).
 
 %% Callbacks
@@ -117,11 +117,9 @@ spawn_ship(Ship) when is_record(Ship, ship_def)->
     ok = gen_server:cast(?MODULE, {new_ship, Ship#ship_def.class, Pid}),
     {ok, Pid}.
 
-stardate() ->
-    gen_server:call(?MODULE, get_stardate).
-
-my_data() ->
-    gen_server:call(?MODULE, get_my_data).
+stardate() -> call(get_stardate).
+srscan() -> call(srscan).
+lrscan() -> call(lrscan).
 
 %%% --------------------------------------------------------------------
 %%% Callbacks
@@ -148,23 +146,17 @@ init([]) ->
 
 handle_call(get_stardate, _From, State) ->
     {reply, get_stardate(State), State};
-handle_call(get_my_data, {Pid, _Ref}, #state{ ships=Ships }=State) ->
+handle_call(srscan, {Pid, _Ref}, #state{ ships=Ships }=State) ->
     case orddict:find(Pid, Ships) of
-        {ok, #ship_data{ quad=QC }=Data} ->
-            {reply,
-             [Data,
-              {quad, get_quad(QC, State)},
-              {klingons, orddict:fold(
-                          fun (_, #ship_data{ class=s_klingon }, Count) ->
-                                  Count + 1;
-                              (_, _, Count) ->
-                                  Count
-                          end, 0, Ships)}
-              |case dict:find(QC, State#state.inhabited) of
-                   {ok, Value} -> Value;
-                   _ -> []
-               end],
-             State};
+        {ok, Data} ->
+            {reply, srscan(Data, State), State};
+        _ ->
+            {reply, [], State}
+    end;
+handle_call(lrscan, {Pid, _Ref}, #state{ ships=Ships }=State) ->
+    case orddict:find(Pid, Ships) of
+        {ok, Data} ->
+            {reply, lrscan(Data, State), State};
         _ ->
             {reply, [], State}
     end;
@@ -203,6 +195,8 @@ terminate(_Reason, _State) ->
 %%% --------------------------------------------------------------------
 %%% Internal functions
 %%% --------------------------------------------------------------------
+
+call(Msg) -> gen_server:call(?MODULE, Msg).
 
 quadxy_index(QI) when is_integer(QI) -> QI rem (?NQUADS * ?NQUADS);
 quadxy_index(QC) -> erltrek_calc:quadxy_index(QC).
@@ -272,3 +266,47 @@ get_stardate(#state{ stardate=SD, sync=Sync }) ->
 
 elapsed({M1, S1, _}, {M2, S2, _}) ->
     (M1 - M2) * 1000000 + (S1 - S2).
+
+count_klingons(#state{ ships=Ships }) ->
+    orddict:fold(
+      fun (_, #ship_data{ class=s_klingon }, Count) ->
+              Count + 1;
+          (_, _, Count) ->
+              Count
+      end, 0, Ships);
+count_klingons(Quad) ->
+    array:foldl(
+     fun (_, {s_klingon, _}, Count) ->
+             Count + 1;
+         (_, _, Count) ->
+             Count
+     end, 0, Quad).
+
+srscan(#ship_data{ quad=QC }=Data, State) ->
+    [Data,
+     {quad, get_quad(QC, State)},
+     {klingons, count_klingons(State)}
+     |case dict:find(QC, State#state.inhabited) of
+          {ok, Value} -> Value;
+          _ -> []
+      end].
+
+count_objects(QC, D) ->
+    case dict:find(QC, D) of
+        {ok, Value} -> length(Value);
+        error -> 0
+    end.
+
+lrscan(#ship_data{ quad=#quadxy{ x=QX, y=QY } }=Data, State) ->
+    [Data
+     | [lrscan(#quadxy{ x=X, y=Y }, State)
+        || X <- lists:seq(QX - 1, QX + 1),
+           Y <- lists:seq(QY - 1, QY + 1)
+       ]
+    ];
+lrscan(QC, #state{ stars=DS, inhabited=DI, bases=DB }=State) ->
+    {QC,
+     [{stars, count_objects(QC, DS) + count_objects(QC, DI)},
+      {bases, count_objects(QC, DB)},
+      {klingons, count_klingons(get_quad(QC, State))}
+     ]}.
