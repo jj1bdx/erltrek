@@ -180,11 +180,11 @@ lrscan_string(GameState) ->
 -spec condition_string(cond_green | cond_yellow | cond_red | cond_docked) ->
     string().
 
-condition_string(Condition) ->
-    CONDITION = orddict:from_list([
-            {cond_green, "GREEN"}, {cond_yellow, "YELLOW"},
-            {cond_red, "RED"}, {cond_docked, "DOCKED"}]),
-    orddict:fetch(Condition, CONDITION).
+condition_string(cond_green) -> "GREEN";
+condition_string(cond_yellow) -> "YELLOW";
+condition_string(cond_red) -> "RED";
+condition_string(cond_docked) -> "DOCKED".
+
 
 %% Display current sector info and ship status from the game state
 
