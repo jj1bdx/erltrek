@@ -79,11 +79,11 @@
 %%% [End of LICENSE]
 %%% --------------------------------------------------------------------
 
--module(erltrek_galaxy).
+-module(erltrek_ship).
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/1, start_link/2]).
 
 %% Callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -92,32 +92,23 @@
 -include("erltrek.hrl").
 
 -record(state, {
-          ships,
-          galaxy
+          args
          }).
 
--record(ship_state, {
-          class,
-          quad,
-          sect
-         }).
+start_link(Args) ->
+    gen_server:start_link(?MODULE, Args, []).
 
-start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+start_link(Commander, Args) ->
+    case start_link(Args) of
+        {ok, Pid}=Res ->
+            {ok, _} = Commander:start(Pid),
+            Res;
+        Err ->
+            Err
+    end.
 
-init([]) ->
-    {_NK, DS, DI, DB, DH, DKQ} = erltrek_setup:setup_galaxy(),
-    {ok, #state{
-            ships=orddict:new(),
-            galaxy=array:map(
-                     fun (QI, _) ->
-                             QC = erltrek_calc:index_quadxy(QI),
-                             {SECT, DKS} = erltrek_setup:setup_sector(
-                                             QC, DS, DI, DB, DH, DKQ),
-                             spawn_klingons(DKS, QC, SECT)
-                     end,
-                     erltrek_setup:init_quad())
-           }}.
+init(Args) ->
+    {ok, #state{ args=Args }}.
 
 handle_call(_Call, _From, State) ->
     {reply, ok, State}.
@@ -125,8 +116,6 @@ handle_call(_Call, _From, State) ->
 handle_cast(_Cast, State) ->
     {noreply, State}.
 
-handle_info({register_ship, Pid, Ship}, #state{ ships=Ships }=State) ->
-    {noreply, State#state{ ships=orddict:store(Pid, Ship, Ships) }};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -135,23 +124,3 @@ code_change(_OldVsn, State, _Extra) ->
 
 terminate(_Reason, _State) ->
     ok.
-
-
-%%% --------------------------------------------------------------------
-%%% Internal functions
-%%% --------------------------------------------------------------------
-
-update_sector(SC, Value, SECT) ->
-    array:set(erltrek_calc:sectxy_index(SC), Value, SECT).
-
-spawn_klingons(DKS, QC, SECT0) ->
-    dict:fold(
-      fun (SC, #klingon_status{}, SECT) ->
-              {ok, Ship} = erltrek_ship_sup:start_ship(
-                             [erltrek_klingon_commander, []]),
-              self() ! {register_ship, Ship,
-                        #ship_state{
-                           class=s_klingon,
-                           quad=QC, sect=SC }},
-              update_sector(SC, {s_klingon, Ship}, SECT)
-      end, SECT0, DKS).

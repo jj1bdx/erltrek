@@ -35,38 +35,27 @@
 %%% SUCH DAMAGE.
 %%% --------------------------------------------------------------------
 
--module(erltrek_sup).
+-module(erltrek_ship_sup).
 -behaviour(supervisor).
 
--export([start_link/0, init/1]).
+%% API
+-export([start_link/0, start_ship/1]).
+
+%% Callbacks
+-export([init/1]).
 
 start_link() ->
-    supervisor:start_link(?MODULE, []).
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+
+start_ship(Args) when is_list(Args) ->
+    supervisor:start_child(?MODULE, Args).
 
 init(_Args) ->
-    RestartStrategy = one_for_all,
+    RestartStrategy = simple_one_for_one,
     MaxRestarts = 1,
     MaxTime = 60,
-    %% NOTE: the supervisor starts the children from top to bottom in this list
-    %% So, children with dependencies must be listed after those they depend on.
-    Childs = [{events,
-               {erltrek_event, start_link,
-                %% todo: make this configurable by
-                %% placing it in the app enviorment or some such..
-                [[{erltrek_terminal, []}]]},
-               permanent, brutal_kill, worker, dynamic},
-
-              {ships,
-               {erltrek_ship_sup, start_link, []},
-               permanent, 5000, supervisor, [erltrek_ship_sup]},
-
-              {galaxy, %% depends on 'ships' supervisor
-               {erltrek_galaxy, start_link, []},
-               permanent, 5000, worker, [erltrek_galaxy]},
-
-              %% start game last, so everything else is in place when we get there
-              {game,
-               {erltrek_game, start_link, []},
-               permanent, 60000, worker, [erltrek_game]}
-             ],
-    {ok, {{RestartStrategy, MaxRestarts, MaxTime}, Childs}}.
+    Child = [{ship,
+              {erltrek_ship, start_link, []},
+              temporary, brutal_kill, worker, [erltrek_ship]}
+            ],
+    {ok, {{RestartStrategy, MaxRestarts, MaxTime}, Child}}.
