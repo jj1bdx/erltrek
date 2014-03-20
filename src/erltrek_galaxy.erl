@@ -312,7 +312,7 @@ update_ship_pos(#ship_data{ pos=GC, quad=QC, sect=SC }=Data) ->
     case erltrek_calc:galaxy(GC) of
         {QC, SC} -> Data;
         {QC, NSC} ->
-            {{enter_sector, NSC},
+            {{enter_sector, QC, NSC},
              Data#ship_data{ sect=NSC }};
         {NQC, NSC} ->
             {{enter_quadrant, NQC, NSC},

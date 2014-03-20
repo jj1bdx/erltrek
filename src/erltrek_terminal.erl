@@ -109,7 +109,7 @@ handle_event({move, CDEG, DISTSD}, State) ->
     ok = io:format("impulse move: course = ~.1f, distance = ~.1f~n",
                    [CDEG, DISTSD]),
     {ok, State};
-handle_event({move_quad, QC, SC}, State) ->
+handle_event({enter_quadrant, QC, SC}, State) ->
     ok = io:format("impulse move cross-quadrant to ~b,~b/~b,~b~n",
                    [QC#quadxy.x, QC#quadxy.y,
                     SC#sectxy.x, SC#sectxy.y]),
@@ -117,7 +117,7 @@ handle_event({move_quad, QC, SC}, State) ->
 handle_event({move_quad, failed}, State) ->
     ok = io:format("impulse move: cross-quadrant step move failed, stop~n"),
     {ok, State};
-handle_event({move_sect, QC, SC}, State) ->
+handle_event({enter_sector, QC, SC}, State) ->
     ok = io:format("impulse move to ~b,~b/~b,~b~n",
                    [QC#quadxy.x, QC#quadxy.y,
                     SC#sectxy.x, SC#sectxy.y]),
@@ -127,6 +127,19 @@ handle_event({move_sect, failed}, State) ->
     {ok, State};
 handle_event(move_done, State) ->
     ok = io:format("impulse move done~n"),
+    {ok, State};
+handle_event({collision, Object, {_, QC, SC}}, State) ->
+    What = case Object of
+               s_klingon -> "Klingon ship";
+               s_base -> "Starbase";
+               s_star -> "Star";
+               s_inhabited -> "Star";
+               s_hole -> "Black hole (oops, this should lead to something else.. heh)"
+           end,
+    ok = io:format("Collision with ~s at ~b,~b/~b,~b~n",
+                   [What,
+                    QC#quadxy.x, QC#quadxy.y,
+                    SC#sectxy.x, SC#sectxy.y]),
     {ok, State};
 handle_event({display_position, GameState}, State) ->
     {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,

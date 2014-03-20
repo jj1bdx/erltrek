@@ -196,7 +196,9 @@
           ship=#ship_def{} :: #ship_def{},
           energy=1 :: pos_integer(),
           shield=0 :: non_neg_integer(),
-          condition=cond_green :: ship_condition()
+          condition=cond_green :: ship_condition(),
+          tquad :: #quadxy{},
+          tsect :: #sectxy{}
          }).
 
 
