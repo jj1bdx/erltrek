@@ -3,6 +3,10 @@
 * Requirement: R16B03-1
 * License: BSD 3-clause (Note: tinymt-erlang has its own BSD license, compatible with this software)
 
+## Major change coming
+
+* Introduction of erltrek\_galaxy gen\_server will change the whole programming model (by Andreas Stenius) -- stay tuned.
+
 ## Goals
 
 * Incorporating true concurrency (= game proceeds in real-time)
