@@ -1,11 +1,12 @@
-%%% --------------------------------------------------------------------
+%%% -------------------------------------------------------------------
 %%% Erltrek ("this software") is covered under the BSD 3-clause
 %%% license.
 %%%
 %%% This product includes software developed by the University of
 %%% California, Berkeley and its contributors.
 %%%
-%%% Copyright (c) 2014 Kenji Rikitake. All rights reserved.
+%%% Copyright (c) 2014 Kenji Rikitake and Andreas Stenius.
+%%% All rights reserved.
 %%%
 %%% Redistribution and use in source and binary forms, with or without
 %%% modification, are permitted provided that the following conditions
@@ -19,10 +20,10 @@
 %%%   disclaimer in the documentation and/or other materials provided
 %%%   with the distribution.
 %%%
-%%% * Neither the name of Kenji Rikitake, k2r.org, nor the names of
-%%%   its contributors may be used to endorse or promote products
-%%%   derived from this software without specific prior written
-%%%   permission.
+%%% * Neither the name of Kenji Rikitake, Andreas Stenius, k2r.org,
+%%%   nor the names of its contributors may be used to endorse or
+%%%   promote products derived from this software without specific
+%%%   prior written permission.
 %%%
 %%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 %%% CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
@@ -78,108 +79,96 @@
 %%% [End of LICENSE]
 %%% --------------------------------------------------------------------
 
--module(erltrek_game).
+-module(erltrek_ship).
 -behaviour(gen_server).
 
--export([
-         code_change/3,
-         enterprise_command/1,
-         handle_call/3,
-         handle_cast/2,
-         handle_info/2,
-         init/1,
-         lost/1,
-         start_game/0,
-         start_link/0,
-         start_link/1,
-         stop/0,
-         terminate/2,
-         won/1
-     ]).
+%% API
+-export([start_link/1, start_link/2, command/2]).
+
+%% Callbacks
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         code_change/3, terminate/2]).
 
 -include("erltrek.hrl").
 
-%% public APIs
 
-start_link() ->
-    start_link([]).
+%%% --------------------------------------------------------------------
+%%% API
+%%% --------------------------------------------------------------------
 
-start_link(Args) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, Args, []).
+-spec start_link(#ship_def{}) -> {ok, pid()} | ignore | {error, term()}.
 
-start_game() ->
-    case whereis(?MODULE) of
-        undefined ->
-            receive after 100 -> start_game() end;
-        _ ->
-            gen_server:call(?MODULE, start_game)
-    end.
+start_link(Ship)
+  when is_record(Ship, ship_def) ->
+    start_link(Ship, []).
 
-stop() ->
-    gen_server:cast(?MODULE, {stop, stop}).
 
-lost(Message) ->
-    gen_server:cast(?MODULE, {stop, {lost, Message}}).
+-spec start_link(#ship_def{}, list()) -> {ok, pid()} | ignore | {error, term()}.
 
-won(Message) ->
-    gen_server:cast(?MODULE, {stop, {won, Message}}).
+start_link(Ship, Args)
+  when is_record(Ship, ship_def), is_list(Args) ->
+    gen_server:start_link(?MODULE, [{ship, Ship}|Args], []).
 
-enterprise_command(Command) ->
-    %% gen_server:call(?MODULE, {enterprise_command, Command}).
-    gen_server:call(?MODULE, {ship, Command}).
 
-%% Callbacks
+command(Ship, Command) ->
+    gen_server:call(Ship, {command, Command}).
 
-init([]) ->
-    erltrek_galaxy:spawn_ship(?enterprise_ship).
 
-handle_call({ship, Command}, _From, Ship) ->
-    {reply, erltrek_ship:command(Ship, Command), Ship};
-handle_call(start_game, _From, _State) ->
-    exit(do_not_call_start_game),
-    % Initialize {Tick,SHIP,NK,DS,DI,DB,DH,DKQ,SECT,DKS} 
-    InitState = erltrek_setup:setup_state(),
-    % wait one second to start the game
-    Timer = erlang:send_after(1000, self(), tick_event),
-    % build gen_server State
-    GameStateAndTimer = {Timer, InitState},
-    {reply, ok, GameStateAndTimer};
-handle_call({enterprise_command, Command}, _From, GameStateAndTimer) ->
-    {Timer, GameState} = GameStateAndTimer,
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
-    case SHIP#enterprise_status.next_command =:= {} of
-        true ->
-            SHIP2 = SHIP#enterprise_status{next_command = Command},
-            NewGameState = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS},
-            NewGameStateAndTimer = {Timer, NewGameState},
-            {reply, ok, NewGameStateAndTimer};
-        false ->
-            {reply, command_refused, GameStateAndTimer}
-    end;
-handle_call(get_state, _From, State) ->
-    {reply, State, State}.
+%%% --------------------------------------------------------------------
+%%% Callbacks
+%%% --------------------------------------------------------------------
 
-terminate(normal, {Timer, _GameState}) ->
-    erlang:cancel_timer(Timer),
-    ok.
+init([{ship, Ship}|Args]) ->
+    case proplists:get_value(commander, Args) of
+        undefined -> nop;
+        Commander ->
+            {ok, _} = Commander:start(self())
+    end,
+    #ship_def{ max_energy=E, max_shield=S } = Ship,
+    {ok, #ship_state{ ship = Ship, energy = E, shield = S }}.
+
+handle_call({command, Command}, _From, State0) ->
+    {Reply, State} = handle_command(Command, State0),
+    {reply, Reply, State};
+handle_call(_Call, _From, State) ->
+    {reply, ok, State}.
+
+handle_cast(_Cast, State) ->
+    {noreply, State}.
+
+handle_info(_Info, State) ->
+    io:format("info: ~p~n", [_Info]),
+    {noreply, State}.
 
 code_change(_OldVsn, State, _Extra) ->
-        {ok, State}.
+    {ok, State}.
 
-handle_cast({stop, Event}, State) ->
-    ok = erltrek_event:sync_notify(Event),
-    {stop, normal, State}.
+terminate(_Reason, _State) ->
+    ok.
 
-handle_info(tick_event, GameStateAndTimer) ->
-    {OldTimer, GameState} = GameStateAndTimer,
-    erlang:cancel_timer(OldTimer),
-    % do interval timer task here
-    % CAUTION: DO NOT change Tick value inside!
-    NewGameState = erltrek_event:timer_tasks(GameState),
-    % increment tick counter and restart timer
-    NewTimer = erlang:send_after(?TICK_INTERVAL, self(), tick_event),
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = NewGameState,
-    NewGameState2 = {Tick + 1, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS},
-    NewGameStateAndTimer = {NewTimer, NewGameState2},
-    {noreply, NewGameStateAndTimer}.
 
+%%% --------------------------------------------------------------------
+%%% Internal functions
+%%% --------------------------------------------------------------------
+
+handle_command({srscan}, State) ->
+    %% todo: we can check for damaged scanner device here.. ;)
+    
+    %% collect data (i.e. perform the scan) here, now, then send that
+    %% off as a short range scan result for output.
+    
+    Stardate = erltrek_galaxy:stardate(),
+    Data = erltrek_galaxy:srscan(),
+
+    %% Using sync notify so the output is presented before returning.
+    %% But for this to work, no event handler (directly or indirectly)
+    %% may call into any of the processes in our call chain!
+    {erltrek_event:sync_notify({srscan, {Stardate, [State|Data]}}), State};
+handle_command({lrscan}, State) ->
+    {erltrek_event:sync_notify({lrscan, erltrek_galaxy:lrscan()}), State};
+handle_command({impulse, SX, SY}, State) ->
+    {erltrek_move:impulse(#sectxy{ x=SX, y=SY }), State};
+handle_command({impulse, QX, QY, SX, SY}, State) ->
+    {erltrek_move:impulse(#quadxy{ x=QX, y=QY }, #sectxy{ x=SX, y=SY }), State};
+handle_command(Cmd, State) ->
+    {{unknown_command, Cmd}, State}.

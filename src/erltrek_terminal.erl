@@ -162,6 +162,13 @@ handle_event({killed, SK}, State) ->
     ok = io:format("Klingon at sector ~b,~b killed~n",
                    [SK#sectxy.x, SK#sectxy.y]),
     {ok, State};
+handle_event({killed, s_klingon, _QC, SC}, State) ->
+    ok = io:format("Klingon at sector ~b,~b killed~n",
+                   [SC#sectxy.x, SC#sectxy.y]),
+    {ok, State};
+handle_event({killed, s_enterprise, _QC, _SC}, State) ->
+    erltrek_game:lost("Enterprise was destroyed"),
+    {ok, State};
 handle_event(shields_gone, State) ->
     ok = io:format("Shield gone~n"),
     {ok, State};

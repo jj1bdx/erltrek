@@ -3,5 +3,5 @@
 -pa ./ebin
 -user erltrek_user
 -run erltrek start
--run erltrek_game start_game
+#-run erltrek_game start_game
 -run e s
