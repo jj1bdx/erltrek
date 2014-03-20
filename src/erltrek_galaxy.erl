@@ -410,11 +410,16 @@ lrscan(#ship_data{ quad=#quadxy{ x=QX, y=QY } }=Data, State) ->
        ]
     ];
 lrscan(QC, #state{ stars=DS, inhabited=DI, bases=DB }=State) ->
-    {QC,
-     [{stars, count_objects(QC, DS) + count_objects(QC, DI)},
-      {bases, count_objects(QC, DB)},
-      {klingons, count_klingons(get_quad(QC, State))}
-     ]}.
+    case erltrek_calc:in_quadxy(QC) of
+        true ->
+            {QC,
+             [{stars, count_objects(QC, DS) + count_objects(QC, DI)},
+              {bases, count_objects(QC, DB)},
+              {klingons, count_klingons(get_quad(QC, State))}
+             ]};
+        false ->
+            {QC, negative_energy_barrier}
+    end.
 
 
 elapsed({M1, S1, U1}, {M2, S2, U2}) ->
