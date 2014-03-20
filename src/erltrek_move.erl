@@ -104,7 +104,7 @@ impulse(DQC, DSC) ->
 impulse(SQC, SSC, DQC, DSC) ->
     case erltrek_calc:course_distance(SQC, SSC, DQC, DSC) of
         {ok, _Dx, _Dy, Course, _Dist} ->
-            erltrek_galaxy:impulse(Course, 0.5);
+            erltrek_galaxy:impulse(Course, 1.5);
         Error -> {move, Error}
     end.
             
