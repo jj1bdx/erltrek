@@ -86,7 +86,7 @@
 -export([start_link/0, spawn_ship/1,
          stardate/0, get_position/0,
          srscan/0, lrscan/0,
-         impulse/2
+         impulse/2, phaser/2
         ]).
 
 %% Callbacks
@@ -126,6 +126,7 @@ stardate() -> call(get_stardate).
 srscan() -> call(srscan).
 lrscan() -> call(lrscan).
 impulse(Course, Speed) -> call({impulse, Course, Speed}).
+phaser(Course, Energy) -> call({phaser, Course, Energy}).
 
 
 %%% --------------------------------------------------------------------
@@ -182,6 +183,15 @@ handle_call({impulse, Course, Speed}, {Pid, _Ref}, State) ->
              store_ship(
                Pid, set_ship_vector(Course, Speed, Data),
                State)};
+        _ ->
+            {reply, error, State}
+    end;
+handle_call({phaser, Course, Energy}, {Pid, _Ref}, State) ->
+    case find_ship(Pid, State) of
+        {ok, Data} ->
+            {reply,
+             {phaser_hit, phaser(Course, Energy, Data, State)},
+             State};
         _ ->
             {reply, error, State}
     end;
@@ -372,6 +382,16 @@ move_ships(Delta, #state{ ships=Ships }=State0) ->
               update_ship_pos(Ship, Data, State)
       end, State0, Moved).
 
+elapsed({M1, S1, U1}, {M2, S2, U2}) ->
+    ((M1 - M2) * 1000000) + (S1 - S2) + ((U1 - U2) / 1000000).
+
+tick(#state{ stardate=Stardate, sync=Sync }=State0) ->
+    Timestamp = os:timestamp(),
+    Tick = elapsed(Timestamp, Sync),
+    State = move_ships(Tick, State0),
+    erlang:send_after(?GALAXY_TICK, self(), tick),
+    State#state{ stardate=Stardate + Tick, sync=Timestamp }.
+
 count_klingons(#state{ ships=Ships }) ->
     orddict:fold(
       fun (_, #ship_data{ class=s_klingon }, Count) ->
@@ -421,13 +441,18 @@ lrscan(QC, #state{ stars=DS, inhabited=DI, bases=DB }=State) ->
             {QC, negative_energy_barrier}
     end.
 
-
-elapsed({M1, S1, U1}, {M2, S2, U2}) ->
-    ((M1 - M2) * 1000000) + (S1 - S2) + ((U1 - U2) / 1000000).
-
-tick(#state{ stardate=Stardate, sync=Sync }=State0) ->
-    Timestamp = os:timestamp(),
-    Tick = elapsed(Timestamp, Sync),
-    State = move_ships(Tick, State0),
-    erlang:send_after(?GALAXY_TICK, self(), tick),
-    State#state{ stardate=Stardate + Tick, sync=Timestamp }.
+phaser(Course, Energy, #ship_data{ quad=QC, sect=SC }, State) ->
+    SI = erltrek_calc:sectxy_index(SC),
+    array:foldl(
+      fun (TSI, _, Acc) when TSI == SI -> Acc;
+          (TSI, {Class, Ship}, Acc) ->
+              TSC = erltrek_calc:index_sectxy(TSI),
+              {Angle, Dist} = erltrek_calc:sector_course_distance(SC, TSC),
+              %% todo: I think we should only consider ships within the phaser beam..
+              Level = Energy * math:pow(0.9, Dist)
+                  * math:exp(-0.7 * abs((Angle - Course)/10)),
+              Hit = trunc(Level),
+              Ship ! {phaser_hit, Hit},
+              [{TSC, Class, Hit}|Acc];
+          (_, _, Acc) -> Acc
+      end, [], get_quad(QC, State)).

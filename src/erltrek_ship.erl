@@ -185,5 +185,8 @@ handle_command({impulse, QX, QY, SX, SY}, State) ->
     QC = #quadxy{ x=QX, y=QY },
     SC = #sectxy{ x=SX, y=SY },
     {erltrek_move:impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}};
+handle_command({phaser, SX, SY, Energy}, State) ->
+    %% todo: deplete energy prior to shooting
+    {erltrek_phaser:phaser(SX, SY, Energy), State};
 handle_command(Cmd, State) ->
     {{unknown_command, Cmd}, State}.

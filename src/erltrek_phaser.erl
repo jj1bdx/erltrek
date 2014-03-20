@@ -81,10 +81,20 @@
 -module(erltrek_phaser).
 
 -export([
-        phaser/4
+         phaser/3,
+         phaser/4
         ]).
 
 -include("erltrek.hrl").
+
+phaser(SX, SY, Energy) ->
+    {QC, SC} = erltrek_galaxy:get_position(),
+    case erltrek_calc:course_distance(QC, SC, QC, #sectxy{ x=SX, y=SY }) of
+        {ok, _Dx, _Dy, Course, _Dist} ->
+            erltrek_galaxy:phaser(Course, Energy);
+        Error -> {phaser, Error}
+    end.
+
 
 %% Klingon attacks in the sector
 %% {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState

@@ -83,6 +83,8 @@
 
 -export([start/0]).
 
+-include("erltrek.hrl").
+
 -record(command, {
           name :: atom() | list(atom()),
           expand = true :: boolean(), %% tab complete command? (default: yes)
@@ -109,18 +111,8 @@ server_loop() ->
                     io:format("My sincere apologies, Captain, I do not understand your command: ~s", [Command]);
                 {error, Message} ->
                     io:format("Hrrm.. you need to quit slurring, Captain~n  (~s)~n", [Message]);
-                {ok, {unknown_command, Cmd}} ->
-                    io:format(
-                      "~n"
-                      "Your command seems valid Captain, however there is no one onboard this ship"
-                      " that knows how to carry it out.~n"
-                      "Our sincere apologies, perhaps notify the ship manufacturer for updated manuals:"
-                      " (https://github.com/jj1bdx/erltrek/issues)~n"
-                      "Please include the following: ~p~n~n",
-                      [Cmd]);
-                {ok, ok} -> nop;
-                {ok, Other} ->
-                    io:format("Unexpected command result: ~p~n", [Other])
+                {ok, Result} ->
+                    process_result(Result)
             end,
             server_loop();
         eof ->
@@ -141,7 +133,7 @@ dispatch_command(Command) ->
         {_Location, Mod, Desc} ->
             {error, Mod:format_error(Desc)};
         ok ->
-            {ok, skipped}
+            {ok, ok}
     end.
 
 parse_command({ok, [Name|Args], _}) ->
@@ -341,3 +333,31 @@ commands() ->
                    end
        }
     ].
+
+process_result(ok) -> ok;
+process_result({unknown_command, Cmd}) ->
+    io:format(
+      "~n"
+      "Your command seems valid Captain, however there is no one onboard this ship"
+      " that knows how to carry it out.~n"
+      "Our sincere apologies, perhaps notify the ship manufacturer for updated manuals:"
+      " (https://github.com/jj1bdx/erltrek/issues)~n"
+      "Please include the following: ~p~n~n",
+      [Cmd]);
+%% todo: the command specific results should be taken care of in the command dispatch fun..
+process_result({phaser_hit, Hits}) ->
+    case lists:flatten(
+           [io_lib:format(
+              "Phaser hit ~s at sector ~b,~b level ~b~n",
+              [erltrek_terminal:describe_object(Class),
+               SX, SY, Level])
+            || {#sectxy{ x=SX, y=SY }, Class, Level} <- Hits,
+               Level > 0])
+    of
+        [] ->
+            io:format("Phaser did not hit any targets.~n");
+        Msg ->
+            io:format(Msg)
+    end;
+process_result(Other) ->
+    io:format("Unexpected command result: ~p~n", [Other]).

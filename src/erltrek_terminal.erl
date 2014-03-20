@@ -82,6 +82,7 @@
 -module(erltrek_terminal).
 
 -export([init/1, handle_event/2, handle_info/2, terminate/2]).
+-export([describe_object/1]).
 
 -include("erltrek.hrl").
 
@@ -129,15 +130,8 @@ handle_event(move_done, State) ->
     ok = io:format("impulse move done~n"),
     {ok, State};
 handle_event({collision, Object, {_, QC, SC}}, State) ->
-    What = case Object of
-               s_klingon -> "Klingon ship";
-               s_base -> "Starbase";
-               s_star -> "Star";
-               s_inhabited -> "Star";
-               s_hole -> "Black hole (oops, this should lead to something else.. heh)"
-           end,
     ok = io:format("Collision with ~s at ~b,~b/~b,~b~n",
-                   [What,
+                   [describe_object(Object),
                     QC#quadxy.x, QC#quadxy.y,
                     SC#sectxy.x, SC#sectxy.y]),
     {ok, State};
@@ -238,3 +232,12 @@ handle_info({'EXIT', Pid, Reason}, State) ->
     ok = io:format("~p: 'EXIT' received, Pid: ~p, Reason:~p~n",
                    [?MODULE, Pid, Reason]),
     {ok, State}.
+
+describe_object(s_klingon) -> "Klingon";
+describe_object(s_base) -> "Starbase";
+describe_object(s_star) -> "Star";
+describe_object(s_inhabited) -> "Star";
+describe_object(s_hole) -> "Black hole";
+describe_object(s_empty) -> "Empty";
+describe_object(Other) ->
+    io_lib:format("<unknown object: ~p>", [Other]).
