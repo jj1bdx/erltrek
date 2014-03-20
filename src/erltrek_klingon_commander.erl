@@ -96,6 +96,8 @@ start(Ship) ->
 
 command(Ship) ->
     receive
+        {'DOWN', _Ref, process, Ship, _Info} ->
+            oh_no_ship_destroyed_I_will_die_now_too
     after ?TICK_INTERVAL -> 
             command_tick(Ship)
     end.
