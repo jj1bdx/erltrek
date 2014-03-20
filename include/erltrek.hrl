@@ -120,9 +120,11 @@
 
 -type quadcoord() :: 0..(?NQUADS - 1).
 -type sectcoord() :: 0..(?NSECTS - 1).
+-type galacoord() :: 0..(?NQUADS * ?NSECTS - 1).
 
 -record(quadxy, { x :: quadcoord(), y :: quadcoord()}).
 -record(sectxy, { x :: sectcoord(), y :: sectcoord()}).
+-record(galaxy, { x :: galacoord(), y :: galacoord()}).
 
 %% entity atom in the sector array
 
@@ -166,9 +168,11 @@
     {non_neg_integer(), #enterprise_status{}, non_neg_integer(),
      dict(), dict(), dict(), dict(), dict(), array(), dict()}.
 
+-type ship_class() :: s_enterprise | s_klingon.
+
 %% Ship data used by erltrek_ship
 -record(ship_def, {
-          class :: s_enterprise | s_klingon | atom(),
+          class :: ship_class(),
           max_energy=1 :: pos_integer(),
           max_shield=0 :: non_neg_integer()
          }).
@@ -195,11 +199,15 @@
           condition=cond_green :: ship_condition()
          }).
 
+
 %% galaxy data about ship used by erltrek_galaxy
 -record(ship_data, {
-          class,
-          quad,
-          sect
+          class :: ship_class(),
+          pos :: #galaxy{},
+          quad :: #quadxy{},
+          sect :: #sectxy{},
+          course=0 :: 0..360,
+          speed=0 :: non_neg_integer()
          }).
 
 %% vim: set ts=4 sw=4 sts=4 et :

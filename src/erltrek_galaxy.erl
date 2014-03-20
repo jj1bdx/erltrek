@@ -84,7 +84,9 @@
 
 %% API
 -export([start_link/0, spawn_ship/1,
-         stardate/0, srscan/0, lrscan/0
+         stardate/0, get_position/0,
+         srscan/0, lrscan/0,
+         impulse/2
         ]).
 
 %% Callbacks
@@ -95,9 +97,11 @@
 
 -include("erltrek.hrl").
 
+-define(GALAXY_TICK, 500).
+
 -record(state, {
           stardate=?INITTICK,
-          sync,
+          sync :: os:timestamp(),
           ships,
           galaxy,
           stars, inhabited, bases, holes
@@ -117,9 +121,12 @@ spawn_ship(Ship) when is_record(Ship, ship_def)->
     ok = gen_server:cast(?MODULE, {new_ship, Ship#ship_def.class, Pid}),
     {ok, Pid}.
 
+get_position() -> call(get_position).
 stardate() -> call(get_stardate).
 srscan() -> call(srscan).
 lrscan() -> call(lrscan).
+impulse(Course, Speed) -> call({impulse, Course, Speed}).
+
 
 %%% --------------------------------------------------------------------
 %%% Callbacks
@@ -127,6 +134,7 @@ lrscan() -> call(lrscan).
 
 init([]) ->
     {_NK, DS, DI, DB, DH, DKQ} = erltrek_setup:setup_galaxy(),
+    erlang:send_after(?GALAXY_TICK, self(), tick),
     {ok, #state{
             sync=os:timestamp(),
             ships=orddict:new(),
@@ -145,43 +153,66 @@ init([]) ->
            }}.
 
 handle_call(get_stardate, _From, State) ->
-    {reply, get_stardate(State), State};
-handle_call(srscan, {Pid, _Ref}, #state{ ships=Ships }=State) ->
-    case orddict:find(Pid, Ships) of
+    {reply, trunc(State#state.stardate), State};
+handle_call(get_position, {Pid, _Ref}, State) ->
+    case find_ship(Pid, State) of
+        {ok, #ship_data{ quad=QC, sect=SC }} ->
+            {reply, {QC, SC}, State};
+        _ ->
+            {reply, error, State}
+    end;
+handle_call(srscan, {Pid, _Ref}, State) ->
+    case find_ship(Pid, State) of
         {ok, Data} ->
             {reply, srscan(Data, State), State};
         _ ->
             {reply, [], State}
     end;
-handle_call(lrscan, {Pid, _Ref}, #state{ ships=Ships }=State) ->
-    case orddict:find(Pid, Ships) of
+handle_call(lrscan, {Pid, _Ref}, State) ->
+    case find_ship(Pid, State) of
         {ok, Data} ->
             {reply, lrscan(Data, State), State};
         _ ->
             {reply, [], State}
     end;
-handle_call(_Call, _From, State) ->
-    {reply, ok, State}.
+handle_call({impulse, Course, Speed}, {Pid, _Ref}, State) ->
+    case find_ship(Pid, State) of
+        {ok, Data} ->
+            {reply, ok,
+             store_ship(
+               Pid, set_ship_vector(Course, Speed, Data),
+               State)};
+        _ ->
+            {reply, error, State}
+    end;
+handle_call(Call, _From, State) ->
+    {reply, {error, {unknown_call, Call}}, State}.
 
 handle_cast({new_ship, Class, Pid}, State0) ->
     {QC, SC, State} = place_object({Class, Pid}, State0),
     handle_info({register_ship, Pid,
-                 #ship_data{ class=Class, quad=QC, sect=SC }},
+                 #ship_data{
+                    class=Class,
+                    pos=erltrek_calc:galaxy({QC, SC})
+                   }},
                 State);
 handle_cast(_Cast, State) ->
     {noreply, State}.
 
-handle_info({register_ship, Pid, Ship}, #state{ ships=Ships }=State) ->
-    monitor(process, Pid),
-    {noreply, State#state{ ships=orddict:store(Pid, Ship, Ships) }};
-handle_info({'DOWN', _Ref, process, Pid, _Info}, #state{ ships=Ships }=State0) ->
-    State = case orddict:find(Pid, Ships) of
+handle_info(tick, State) ->
+    {noreply, tick(State)};
+handle_info({register_ship, Ship, Data0}, State) ->
+    monitor(process, Ship),
+    {_, Data} = update_ship_pos(Data0),
+    {noreply, store_ship(Ship, Data, State)};
+handle_info({'DOWN', _Ref, process, Pid, _Info}, State0) ->
+    State = case find_ship(Pid, State0) of
                 {ok, #ship_data{ class=Class, quad=QC, sect=SC }} ->
                     erltrek_event:notify({killed, Class, QC, SC}),
-                    update_sector(QC, SC, s_empty, State0);
+                    erase_ship(Pid, update_sector(QC, SC, s_empty, State0));
                 _ -> State0
             end,
-    {noreply, State#state{ ships=orddict:erase(Pid, Ships) }};
+    {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -207,17 +238,20 @@ sectxy_index(SC) -> erltrek_calc:sectxy_index(SC).
 get_quad(QC, #state{ galaxy=G }) ->
     array:get(quadxy_index(QC), G).
 
-set_quad(QC, SECT, #state{ galaxy=G }=State) ->
-    State#state{ galaxy=array:set(quadxy_index(QC), SECT, G) }.
+set_quad(QC, Quad, #state{ galaxy=G }=State) ->
+    State#state{ galaxy=array:set(quadxy_index(QC), Quad, G) }.
 
 update_sector(QC, SC, Value, State) ->
     set_quad(QC, update_sector(SC, Value, get_quad(QC, State)), State).
 
-update_sector(SC, Value, SECT) ->
-    array:set(sectxy_index(SC), Value, SECT).
+update_sector(SC, Value, Quad) ->
+    array:set(sectxy_index(SC), Value, Quad).
 
-lookup_sector(SC, SECT) ->
-    array:get(sectxy_index(SC), SECT).
+lookup_sector(SC, Quad) ->
+    array:get(sectxy_index(SC), Quad).
+
+lookup_sector(QC, SC, State) ->
+    lookup_sector(SC, get_quad(QC, State)).
 
 spawn_klingons(DKS, QC, SECT0) ->
     dict:fold(
@@ -229,7 +263,8 @@ spawn_klingons(DKS, QC, SECT0) ->
               self() ! {register_ship, Ship,
                         #ship_data{
                            class=ShipDef#ship_def.class,
-                           quad=QC, sect=SC }},
+                           pos=erltrek_calc:galaxy({QC, SC})
+                          }},
               update_sector(SC, {s_klingon, Ship}, SECT)
       end, SECT0, DKS).
 
@@ -261,11 +296,81 @@ find_empty_sector(QI, SI, SECT, State) ->
             no_empty_sector_found
     end.
 
-get_stardate(#state{ stardate=SD, sync=Sync }) ->
-    SD + elapsed(os:timestamp(), Sync).
+find_ship(Ship, #state{ ships=Ships }) ->
+    orddict:find(Ship, Ships).
 
-elapsed({M1, S1, _}, {M2, S2, _}) ->
-    (M1 - M2) * 1000000 + (S1 - S2).
+store_ship(Ship, Data, #state{ ships=Ships }=State) ->
+    State#state{ ships=orddict:store(Ship, Data, Ships) }.
+
+erase_ship(Ship, #state{ ships=Ships }=State) ->
+    State#state{ ships=orddict:erase(Ship, Ships) }.
+
+set_ship_vector(Course, Speed, Data) ->
+    Data#ship_data{ course=Course / 180 * math:pi(), speed=Speed }.
+
+update_ship_pos(#ship_data{ pos=GC, quad=QC, sect=SC }=Data) ->
+    case erltrek_calc:galaxy(GC) of
+        {QC, SC} -> Data;
+        {QC, NSC} ->
+            {{enter_sector, NSC},
+             Data#ship_data{ sect=NSC }};
+        {NQC, NSC} ->
+            {{enter_quadrant, NQC, NSC},
+             Data#ship_data{ quad=NQC, sect=NSC }}
+    end.
+
+update_ship_pos(Ship, Data0, State) ->
+    case update_ship_pos(Data0) of
+        Data0 -> store_ship(Ship, Data0, State); %% moved just a fraction within current sector
+        {Event, #ship_data{ quad=QC, sect=SC }=Data} ->
+            %% todo: burn energy ...( send message to ship )
+            case lookup_sector(QC, SC, State) of
+                s_empty ->
+                    Ship ! Event,
+                    #ship_data{ quad=SQC, sect=SSC } = Data0,
+                    #ship_data{ quad=DQC, sect=DSC } = Data,
+                    store_ship(
+                      Ship, Data,
+                      move_object(SQC, SSC, DQC, DSC, State));
+                Object ->
+                    Ship ! {collision,
+                            if is_tuple(Object) -> element(1, Object);
+                               true -> Object
+                            end,
+                            Event},
+                    %% stop ship dead in its tracks..
+                    #ship_data{ quad=SQC, sect=SSC } = Data0,
+                    GC = erltrek_calc:galaxy({SQC, SSC}),
+                    store_ship(Ship, Data0#ship_data{ pos=GC, speed=0 }, State)
+            end
+    end.
+
+move_object(SQC, SSC, DQC, DSC, State) ->
+    Quad = get_quad(SQC, State),
+    Object = lookup_sector(SSC, Quad),
+    update_sector(
+      DQC, DSC, Object,
+      set_quad(
+        SQC,
+        update_sector(SSC, s_empty, Quad),
+        State)).
+
+move_ships(Delta, #state{ ships=Ships }=State0) ->
+    Moved = orddict:fold(
+              fun (_, #ship_data{ speed=0 }, Acc) -> Acc;
+                  (Ship, #ship_data{
+                            pos=#galaxy{ x=GX, y=GY },
+                            speed=Speed, course=Course }=Data,
+                   Acc) ->
+                      Dist = Speed * Delta,
+                      DX = Dist * -math:cos(Course),
+                      DY = Dist * math:sin(Course),
+                      [{Ship, Data#ship_data{ pos=#galaxy{ x=GX + DX, y=GY + DY }}}|Acc]
+              end, [], Ships),
+    lists:foldl(
+      fun ({Ship, Data}, State) ->
+              update_ship_pos(Ship, Data, State)
+      end, State0, Moved).
 
 count_klingons(#state{ ships=Ships }) ->
     orddict:fold(
@@ -310,3 +415,14 @@ lrscan(QC, #state{ stars=DS, inhabited=DI, bases=DB }=State) ->
       {bases, count_objects(QC, DB)},
       {klingons, count_klingons(get_quad(QC, State))}
      ]}.
+
+
+elapsed({M1, S1, U1}, {M2, S2, U2}) ->
+    ((M1 - M2) * 1000000) + (S1 - S2) + ((U1 - U2) / 1000000).
+
+tick(#state{ stardate=Stardate, sync=Sync }=State0) ->
+    Timestamp = os:timestamp(),
+    Tick = elapsed(Timestamp, Sync),
+    State = move_ships(Tick, State0),
+    erlang:send_after(?GALAXY_TICK, self(), tick),
+    State#state{ stardate=Stardate + Tick, sync=Timestamp }.

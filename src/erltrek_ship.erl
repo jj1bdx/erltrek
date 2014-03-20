@@ -137,6 +137,7 @@ handle_cast(_Cast, State) ->
     {noreply, State}.
 
 handle_info(_Info, State) ->
+    io:format("info: ~p~n", [_Info]),
     {noreply, State}.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -165,5 +166,9 @@ handle_command({srscan}, State) ->
     {erltrek_event:sync_notify({srscan, {Stardate, [State|Data]}}), State};
 handle_command({lrscan}, State) ->
     {erltrek_event:sync_notify({lrscan, erltrek_galaxy:lrscan()}), State};
+handle_command({impulse, SX, SY}, State) ->
+    {erltrek_move:impulse(#sectxy{ x=SX, y=SY }), State};
+handle_command({impulse, QX, QY, SX, SY}, State) ->
+    {erltrek_move:impulse(#quadxy{ x=QX, y=QY }, #sectxy{ x=SX, y=SY }), State};
 handle_command(Cmd, State) ->
     {{unknown_command, Cmd}, State}.

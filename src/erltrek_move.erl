@@ -81,13 +81,33 @@
 -module(erltrek_move).
 
 -export([
-        impulse/3,
-        impulse/5
+         impulse/1,
+         impulse/2,
+         impulse/3,
+         impulse/5
         ]).
 
 -include("erltrek.hrl").
 
 %% impulse move
+    
+impulse(DSC) ->
+    %% erltrek_galaxy:get_position/0 must be called from a ship process
+    {SQC, SSC} = erltrek_galaxy:get_position(),
+    impulse(SQC, SSC, SQC, DSC).
+
+impulse(DQC, DSC) ->
+    %% erltrek_galaxy:get_position/0 must be called from a ship process
+    {SQC, SSC} = erltrek_galaxy:get_position(),
+    impulse(SQC, SSC, DQC, DSC).
+
+impulse(SQC, SSC, DQC, DSC) ->
+    case erltrek_calc:course_distance(SQC, SSC, DQC, DSC) of
+        {ok, _Dx, _Dy, Course, _Dist} ->
+            erltrek_galaxy:impulse(Course, 0.5);
+        Error -> {move, Error}
+    end.
+            
 
 -spec impulse(non_neg_integer(), non_neg_integer(), game_state()) -> game_state().
 
