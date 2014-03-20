@@ -118,7 +118,9 @@ server_loop() ->
                       " (https://github.com/jj1bdx/erltrek/issues)~n"
                       "Please include the following: ~p~n~n",
                       [Cmd]);
-                {ok, _} -> nop
+                {ok, ok} -> nop;
+                {ok, Other} ->
+                    io:format("Unexpected command result: ~p~n", [Other])
             end,
             server_loop();
         eof ->

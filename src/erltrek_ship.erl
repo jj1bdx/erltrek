@@ -136,8 +136,20 @@ handle_call(_Call, _From, State) ->
 handle_cast(_Cast, State) ->
     {noreply, State}.
 
+handle_info({Event, QC, SC}=Info, #ship_state{ tquad=TQC, tsect=TSC }=State)
+  when Event == enter_sector; Event == enter_quadrant ->
+    ok = erltrek_event:notify(Info),
+    if SC == TSC andalso (QC == TQC orelse TQC == undefined) ->
+            ok = erltrek_galaxy:impulse(0,0),
+            ok = erltrek_event:notify(move_done);
+       true -> nop
+    end,
+    {noreply, State};
+handle_info({collision, _Object, _Info}=Event, State) ->
+    ok = erltrek_event:notify(Event),
+    ok = erltrek_event:notify(move_done),
+    {noreply, State};
 handle_info(_Info, State) ->
-    io:format("info: ~p~n", [_Info]),
     {noreply, State}.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -167,8 +179,11 @@ handle_command({srscan}, State) ->
 handle_command({lrscan}, State) ->
     {erltrek_event:sync_notify({lrscan, erltrek_galaxy:lrscan()}), State};
 handle_command({impulse, SX, SY}, State) ->
-    {erltrek_move:impulse(#sectxy{ x=SX, y=SY }), State};
+    SC = #sectxy{ x=SX, y=SY },
+    {erltrek_move:impulse(SC), State#ship_state{ tquad=undefined, tsect=SC }};
 handle_command({impulse, QX, QY, SX, SY}, State) ->
-    {erltrek_move:impulse(#quadxy{ x=QX, y=QY }, #sectxy{ x=SX, y=SY }), State};
+    QC = #quadxy{ x=QX, y=QY },
+    SC = #sectxy{ x=SX, y=SY },
+    {erltrek_move:impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}};
 handle_command(Cmd, State) ->
     {{unknown_command, Cmd}, State}.

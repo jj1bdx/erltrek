@@ -156,14 +156,16 @@ lrscan_lines(X, Scan) ->
          true -> [32, $0 + X, 32, $!];
          false -> "   !"
      end,
-     [io_lib:format(
-       " ~3.b !",
-       [lists:foldl(
-         fun ({stars, S}, C) -> C + S;
-             ({bases, B}, C) -> C + 10 * B;
-             ({klingons, K}, C) -> C + 100 * K
-         end, 0, Props)])
-      || {#quadxy{ x=QX }, Props} <- Scan, QX == X],
+     [if Props == negative_energy_barrier -> "  *  !";
+         true -> io_lib:format(
+                   " ~3.b !",
+                   [lists:foldl(
+                      fun ({stars, S}, C) -> C + S;
+                          ({bases, B}, C) -> C + 10 * B;
+                          ({klingons, K}, C) -> C + 100 * K
+                      end, 0, Props)])
+      end || {#quadxy{ x=QX }, Props} <- Scan,
+             QX == X],
      "\n"].
 
 %% Display long range sensor output from the game state
