@@ -2,6 +2,5 @@
 # Use this as erl -args_file ./initgame.txt
 -pa ./ebin
 -user erltrek_user
--run erltrek start
-#-run erltrek_game start_game
--run e s
+-s erltrek start
+-s erltrek_game srscan
