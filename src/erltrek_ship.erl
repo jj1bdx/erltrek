@@ -149,10 +149,26 @@ handle_info({collision, _Object, _Info}=Event, State) ->
     ok = erltrek_event:notify(Event),
     ok = erltrek_event:notify(move_done),
     {noreply, State};
-handle_info({phaser_hit, _Hit}=_Event, State) ->
-    % TODO: energy/shield deduction by phaser_hit should be performed here
-    % io:format("erltrek_ship: Pid ~p, phaser_hit level ~b~n", [self(), Hit]),
-    {noreply, State};
+handle_info({phaser_hit, Hit}=_Event,
+            #ship_state{ ship = Ship, energy = E, shield = S} = State) ->
+    Damagefun = case Ship#ship_def.class of
+        s_enterprise -> fun(D) -> trunc(float(D) * 1.3) + 10 end;
+        s_klingon -> fun(D) -> D end
+    end,
+    {E2, S2} = case S >= Hit of
+        true -> {E, S - Hit};
+        false -> {E - Damagefun(Hit - S), 0}
+    end,
+    case {Ship#ship_def.class, S > 0, S2 == 0} of
+        {s_enterprise, true, true} -> erltrek_event:notify(shields_gone);
+        {_, _, _} -> ok % do nothing
+    end,
+    % if E2 < 0 the ship should stop and die
+    case E2 > 0 of
+        true-> {noreply, State#ship_state{energy = E2, shield = S2}};
+        % TODO: Ship killed: is "normal" status code enough?
+        false -> {stop, normal, State#ship_state{energy = 0, shield = 0}}
+    end;
 handle_info(_Info, State) ->
     % TODO: how should these info messages be handled? Just ignored?
     % io:format("erltrek_ship: Pid ~p, Unknown messsage ~p~n", [self(), Info]),
@@ -164,17 +180,16 @@ code_change(_OldVsn, State, _Extra) ->
 terminate(_Reason, _State) ->
     ok.
 
-
 %%% --------------------------------------------------------------------
 %%% Internal functions
 %%% --------------------------------------------------------------------
 
 handle_command({srscan}, State) ->
     %% TODO: we can check for damaged scanner device here.. ;)
-    
+
     %% collect data (i.e. perform the scan) here, now, then send that
     %% off as a short range scan result for output.
-    
+
     Stardate = erltrek_galaxy:stardate(),
     Data = erltrek_galaxy:srscan(),
 
@@ -192,6 +207,7 @@ handle_command({impulse, QX, QY, SX, SY}, State) ->
     SC = #sectxy{ x=SX, y=SY },
     {erltrek_move:impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}};
 handle_command({phaser, SX, SY, Energy}, State) ->
+    %% TODO: Decide to fire or not here (no klingon, docked, etc.)
     %% TODO: deplete energy prior to shooting
     {erltrek_phaser:phaser(SX, SY, Energy), State};
 handle_command(Cmd, State) ->
