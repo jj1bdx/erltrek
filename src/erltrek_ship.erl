@@ -149,6 +149,15 @@ handle_info({collision, _Object, _Info}=Event, State) ->
     ok = erltrek_event:notify(Event),
     ok = erltrek_event:notify(move_done),
     {noreply, State};
+handle_info({consume_energy, Energy}=_Event,
+            #ship_state{energy = E} = State) ->
+    E2 = E - Energy,
+    % if E2 < 0 the ship should stop and die
+    case E2 > 0 of
+        true -> {noreply, State#ship_state{energy = E2}};
+        % TODO: Notification needed to tell killed by energy exhaustion
+        false -> {stop, normal, State#ship_state{energy = 0}}
+    end;
 handle_info({phaser_hit, Hit}=_Event,
             #ship_state{ ship = Ship, energy = E, shield = S} = State) ->
     Damagefun = case Ship#ship_def.class of
@@ -160,12 +169,13 @@ handle_info({phaser_hit, Hit}=_Event,
         false -> {E - Damagefun(Hit - S), 0}
     end,
     case {Ship#ship_def.class, S > 0, S2 == 0} of
-        {s_enterprise, true, true} -> erltrek_event:notify(shields_gone);
+        {s_enterprise, true, true} -> ok = erltrek_event:notify(shields_gone);
         {_, _, _} -> ok % do nothing
     end,
     % if E2 < 0 the ship should stop and die
     case E2 > 0 of
-        true-> {noreply, State#ship_state{energy = E2, shield = S2}};
+        true -> {noreply, State#ship_state{energy = E2, shield = S2}};
+        % TODO: Notification needed to tell killed by hit
         % TODO: Ship killed: is "normal" status code enough?
         false -> {stop, normal, State#ship_state{energy = 0, shield = 0}}
     end;
