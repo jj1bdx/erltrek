@@ -159,10 +159,13 @@ handle_info({consume_energy, Energy}=_Event,
         % TODO: Notification needed to tell killed by energy exhaustion
         false -> {stop, normal, State#ship_state{energy = 0}}
     end;
-handle_info({phaser_hit, Class, SC, Level}=Event, State) ->
+handle_info({phaser_hit, Level, _Info}=Event, State) ->
     notify_enterprise(Event, State),
     {noreply, absorb_hit(Level, State)};
 handle_info(_Info, State) ->
+    %% jj1bdx: how should these info messages be handled? Just ignored?
+    %% kaos: Yes, I think so, but for now, lets print them so we spot
+    %% early on if there are messages we miss, but ought to handle
     io:format("~p ~p: unhandled info: ~p~n", [self(), ?MODULE, _Info]),
     {noreply, State}.
 
@@ -205,25 +208,24 @@ handle_command({phaser, SX, SY, Energy}, State) ->
 handle_command(Cmd, State) ->
     {{unknown_command, Cmd}, State}.
 
-%% todo: make this notify_commander instead, and add a enterprise commander that forwards the events..
-
+%% TODO: make this notify_commander instead, and add a enterprise commander that forwards the events..
 notify_enterprise(Event, #ship_state{ ship=#ship_def{ class=s_enterprise }}) ->
     erltrek_event:notify(Event);
 notify_enterprise(_, _) -> nop.
 
 absorb_hit(Level, State) when Level =< 0 -> State;
-absorb_hit(Level, #ship_state{ shield=S }=State) when S > 0 ->
-    Shield0 = S - Level,
+absorb_hit(Level, #ship_state{ ship=#ship_def{ durability=D }, shield=S }=State)
+  when S > 0 ->
+    Shield0 = S - D(shield, Level),
     Shield = if Shield0 =< 0 ->
-                     notify_enterprise(shields_gone),
+                     notify_enterprise(shields_gone, State),
                      0;
                 true -> 
-                     notify_enterprise({shield_level, Shield}),
+                     notify_enterprise({shield_level, Shield0}, State),
                      Shield0
              end,
-    Damage = trunc((Level - (S - Shield)) * 1.3) + 10,
-    absorb_hit(Damage, State#ship_state{ shield=Shield });
+    absorb_hit(D(body, Level - (S - Shield)), State#ship_state{ shield=Shield });
 absorb_hit(Level, #ship_state{ energy=E }=State) when Level < E ->
-    notify_enterprise({damage_level, Level}),
+    notify_enterprise({damage_level, Level}, State),
     State#ship_state{ energy=E - Level };
-absorb_hit(_, _) -> exit(killed).
+absorb_hit(_, _) -> exit(normal).

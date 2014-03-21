@@ -174,21 +174,26 @@
 -record(ship_def, {
           class :: ship_class(),
           max_energy=1 :: pos_integer(),
-          max_shield=0 :: non_neg_integer()
+          max_shield=0 :: non_neg_integer(),
+          durability :: fun((body | shield, integer()) -> integer())
          }).
 
 -define(enterprise_ship,
         #ship_def{
            class = s_enterprise,
            max_energy = ?SHIPENERGY,
-           max_shield = ?SHIPSHIELD
+           max_shield = ?SHIPSHIELD,
+           durability = fun (body, D) when D > 0 -> trunc(D * 1.3) + 10;
+                            (_, D) -> D
+                        end
           }).
 
 -define(klingon_ship,
         #ship_def{
            class = s_klingon,
            max_energy = ?KLINGONENERGY,
-           max_shield = 0
+           max_shield = 0,
+           durability = fun (_, D) -> D end
           }).
 
 %% Ship state used by erltrek_ship (also used in some event notifications)

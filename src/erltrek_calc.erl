@@ -269,36 +269,51 @@ destination(SQC, SSC, COURSE, DIST) ->
             out_of_bound
     end.
 
+%% Calculate delta x and y between two coordinates
+
+-spec sector_delta(XY, XY) -> {number(), number()} when XY :: #sectxy{} | #galaxy{}.
+sector_delta(#sectxy{ x=SX, y=SY }, #sectxy{ x=DX, y=DY }) ->
+    {DX - SX, DY - SY};
+sector_delta(#galaxy{ x=SX, y=SY }, #galaxy{ x=DX, y=DY }) ->
+    {DX - SX, DY - SY}.
+
+
 %% Calculate course and distance between two sectors
 %% course (0-360 degrees, 0: -X direction, clockwise (e.g., 90: +Y direction)),
 
--spec sector_course_distance(#sectxy{}, #sectxy{}) -> {float(), float()}.
+-spec sector_course_distance(XY, XY) -> {float(), float()} when XY :: #sectxy{} | #galaxy{}.
 
 sector_course_distance(SC, DC) ->
-    DX = DC#sectxy.x - SC#sectxy.x,
-    DY = DC#sectxy.y - SC#sectxy.y,
+    Delta = sector_delta(SC, DC),
+    {sector_course(Delta), sector_distance(Delta)}.
+
+%% Calculate course between two sectors
+
+-spec sector_course(XY, XY) -> float() when XY :: #sectxy{} | #galaxy{}.
+
+sector_course(SC, DC) ->
+    sector_course(sector_delta(SC, DC)).
+
+-spec sector_course({number(), number()}) -> float().
+sector_course({DX, DY}) ->
     CRAD = math:atan2(DY, -DX),
     CRAD2 = case CRAD < 0 of
         true -> (CRAD + (2 * math:pi()));
         false -> CRAD
     end,
-    {CRAD2 * 180 / math:pi(), math:sqrt((DX*DX) + (DY*DY))}.
+    CRAD2 * 180 / math:pi().
 
-%% Calculate course between two sectors
-
--spec sector_course(#sectxy{}, #sectxy{}) -> float().
-
-sector_course(SC, DC) ->
-    {COURSE, _DISTANCE} = sector_course_distance(SC, DC),
-    COURSE.
 
 %% Calculate distance between two sectors
 
--spec sector_distance(#sectxy{}, #sectxy{}) -> float().
+-spec sector_distance(XY, XY) -> float() when XY :: #sectxy{} | #galaxy{}.
 
 sector_distance(SC, DC) ->
-    {_COURSE, DISTANCE} = sector_course_distance(SC, DC),
-    DISTANCE.
+    sector_distance(sector_delta(SC, DC)).
+
+-spec sector_distance({number(), number()}) -> float().
+sector_distance({DX, DY}) ->
+    math:sqrt((DX*DX) + (DY*DY)).
 
 %% convert quadrant coordinate record to Quad array position
 

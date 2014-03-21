@@ -338,6 +338,10 @@ update_ship_pos(Ship, Data0, State) ->
                     Ship ! Event,
                     #ship_data{ quad=SQC, sect=SSC } = Data0,
                     #ship_data{ quad=DQC, sect=DSC } = Data,
+                    Ship ! {distance_traveled,
+                            erltrek_calc:sector_distance(
+                              erltrek_calc:galaxy(SQC, SSC),
+                              erltrek_calc:galaxy(DQC, DSC))},
                     store_ship(
                       Ship, Data,
                       move_object(SQC, SSC, DQC, DSC, State));
@@ -372,8 +376,6 @@ move_ships(Delta, #state{ ships=Ships }=State0) ->
                             speed=Speed, course=Course }=Data,
                    Acc) ->
                       Dist = Speed * Delta,
-                      %% consume energy by sending message to the ship
-                      Ship ! {consume_energy, trunc(Dist * 10 + 0.5)},
                       DX = Dist * -math:cos(Course),
                       DY = Dist * math:sin(Course),
                       [{Ship, Data#ship_data{ pos=#galaxy{ x=GX + DX, y=GY + DY }}}|Acc]
@@ -442,7 +444,7 @@ lrscan(QC, #state{ stars=DS, inhabited=DI, bases=DB }=State) ->
             {QC, negative_energy_barrier}
     end.
 
-phaser(Course, Energy, #ship_data{ quad=QC, sect=SC }, State) ->
+phaser(Course, Energy, #ship_data{ class=SClass, quad=QC, sect=SC }, State) ->
     SI = erltrek_calc:sectxy_index(SC),
     array:foldl(
       fun (TSI, _, Acc) when TSI == SI -> Acc;
@@ -453,7 +455,9 @@ phaser(Course, Energy, #ship_data{ quad=QC, sect=SC }, State) ->
               Level = Energy * math:pow(0.9, Dist)
                   * math:exp(-0.7 * abs((Angle - Course)/10)),
               Hit = trunc(Level),
-              Ship ! {phaser_hit, Class, SC, Hit},
+              %% notify attacked ship about damage and attacker
+              Ship ! {phaser_hit, Hit, {SClass, SC}},
+              %% save hit data for result
               [{TSC, Class, Hit}|Acc];
           (_, _, Acc) -> Acc
       end, [], get_quad(QC, State)).

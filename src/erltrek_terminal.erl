@@ -153,9 +153,11 @@ handle_event({klingon_move, SK, SKM}, State) ->
                    [SK#sectxy.x, SK#sectxy.y,
                        SKM#sectxy.x, SKM#sectxy.y]),
     {ok, State};
-handle_event({phaser_hit, SK, HIT}, State) ->
-    ok = io:format("Phaser hit to Klingon at sector ~b,~b level ~b~n",
-                   [SK#sectxy.x, SK#sectxy.y, HIT]),
+handle_event({phaser_hit, Level, {Class, SC}}, State) ->
+    ok = io:format("~s hit with phasers from sector ~b,~b level ~b~n",
+                   [describe_object(Class),
+                    SC#sectxy.x, SC#sectxy.y,
+                    Level]),
     {ok, State};
 handle_event({killed, s_klingon, _QC, SC}, State) ->
     ok = io:format("Klingon at sector ~b,~b killed~n",
