@@ -340,8 +340,8 @@ update_ship_pos(Ship, Data0, State) ->
                     #ship_data{ quad=DQC, sect=DSC } = Data,
                     Ship ! {distance_traveled,
                             erltrek_calc:sector_distance(
-                              erltrek_calc:galaxy(SQC, SSC),
-                              erltrek_calc:galaxy(DQC, DSC))},
+                              erltrek_calc:galaxy({SQC, SSC}),
+                              erltrek_calc:galaxy({DQC, DSC}))},
                     store_ship(
                       Ship, Data,
                       move_object(SQC, SSC, DQC, DSC, State));

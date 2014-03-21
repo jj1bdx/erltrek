@@ -175,6 +175,7 @@
           class :: ship_class(),
           max_energy=1 :: pos_integer(),
           max_shield=0 :: non_neg_integer(),
+          engine_cost=10 :: pos_integer(), %% consumed energy / sector travel
           durability :: fun((body | shield, integer()) -> integer())
          }).
 

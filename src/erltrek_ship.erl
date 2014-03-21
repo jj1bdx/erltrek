@@ -150,15 +150,14 @@ handle_info({collision, _Object, _Info}=Event, State) ->
     ok = erltrek_event:notify(Event),
     ok = erltrek_event:notify(move_done),
     {noreply, State};
-handle_info({consume_energy, Energy}=_Event,
-            #ship_state{energy = E} = State) ->
-    E2 = E - Energy,
-    % if E2 < 0 the ship should stop and die
-    case E2 > 0 of
-        true -> {noreply, State#ship_state{energy = E2}};
-        % TODO: Notification needed to tell killed by energy exhaustion
-        false -> {stop, normal, State#ship_state{energy = 0}}
-    end;
+handle_info({distance_traveled, Dist},
+            #ship_state{ ship=#ship_def{ engine_cost=C },
+                         energy=E }=State)
+  when E > (Dist * C) ->
+    {noreply, State#ship_state{ energy = trunc(E - (Dist * C)) }};
+handle_info({distance_traveled, _}, State) ->
+    %% TODO: Notification needed to tell killed by energy exhaustion
+    {stop, normal, State#ship_state{energy = 0}};
 handle_info({phaser_hit, Level, _Info}=Event, State) ->
     notify_enterprise(Event, State),
     {noreply, absorb_hit(Level, State)};
