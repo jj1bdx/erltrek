@@ -135,14 +135,6 @@ handle_event({collision, Object, {_, QC, SC}}, State) ->
                     QC#quadxy.x, QC#quadxy.y,
                     SC#sectxy.x, SC#sectxy.y]),
     {ok, State};
-handle_event({display_position, GameState}, State) ->
-    {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
-    ok = io:format("Current position: ~b,~b/~b,~b~n",
-                   [SHIP#enterprise_status.quadxy#quadxy.x,
-                    SHIP#enterprise_status.quadxy#quadxy.y,
-                    SHIP#enterprise_status.sectxy#sectxy.x,
-                    SHIP#enterprise_status.sectxy#sectxy.y]),
-    {ok, State};
 handle_event({lrscan, GameState}, State) ->
     ok = io:format("~s", [erltrek_scan:lrscan_string(GameState)]),
     {ok, State};
