@@ -86,7 +86,8 @@
 -export([start_link/0, spawn_ship/1,
          stardate/0, get_position/0,
          srscan/0, lrscan/0,
-         impulse/2, phaser/2
+         impulse/2, phaser/2,
+         count_klingons_quad/0
         ]).
 
 %% Callbacks
@@ -127,6 +128,7 @@ srscan() -> call(srscan).
 lrscan() -> call(lrscan).
 impulse(Course, Speed) -> call({impulse, Course, Speed}).
 phaser(Course, Energy) -> call({phaser, Course, Energy}).
+count_klingons_quad() -> call(count_klingons_quad).
 
 
 %%% --------------------------------------------------------------------
@@ -192,6 +194,14 @@ handle_call({phaser, Course, Energy}, {Pid, _Ref}, State) ->
             {reply,
              {phaser_hit, phaser(Course, Energy, Data, State)},
              State};
+        _ ->
+            {reply, error, State}
+    end;
+handle_call(count_klingons_quad, {Pid, _Ref}, State) ->
+    case find_ship(Pid, State) of
+        {ok, #ship_data{quad=QC}} ->
+            % TODO
+            {reply, count_klingons(get_quad(QC, State)), State};
         _ ->
             {reply, error, State}
     end;
