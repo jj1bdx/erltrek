@@ -137,12 +137,9 @@ init([]) ->
     erltrek_galaxy:spawn_ship(?enterprise_ship).
 
 handle_call({ship, Command}, _From, Ship) ->
-    {reply, erltrek_ship:command(Ship, Command), Ship};
-handle_call(get_state, _From, State) ->
-    {reply, State, State}.
+    {reply, erltrek_ship:command(Ship, Command), Ship}.
 
-terminate(normal, {Timer, _GameState}) ->
-    erlang:cancel_timer(Timer),
+terminate(_Reason, _Ship) ->
     ok.
 
 code_change(_OldVsn, State, _Extra) ->

@@ -344,7 +344,9 @@ process_result({unknown_command, Cmd}) ->
       " (https://github.com/jj1bdx/erltrek/issues)~n"
       "Please include the following: ~p~n~n",
       [Cmd]);
-%% todo: the command specific results should be taken care of in the command dispatch fun..
+process_result(not_enough_energy) ->
+    io:format("Our ship energy reserves are running low!~n");
+%% TODO: the command specific results ought to be taken care of in the command dispatch fun..
 process_result({phaser_hit, Hits}) ->
     case lists:flatten(
            [io_lib:format(

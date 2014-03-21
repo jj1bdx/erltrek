@@ -154,6 +154,7 @@ handle_info({distance_traveled, Dist},
             #ship_state{ ship=#ship_def{ engine_cost=C },
                          energy=E }=State)
   when E > (Dist * C) ->
+    %% TODO: check energy level and stop if we're getting dangeoursly close to empty
     {noreply, State#ship_state{ energy = trunc(E - (Dist * C)) }};
 handle_info({distance_traveled, _}, State) ->
     %% TODO: Notification needed to tell killed by energy exhaustion
@@ -200,10 +201,15 @@ handle_command({impulse, QX, QY, SX, SY}, State) ->
     QC = #quadxy{ x=QX, y=QY },
     SC = #sectxy{ x=SX, y=SY },
     {erltrek_move:impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}};
-handle_command({phaser, SX, SY, Energy}, State) ->
+handle_command({phaser, SX, SY, Energy}, #ship_state{ energy=E }=State) ->
     %% TODO: Decide to fire or not here (no klingon, docked, etc.)
-    %% TODO: deplete energy prior to shooting
-    {erltrek_phaser:phaser(SX, SY, Energy), State};
+    %% klingons or no, I say fire any way.. (but not if docked, of course)
+    if E > Energy ->
+            {erltrek_phaser:phaser(SX, SY, Energy),
+             State#ship_state{ energy=E - Energy }};
+       true ->
+            {not_enough_energy, State}
+    end;
 handle_command(Cmd, State) ->
     {{unknown_command, Cmd}, State}.
 
