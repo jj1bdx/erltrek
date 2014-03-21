@@ -277,9 +277,7 @@ spawn_klingons(DKS, QC, SECT0) ->
     dict:fold(
       fun (SC, [#klingon_status{}], SECT) ->
               ShipDef = ?klingon_ship,
-              {ok, Ship} = erltrek_ship_sup:start_ship(
-                             [ShipDef,
-                              [{commander, erltrek_klingon_commander}]]),
+              {ok, Ship} = erltrek_ship_sup:start_ship([ShipDef]),
               self() ! {register_ship, Ship,
                         #ship_data{
                            class=ShipDef#ship_def.class,

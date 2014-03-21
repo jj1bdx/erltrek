@@ -81,40 +81,28 @@
 -module(erltrek_game).
 -behaviour(gen_server).
 
--export([
-         code_change/3,
+%% API
+-export([start_link/0, start_link/1, stop/0,
          enterprise_command/1,
-         handle_call/3,
-         handle_cast/2,
-         handle_info/2,
-         init/1,
-         lost/1,
-         srscan/0,
-         start_game/0,
-         start_link/0,
-         start_link/1,
-         stop/0,
-         terminate/2,
-         won/1
-     ]).
+         lost/1, won/1, srscan/0
+        ]).
+
+%% Callbacks
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         code_change/3, terminate/2]).
 
 -include("erltrek.hrl").
 
+
+%%% --------------------------------------------------------------------
 %% public APIs
+%%% --------------------------------------------------------------------
 
 start_link() ->
     start_link([]).
 
 start_link(Args) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, Args, []).
-
-start_game() ->
-    case whereis(?MODULE) of
-        undefined ->
-            receive after 100 -> start_game() end;
-        _ ->
-            gen_server:call(?MODULE, start_game)
-    end.
 
 stop() ->
     gen_server:cast(?MODULE, {stop, stop}).
@@ -131,7 +119,10 @@ enterprise_command(Command) ->
 srscan() ->
     enterprise_command({srscan}).
 
+
+%%% --------------------------------------------------------------------
 %% Callbacks
+%%% --------------------------------------------------------------------
 
 init([]) ->
     erltrek_galaxy:spawn_ship(?enterprise_ship).

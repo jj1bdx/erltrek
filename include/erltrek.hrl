@@ -173,6 +173,7 @@
 %% Ship data used by erltrek_ship
 -record(ship_def, {
           class :: ship_class(),
+          commander :: atom(), %% commander module
           max_energy=1 :: pos_integer(),
           max_shield=0 :: non_neg_integer(),
           engine_cost=10 :: pos_integer(), %% consumed energy / sector travel
@@ -182,6 +183,7 @@
 -define(enterprise_ship,
         #ship_def{
            class = s_enterprise,
+           commander = erltrek_enterprise_commander,
            max_energy = ?SHIPENERGY,
            max_shield = ?SHIPSHIELD,
            durability = fun (body, D) when D > 0 -> trunc(D * 1.3) + 10;
@@ -192,6 +194,7 @@
 -define(klingon_ship,
         #ship_def{
            class = s_klingon,
+           commander = erltrek_klingon_commander,
            max_energy = ?KLINGONENERGY,
            max_shield = 0,
            durability = fun (_, D) -> D end
@@ -200,9 +203,12 @@
 %% Ship state used by erltrek_ship (also used in some event notifications)
 -record(ship_state, {
           ship=#ship_def{} :: #ship_def{},
+          commander :: pid(), %% commander process
           energy=1 :: pos_integer(),
           shield=0 :: non_neg_integer(),
           condition=cond_green :: ship_condition(),
+
+          %% traveling target coordinates
           tquad :: #quadxy{},
           tsect :: #sectxy{}
          }).

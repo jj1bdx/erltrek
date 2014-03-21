@@ -79,7 +79,7 @@
 %%% [End of LICENSE]
 %%% --------------------------------------------------------------------
 
--module(erltrek_klingon_commander).
+-module(erltrek_enterprise_commander).
 
 -export([start/1]).
 
@@ -96,10 +96,11 @@ start(Ship) ->
 
 command(Ship) ->
     receive
-        {event, _} ->
+        {event, Event} ->
+            ok = erltrek_event:notify(Event),
             command(Ship);
-        {sync_event, {Pid, Ref}, _} ->
-            Pid ! {Ref, ok},
+        {sync_event, {Pid, Ref}, Event} ->
+            Pid ! {Ref, erltrek_event:sync_notify(Event)},
             command(Ship);
         {'DOWN', _Ref, process, Ship, _Info} ->
             oh_no_ship_destroyed_I_will_die_now_too

@@ -118,14 +118,17 @@ command(Ship, Command) ->
 %%% Callbacks
 %%% --------------------------------------------------------------------
 
-init([{ship, Ship}|Args]) ->
-    case proplists:get_value(commander, Args) of
-        undefined -> nop;
-        Commander ->
-            {ok, _} = Commander:start(self())
-    end,
+init([{ship, Ship}|_Args]) ->
+    Cmdr = case Ship#ship_def.commander of
+               undefined ->
+                   undefined;
+               Commander ->
+                   {ok, Pid} = Commander:start(self()),
+                   Pid
+           end,
     #ship_def{ max_energy=E, max_shield=S } = Ship,
-    {ok, #ship_state{ ship = Ship, energy = E, shield = S }}.
+    {ok, #ship_state{ ship = Ship, energy = E, shield = S,
+                      commander = Cmdr }}.
 
 handle_call({command, Command}, _From, State0) ->
     {Reply, State} = handle_command(Command, State0),
@@ -138,17 +141,17 @@ handle_cast(_Cast, State) ->
 
 handle_info({Event, QC, SC}=Info, #ship_state{ tquad=TQC, tsect=TSC }=State)
   when Event == enter_sector; Event == enter_quadrant ->
-    ok = erltrek_event:notify(Info),
+    ok = notify(Info, State),
     if SC == TSC andalso (QC == TQC orelse TQC == undefined) ->
             ok = erltrek_galaxy:impulse(0,0),
-            ok = erltrek_event:notify(move_done);
+            ok = notify(move_done, State);
        true -> nop
     end,
     {noreply, State};
 handle_info({collision, _Object, _Info}=Event, State) ->
     %% todo: something ought to break when smashing into things..
-    ok = erltrek_event:notify(Event),
-    ok = erltrek_event:notify(move_done),
+    ok = notify(Event, State),
+    ok = notify(move_done, State),
     {noreply, State};
 handle_info({distance_traveled, Dist},
             #ship_state{ ship=#ship_def{ engine_cost=C },
@@ -160,7 +163,7 @@ handle_info({distance_traveled, _}, State) ->
     %% TODO: Notification needed to tell killed by energy exhaustion
     {stop, normal, State#ship_state{energy = 0}};
 handle_info({phaser_hit, Level, _Info}=Event, State) ->
-    notify_enterprise(Event, State),
+    ok = notify(Event, State),
     {noreply, absorb_hit(Level, State)};
 handle_info(_Info, State) ->
     %% jj1bdx: how should these info messages be handled? Just ignored?
@@ -191,9 +194,9 @@ handle_command({srscan}, State) ->
     %% Using sync notify so the output is presented before returning.
     %% But for this to work, no event handler (directly or indirectly)
     %% may call into any of the processes in our call chain!
-    {erltrek_event:sync_notify({srscan, {Stardate, [State|Data]}}), State};
+    {sync_notify({srscan, {Stardate, [State|Data]}}, State), State};
 handle_command({lrscan}, State) ->
-    {erltrek_event:sync_notify({lrscan, erltrek_galaxy:lrscan()}), State};
+    {sync_notify({lrscan, erltrek_galaxy:lrscan()}, State), State};
 handle_command({impulse, SX, SY}, State) ->
     SC = #sectxy{ x=SX, y=SY },
     {erltrek_move:impulse(SC), State#ship_state{ tquad=undefined, tsect=SC }};
@@ -213,24 +216,30 @@ handle_command({phaser, SX, SY, Energy}, #ship_state{ energy=E }=State) ->
 handle_command(Cmd, State) ->
     {{unknown_command, Cmd}, State}.
 
-%% TODO: make this notify_commander instead, and add a enterprise commander that forwards the events..
-notify_enterprise(Event, #ship_state{ ship=#ship_def{ class=s_enterprise }}) ->
-    erltrek_event:notify(Event);
-notify_enterprise(_, _) -> nop.
+%% Notify commander of ship events
+notify(_Event, #ship_state{ commander=undefined }) -> ok;
+notify(Event, #ship_state{ commander=Commander }) -> Commander ! {event, Event}, ok.
 
+sync_notify(_Event, #ship_state{ commander=undefined }) -> ok;
+sync_notify(Event, #ship_state{ commander=Commander }) ->
+    Ref = make_ref(),
+    Commander ! {sync_event, {self(), Ref}, Event},
+    receive {Ref, Rsp} -> Rsp end.
+
+%% take damage from enemy attack
 absorb_hit(Level, State) when Level =< 0 -> State;
 absorb_hit(Level, #ship_state{ ship=#ship_def{ durability=D }, shield=S }=State)
   when S > 0 ->
     Shield0 = S - D(shield, Level),
     Shield = if Shield0 =< 0 ->
-                     notify_enterprise(shields_gone, State),
+                     ok = notify(shields_gone, State),
                      0;
                 true -> 
-                     notify_enterprise({shield_level, Shield0}, State),
+                     ok = notify({shield_level, Shield0}, State),
                      Shield0
              end,
     absorb_hit(D(body, Level - (S - Shield)), State#ship_state{ shield=Shield });
 absorb_hit(Level, #ship_state{ energy=E }=State) when Level < E ->
-    notify_enterprise({damage_level, Level}, State),
+    ok = notify({damage_level, Level}, State),
     State#ship_state{ energy=E - Level };
 absorb_hit(_, _) -> exit(normal).
