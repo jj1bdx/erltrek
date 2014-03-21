@@ -333,7 +333,6 @@ update_ship_pos(Ship, Data0, State) ->
     case update_ship_pos(Data0) of
         Data0 -> store_ship(Ship, Data0, State); %% moved just a fraction within current sector
         {Event, #ship_data{ quad=QC, sect=SC }=Data} ->
-            %% TODO: burn energy ...( send message to ship )
             case lookup_sector(QC, SC, State) of
                 s_empty ->
                     Ship ! Event,
@@ -373,6 +372,8 @@ move_ships(Delta, #state{ ships=Ships }=State0) ->
                             speed=Speed, course=Course }=Data,
                    Acc) ->
                       Dist = Speed * Delta,
+                      %% consume energy by sending message to the ship
+                      Ship ! {consume_energy, trunc(Dist * 10 + 0.5)},
                       DX = Dist * -math:cos(Course),
                       DY = Dist * math:sin(Course),
                       [{Ship, Data#ship_data{ pos=#galaxy{ x=GX + DX, y=GY + DY }}}|Acc]
