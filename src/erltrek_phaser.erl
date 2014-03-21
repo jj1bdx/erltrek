@@ -80,10 +80,7 @@
 
 -module(erltrek_phaser).
 
--export([
-         phaser/3,
-         phaser/4
-        ]).
+-export([phaser/3]).
 
 -include("erltrek.hrl").
 
@@ -93,95 +90,4 @@ phaser(SX, SY, Energy) ->
         {ok, _Dx, _Dy, Course, _Dist} ->
             erltrek_galaxy:phaser(Course, Energy);
         Error -> {phaser, Error}
-    end.
-
-
-%% Klingon attacks in the sector
-%% {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState
-
--spec phaser(integer(), integer(), integer(), game_state()) -> game_state().
-
-phaser(SX, SY, ENERGY, GameState) ->
-    {_Tick, _SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, DKS} = GameState,
-    % only fire phaser if at least one Klingon is in the quadrant
-    case dict:size(DKS) > 0 of
-        true ->
-            fire_phaser(SX, SY, ENERGY, GameState);
-        false -> % do nothing
-            erltrek_event:notify({phaser, no_target}),
-            GameState
-    end.
-
--spec fire_phaser(integer(), integer(), integer(), game_state()) -> game_state().
-
-fire_phaser(SX, SY, ENERGY, GameState) ->
-    {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
-    % You cannot fire phaser while docked
-    case SHIP#enterprise_status.docked of
-        true -> % You can't move when docked at a starbase
-            erltrek_event:notify({phaser, docked}),
-            GameState;
-        false ->
-            SHIPENERGY = SHIP#enterprise_status.energy,
-            case SHIPENERGY > ENERGY of
-                true ->
-                    prepare_phaser(SX, SY, ENERGY, GameState);
-                false -> % cannot fire because of exceeding energy level
-                    erltrek_event:notify({phaser, fire_level}),
-                    GameState
-            end
-    end.
-
--spec prepare_phaser(integer(), integer(), integer(), game_state()) -> game_state().
-
-prepare_phaser(SX, SY, ENERGY, GameState) ->
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
-    % Deplete energy from Enterprise
-    SHIPENERGY = SHIP#enterprise_status.energy,
-    SHIP2 = SHIP#enterprise_status{energy = SHIPENERGY - ENERGY},
-    ShipSC = SHIP#enterprise_status.sectxy,
-    % Calculate course for each Klingon
-    COURSE = erltrek_calc:sector_course(ShipSC, #sectxy{x = SX, y = SY}),
-    LK = dict:fetch_keys(DKS),
-    {LCOURSE, LDIST} = lists:unzip(
-        [erltrek_calc:sector_course_distance(ShipSC, SC) || SC <- LK]),
-    NewGameState = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS},
-    hit_phaser(LK, LDIST, LCOURSE, ENERGY, COURSE, NewGameState).
-
-%% Calculate phaser hit for each klingon
-
--spec hit_phaser([#sectxy{}], [float()], [float()],
-    integer(), float(), game_state()) -> game_state().
-
-hit_phaser([], _, _, _, _, GameState) ->
-    GameState; % do nothing if klingon list is empty
-hit_phaser(LK, LDIST, LCOURSE, ENERGY, COURSE, GameState) ->
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
-    [SK|LK2] = LK,
-    [SDIST|LDIST2] = LDIST,
-    [SCOURSE|LCOURSE2] = LCOURSE,
-    [K] = dict:fetch(SK, DKS),
-    KE = K#klingon_status.energy,
-    % Calculate hitting level
-    HIT = trunc(float(ENERGY) * math:pow(0.9, float(SDIST)) *
-                math:exp(-0.7 * abs((SCOURSE - COURSE)/10.0))),
-    % Notify how much phaser actually causes damage to Klingon
-    erltrek_event:notify({phaser_hit, SK, HIT}),
-    % Deplete energy from Klingon and update the dict
-    NKE = KE - HIT,
-    case NKE > 0 of
-        true -> % klingon is alive
-            K2 = K#klingon_status{energy = NKE},
-            DKS2 = dict:append(SK, K2, dict:erase(SK, DKS)),
-            GameState2 = {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS2},
-            hit_phaser(LK2, LDIST2, LCOURSE2, ENERGY, COURSE, GameState2);
-        false -> % klingon is killed
-            erltrek_event:notify({killed, SK}),
-            QC = SHIP#enterprise_status.quadxy,
-            DKQ2 = dict:store(QC, dict:fetch(QC, DKQ) - 1, DKQ),
-            DKS3 = dict:erase(SK, DKS),
-            NK2 = NK - 1,
-            SECT2 = array:set(erltrek_calc:sectxy_index(SK), s_empty, SECT),
-            GameState3 = {Tick, SHIP, NK2, DS, DI, DB, DH, DKQ2, SECT2, DKS3},
-            hit_phaser(LK2, LDIST2, LCOURSE2, ENERGY, COURSE, GameState3)
     end.
