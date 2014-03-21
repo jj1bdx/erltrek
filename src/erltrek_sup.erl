@@ -51,7 +51,7 @@ init(_Args) ->
     %% So, children with dependencies must be listed after those they depend on.
     Childs = [{events,
                {erltrek_event, start_link,
-                %% todo: make this configurable by
+                %% TODO: make this configurable by
                 %% placing it in the app enviorment or some such..
                 [[{erltrek_terminal, []}]]},
                permanent, brutal_kill, worker, dynamic},

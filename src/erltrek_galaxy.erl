@@ -333,7 +333,7 @@ update_ship_pos(Ship, Data0, State) ->
     case update_ship_pos(Data0) of
         Data0 -> store_ship(Ship, Data0, State); %% moved just a fraction within current sector
         {Event, #ship_data{ quad=QC, sect=SC }=Data} ->
-            %% todo: burn energy ...( send message to ship )
+            %% TODO: burn energy ...( send message to ship )
             case lookup_sector(QC, SC, State) of
                 s_empty ->
                     Ship ! Event,
@@ -448,7 +448,7 @@ phaser(Course, Energy, #ship_data{ quad=QC, sect=SC }, State) ->
           (TSI, {Class, Ship}, Acc) ->
               TSC = erltrek_calc:index_sectxy(TSI),
               {Angle, Dist} = erltrek_calc:sector_course_distance(SC, TSC),
-              %% todo: I think we should only consider ships within the phaser beam..
+              %% TODO: I think we should only consider ships within the phaser beam..
               Level = Energy * math:pow(0.9, Dist)
                   * math:exp(-0.7 * abs((Angle - Course)/10)),
               Hit = trunc(Level),

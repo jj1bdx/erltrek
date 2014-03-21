@@ -267,7 +267,7 @@ setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
             SC = rand_sect(SECT),
             {array:set(sectxy_index(SC), s_base, SECT),
             % add the base info
-            % @todo add attacked, etc
+            % TODO: add attacked, etc
             dict:append(QC, #base_info{xy = SC}, DB)};
         false ->
             {SECT, DB}
@@ -278,7 +278,7 @@ setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
             SYSTEMNAME = dict:fetch(QC, DINAME),
             {1,
             array:set(sectxy_index(SC2), s_inhabited, SECT2),
-            % @todo add distressed, etc
+            % TODO: add distressed, etc
             dict:append(QC,
                 #inhabited_info{xy = SC2,
                     systemname = SYSTEMNAME},
