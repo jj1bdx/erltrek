@@ -89,6 +89,7 @@
          handle_info/2,
          init/1,
          lost/1,
+         srscan/0,
          start_game/0,
          start_link/0,
          start_link/1,
@@ -125,8 +126,10 @@ won(Message) ->
     gen_server:cast(?MODULE, {stop, {won, Message}}).
 
 enterprise_command(Command) ->
-    %% gen_server:call(?MODULE, {enterprise_command, Command}).
     gen_server:call(?MODULE, {ship, Command}).
+
+srscan() ->
+    enterprise_command({srscan}).
 
 %% Callbacks
 
@@ -135,27 +138,6 @@ init([]) ->
 
 handle_call({ship, Command}, _From, Ship) ->
     {reply, erltrek_ship:command(Ship, Command), Ship};
-handle_call(start_game, _From, _State) ->
-    exit(do_not_call_start_game),
-    % Initialize {Tick,SHIP,NK,DS,DI,DB,DH,DKQ,SECT,DKS} 
-    InitState = erltrek_setup:setup_state(),
-    % wait one second to start the game
-    Timer = erlang:send_after(1000, self(), tick_event),
-    % build gen_server State
-    GameStateAndTimer = {Timer, InitState},
-    {reply, ok, GameStateAndTimer};
-handle_call({enterprise_command, Command}, _From, GameStateAndTimer) ->
-    {Timer, GameState} = GameStateAndTimer,
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
-    case SHIP#enterprise_status.next_command =:= {} of
-        true ->
-            SHIP2 = SHIP#enterprise_status{next_command = Command},
-            NewGameState = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS},
-            NewGameStateAndTimer = {Timer, NewGameState},
-            {reply, ok, NewGameStateAndTimer};
-        false ->
-            {reply, command_refused, GameStateAndTimer}
-    end;
 handle_call(get_state, _From, State) ->
     {reply, State, State}.
 
@@ -170,16 +152,6 @@ handle_cast({stop, Event}, State) ->
     ok = erltrek_event:sync_notify(Event),
     {stop, normal, State}.
 
-handle_info(tick_event, GameStateAndTimer) ->
-    {OldTimer, GameState} = GameStateAndTimer,
-    erlang:cancel_timer(OldTimer),
-    % do interval timer task here
-    % CAUTION: DO NOT change Tick value inside!
-    NewGameState = erltrek_event:timer_tasks(GameState),
-    % increment tick counter and restart timer
-    NewTimer = erlang:send_after(?TICK_INTERVAL, self(), tick_event),
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = NewGameState,
-    NewGameState2 = {Tick + 1, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS},
-    NewGameStateAndTimer = {NewTimer, NewGameState2},
-    {noreply, NewGameStateAndTimer}.
+handle_info(_, State) ->
+    {noreply, State}.
 
