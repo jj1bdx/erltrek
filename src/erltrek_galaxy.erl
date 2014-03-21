@@ -87,7 +87,7 @@
          stardate/0, get_position/0,
          srscan/0, lrscan/0,
          impulse/2, phaser/2,
-         count_klingons_quad/0
+         count_nearby_enemies/0
         ]).
 
 %% Callbacks
@@ -128,7 +128,7 @@ srscan() -> call(srscan).
 lrscan() -> call(lrscan).
 impulse(Course, Speed) -> call({impulse, Course, Speed}).
 phaser(Course, Energy) -> call({phaser, Course, Energy}).
-count_klingons_quad() -> call(count_klingons_quad).
+count_nearby_enemies() -> call(count_nearby_enemies).
 
 
 %%% --------------------------------------------------------------------
@@ -197,11 +197,10 @@ handle_call({phaser, Course, Energy}, {Pid, _Ref}, State) ->
         _ ->
             {reply, error, State}
     end;
-handle_call(count_klingons_quad, {Pid, _Ref}, State) ->
+handle_call(count_nearby_enemies, {Pid, _Ref}, State) ->
     case find_ship(Pid, State) of
-        {ok, #ship_data{quad=QC}} ->
-            % TODO
-            {reply, count_klingons(get_quad(QC, State)), State};
+        {ok, #ship_data{ class=Class, quad=QC }} ->
+            {reply, count_other_ships(Class, get_quad(QC, State)), State};
         _ ->
             {reply, error, State}
     end;
@@ -403,25 +402,23 @@ tick(#state{ stardate=Stardate, sync=Sync }=State0) ->
     erlang:send_after(?GALAXY_TICK, self(), tick),
     State#state{ stardate=Stardate + Tick, sync=Timestamp }.
 
-count_klingons(#state{ ships=Ships }) ->
+count_other_ships(Class, #state{ ships=Ships }) ->
     orddict:fold(
-      fun (_, #ship_data{ class=s_klingon }, Count) ->
-              Count + 1;
-          (_, _, Count) ->
-              Count
+      fun (_, #ship_data{ class=SClass }, Count)
+            when SClass =/= Class -> Count + 1;
+          (_, _, Count) -> Count
       end, 0, Ships);
-count_klingons(Quad) ->
+count_other_ships(Class, Quad) ->
     array:foldl(
-     fun (_, {s_klingon, _}, Count) ->
-             Count + 1;
-         (_, _, Count) ->
-             Count
-     end, 0, Quad).
+      fun (_, {SClass, _}, Count)
+            when SClass =/= Class -> Count + 1;
+          (_, _, Count) -> Count
+      end, 0, Quad).
 
-srscan(#ship_data{ quad=QC }=Data, State) ->
+srscan(#ship_data{ class=Class, quad=QC }=Data, State) ->
     [Data,
      {quad, get_quad(QC, State)},
-     {klingons, count_klingons(State)}
+     {enemies, count_other_ships(Class, State)}
      |case dict:find(QC, State#state.inhabited) of
           {ok, Value} -> Value;
           _ -> []
@@ -433,20 +430,21 @@ count_objects(QC, D) ->
         error -> 0
     end.
 
-lrscan(#ship_data{ quad=#quadxy{ x=QX, y=QY } }=Data, State) ->
+lrscan(#ship_data{ class=Class, quad=#quadxy{ x=QX, y=QY } }=Data, State) ->
     [Data
-     | [lrscan(#quadxy{ x=X, y=Y }, State)
+     | [lrscan(Class, #quadxy{ x=X, y=Y }, State)
         || X <- lists:seq(QX - 1, QX + 1),
            Y <- lists:seq(QY - 1, QY + 1)
        ]
-    ];
-lrscan(QC, #state{ stars=DS, inhabited=DI, bases=DB }=State) ->
+    ].
+
+lrscan(Class, QC, #state{ stars=DS, inhabited=DI, bases=DB }=State) ->
     case erltrek_calc:in_quadxy(QC) of
         true ->
             {QC,
              [{stars, count_objects(QC, DS) + count_objects(QC, DI)},
               {bases, count_objects(QC, DB)},
-              {klingons, count_klingons(get_quad(QC, State))}
+              {enemies, count_other_ships(Class, get_quad(QC, State))}
              ]};
         false ->
             {QC, negative_energy_barrier}

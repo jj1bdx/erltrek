@@ -205,9 +205,8 @@ handle_command({impulse, QX, QY, SX, SY}, State) ->
     SC = #sectxy{ x=SX, y=SY },
     {erltrek_move:impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}};
 handle_command({phaser, SX, SY, Energy}, #ship_state{ energy=E }=State) ->
-    %% TODO: Decide to fire or not here (no klingon, docked, etc.)
     %% TODO: No firing when docked
-    NKQ = erltrek_galaxy:count_klingons_quad(),
+    NKQ = erltrek_galaxy:count_nearby_enemies(),
     if NKQ == 0 ->
             {no_klingon_in_quadrant, State};
        E =< Energy ->
