@@ -200,10 +200,16 @@ handle_command({impulse, QX, QY, SX, SY}, State) ->
     QC = #quadxy{ x=QX, y=QY },
     SC = #sectxy{ x=SX, y=SY },
     {erltrek_move:impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}};
-handle_command({phaser, SX, SY, Energy}, State) ->
+handle_command({phaser, SX, SY, Energy}, #ship_state{energy=E} = State) ->
+    %% deplete energy prior to shooting
+    E2 = if Energy > E ->
+                notify_enterprise({phaser, fire_level}, State),
+                E;
+            true ->
+                E - Energy
+         end,
     %% TODO: Decide to fire or not here (no klingon, docked, etc.)
-    %% TODO: deplete energy prior to shooting
-    {erltrek_phaser:phaser(SX, SY, Energy), State};
+    {erltrek_phaser:phaser(SX, SY, Energy), State#ship_state{energy=E2}};
 handle_command(Cmd, State) ->
     {{unknown_command, Cmd}, State}.
 
