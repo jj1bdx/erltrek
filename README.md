@@ -5,7 +5,8 @@
 
 ## Major change coming
 
-* Introduction of erltrek\_galaxy gen\_server will change the whole programming model (by Andreas Stenius) -- stay tuned.
+* Introduction of erltrek\_galaxy gen\_server will change the whole programming model (by Andreas Stenius)
+* See `kaos-galaxy-server` branch for the preview
 
 ## Goals
 
