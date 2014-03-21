@@ -146,6 +146,7 @@ handle_info({Event, QC, SC}=Info, #ship_state{ tquad=TQC, tsect=TSC }=State)
     end,
     {noreply, State};
 handle_info({collision, _Object, _Info}=Event, State) ->
+    %% todo: something ought to break when smashing into things..
     ok = erltrek_event:notify(Event),
     ok = erltrek_event:notify(move_done),
     {noreply, State};
@@ -158,30 +159,11 @@ handle_info({consume_energy, Energy}=_Event,
         % TODO: Notification needed to tell killed by energy exhaustion
         false -> {stop, normal, State#ship_state{energy = 0}}
     end;
-handle_info({phaser_hit, Hit}=_Event,
-            #ship_state{ ship = Ship, energy = E, shield = S} = State) ->
-    Damagefun = case Ship#ship_def.class of
-        s_enterprise -> fun(D) -> trunc(float(D) * 1.3) + 10 end;
-        s_klingon -> fun(D) -> D end
-    end,
-    {E2, S2} = case S >= Hit of
-        true -> {E, S - Hit};
-        false -> {E - Damagefun(Hit - S), 0}
-    end,
-    case {Ship#ship_def.class, S > 0, S2 == 0} of
-        {s_enterprise, true, true} -> ok = erltrek_event:notify(shields_gone);
-        {_, _, _} -> ok % do nothing
-    end,
-    % if E2 < 0 the ship should stop and die
-    case E2 > 0 of
-        true -> {noreply, State#ship_state{energy = E2, shield = S2}};
-        % TODO: Notification needed to tell killed by hit
-        % TODO: Ship killed: is "normal" status code enough?
-        false -> {stop, normal, State#ship_state{energy = 0, shield = 0}}
-    end;
+handle_info({phaser_hit, Class, SC, Level}=Event, State) ->
+    notify_enterprise(Event, State),
+    {noreply, absorb_hit(Level, State)};
 handle_info(_Info, State) ->
-    % TODO: how should these info messages be handled? Just ignored?
-    % io:format("erltrek_ship: Pid ~p, Unknown messsage ~p~n", [self(), Info]),
+    io:format("~p ~p: unhandled info: ~p~n", [self(), ?MODULE, _Info]),
     {noreply, State}.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -222,3 +204,26 @@ handle_command({phaser, SX, SY, Energy}, State) ->
     {erltrek_phaser:phaser(SX, SY, Energy), State};
 handle_command(Cmd, State) ->
     {{unknown_command, Cmd}, State}.
+
+%% todo: make this notify_commander instead, and add a enterprise commander that forwards the events..
+
+notify_enterprise(Event, #ship_state{ ship=#ship_def{ class=s_enterprise }}) ->
+    erltrek_event:notify(Event);
+notify_enterprise(_, _) -> nop.
+
+absorb_hit(Level, State) when Level =< 0 -> State;
+absorb_hit(Level, #ship_state{ shield=S }=State) when S > 0 ->
+    Shield0 = S - Level,
+    Shield = if Shield0 =< 0 ->
+                     notify_enterprise(shields_gone),
+                     0;
+                true -> 
+                     notify_enterprise({shield_level, Shield}),
+                     Shield0
+             end,
+    Damage = trunc((Level - (S - Shield)) * 1.3) + 10,
+    absorb_hit(Damage, State#ship_state{ shield=Shield });
+absorb_hit(Level, #ship_state{ energy=E }=State) when Level < E ->
+    notify_enterprise({damage_level, Level}),
+    State#ship_state{ energy=E - Level };
+absorb_hit(_, _) -> exit(killed).

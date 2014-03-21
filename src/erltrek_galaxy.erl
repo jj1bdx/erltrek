@@ -453,7 +453,7 @@ phaser(Course, Energy, #ship_data{ quad=QC, sect=SC }, State) ->
               Level = Energy * math:pow(0.9, Dist)
                   * math:exp(-0.7 * abs((Angle - Course)/10)),
               Hit = trunc(Level),
-              Ship ! {phaser_hit, Hit},
+              Ship ! {phaser_hit, Class, SC, Hit},
               [{TSC, Class, Hit}|Acc];
           (_, _, Acc) -> Acc
       end, [], get_quad(QC, State)).
