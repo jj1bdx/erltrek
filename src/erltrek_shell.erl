@@ -346,6 +346,8 @@ process_result({unknown_command, Cmd}) ->
       [Cmd]);
 process_result(not_enough_energy) ->
     io:format("Our ship energy reserves are running low!~n");
+process_result(no_klingon_in_quadrant) ->
+    io:format("No Klingon in the quadrant, phaser not fired~n");
 %% TODO: the command specific results ought to be taken care of in the command dispatch fun..
 process_result({phaser_hit, Hits}) ->
     case lists:flatten(

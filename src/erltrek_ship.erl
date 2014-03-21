@@ -206,12 +206,15 @@ handle_command({impulse, QX, QY, SX, SY}, State) ->
     {erltrek_move:impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}};
 handle_command({phaser, SX, SY, Energy}, #ship_state{ energy=E }=State) ->
     %% TODO: Decide to fire or not here (no klingon, docked, etc.)
-    %% klingons or no, I say fire any way.. (but not if docked, of course)
-    if E > Energy ->
-            {erltrek_phaser:phaser(SX, SY, Energy),
-             State#ship_state{ energy = E - Energy }};
+    %% TODO: No firing when docked
+    NKQ = erltrek_galaxy:count_klingons_quad(),
+    if NKQ == 0 ->
+            {no_klingon_in_quadrant, State};
+       E =< Energy ->
+            {not_enough_energy, State};
        true ->
-            {not_enough_energy, State}
+            {erltrek_phaser:phaser(SX, SY, Energy),
+             State#ship_state{ energy = E - Energy }}
     end;
 handle_command(Cmd, State) ->
     {{unknown_command, Cmd}, State}.
