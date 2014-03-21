@@ -201,15 +201,19 @@ handle_command({impulse, QX, QY, SX, SY}, State) ->
     SC = #sectxy{ x=SX, y=SY },
     {erltrek_move:impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}};
 handle_command({phaser, SX, SY, Energy}, #ship_state{energy=E} = State) ->
-    %% deplete energy prior to shooting
-    E2 = if Energy > E ->
-                notify_enterprise({phaser, fire_level}, State),
-                E;
-            true ->
-                E - Energy
-         end,
-    %% TODO: Decide to fire or not here (no klingon, docked, etc.)
-    {erltrek_phaser:phaser(SX, SY, Energy), State#ship_state{energy=E2}};
+    % Decide to fire or not here (no klingon, docked, etc.)
+    NKQ = erltrek_galaxy:count_klingons_quad(),
+    if NKQ == 0 ->
+            notify_enterprise({phaser, no_target}, State),
+            {ok, State};
+       Energy > E ->
+            notify_enterprise({phaser, fire_level}, State),
+            {ok, State};
+       true ->
+            % deplete energy prior to shooting
+            {erltrek_phaser:phaser(SX, SY, Energy), 
+                State#ship_state{energy = E - Energy}}
+    end;
 handle_command(Cmd, State) ->
     {{unknown_command, Cmd}, State}.
 
