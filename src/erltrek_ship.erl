@@ -149,7 +149,13 @@ handle_info({collision, _Object, _Info}=Event, State) ->
     ok = erltrek_event:notify(Event),
     ok = erltrek_event:notify(move_done),
     {noreply, State};
-handle_info(_Info, State) ->
+handle_info({phaser_hit, Hit}=_Event, State) ->
+    % TODO: energy/shield deduction by phaser_hit should be performed here
+    % io:format("erltrek_ship: Pid ~p, phaser_hit level ~b~n", [self(), Hit]),
+    {noreply, State};
+handle_info(Info, State) ->
+    % TODO: how should these info messages be handled? Just ignored?
+    % io:format("erltrek_ship: Pid ~p, Unknown messsage ~p~n", [self(), Info]),
     {noreply, State}.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -164,7 +170,7 @@ terminate(_Reason, _State) ->
 %%% --------------------------------------------------------------------
 
 handle_command({srscan}, State) ->
-    %% todo: we can check for damaged scanner device here.. ;)
+    %% TODO: we can check for damaged scanner device here.. ;)
     
     %% collect data (i.e. perform the scan) here, now, then send that
     %% off as a short range scan result for output.
@@ -186,7 +192,7 @@ handle_command({impulse, QX, QY, SX, SY}, State) ->
     SC = #sectxy{ x=SX, y=SY },
     {erltrek_move:impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}};
 handle_command({phaser, SX, SY, Energy}, State) ->
-    %% todo: deplete energy prior to shooting
+    %% TODO: deplete energy prior to shooting
     {erltrek_phaser:phaser(SX, SY, Energy), State};
 handle_command(Cmd, State) ->
     {{unknown_command, Cmd}, State}.
