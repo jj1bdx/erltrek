@@ -88,7 +88,7 @@
 -include("erltrek.hrl").
 
 %% impulse move
-    
+
 impulse(DSC) ->
     %% erltrek_galaxy:get_position/0 must be called from a ship process
     {SQC, SSC} = erltrek_galaxy:get_position(),
@@ -101,8 +101,14 @@ impulse(DQC, DSC) ->
 
 impulse(SQC, SSC, DQC, DSC) ->
     case erltrek_calc:course_distance(SQC, SSC, DQC, DSC) of
-        {ok, _Dx, _Dy, Course, _Dist} ->
-            %% TODO: get speed from somewhere ...
-            erltrek_galaxy:impulse(Course, 1.5);
+        {ok, _Dx, _Dy, Course, Dist} ->
+            if
+                Dist > 0 ->
+                    %% TODO: get speed from somewhere ...
+                    erltrek_galaxy:impulse(Course, 1.5);
+                true ->
+                    %% zero distance = no move
+                    {move, no_move_to_same_position}
+            end;
         Error -> {move, Error}
     end.
