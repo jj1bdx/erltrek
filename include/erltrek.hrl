@@ -140,33 +140,11 @@
 %% Enterprise status
 -type ship_condition() :: 'cond_green' | 'cond_yellow' | 'cond_red' | 'cond_docked'.
 
--record(enterprise_status, {
-        quadxy :: #quadxy{},
-        sectxy :: #sectxy{},
-        energy :: integer(),
-        shield :: integer(),
-        impulse_move :: boolean(),
-        impulse_course :: [{#quadxy{}, #sectxy{}}],
-        warp_move :: boolean(),
-        warp_course :: [{#quadxy{}, #sectxy{}}],
-        docked :: boolean(),
-        condition :: ship_condition(),
-        % next command content
-        next_command :: tuple()
-    }).
-
 %% Status for Klingons in the sector
 
 -record(klingon_status, {
         energy :: integer()
     }).
-
-%% Tuple type for saving Game State
-%% {Tick,SHIP,NK,DS,DI,DB,DH,DKQ,SECT,DKS} = GameState
-
--type game_state() ::
-    {non_neg_integer(), #enterprise_status{}, non_neg_integer(),
-     dict(), dict(), dict(), dict(), dict(), array(), dict()}.
 
 -type ship_class() :: s_enterprise | s_klingon.
 
