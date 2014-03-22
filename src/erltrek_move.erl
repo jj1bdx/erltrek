@@ -102,6 +102,7 @@ impulse(DQC, DSC) ->
 impulse(SQC, SSC, DQC, DSC) ->
     case erltrek_calc:course_distance(SQC, SSC, DQC, DSC) of
         {ok, _Dx, _Dy, Course, _Dist} ->
+            %% TODO: get speed from somewhere ...
             erltrek_galaxy:impulse(Course, 1.5);
         Error -> {move, Error}
     end.

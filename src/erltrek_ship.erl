@@ -85,6 +85,9 @@
 %% API
 -export([start_link/1, start_link/2, command/2]).
 
+%% Commander API
+-export([count_nearby_enemies/1, status/1]).
+
 %% Callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          code_change/3, terminate/2]).
@@ -114,6 +117,14 @@ command(Ship, Command) ->
     gen_server:call(Ship, {command, Command}).
 
 
+%% Commander api
+status(Ship) ->
+    gen_server:call(Ship, get_status).
+
+count_nearby_enemies(Ship) ->
+    gen_server:call(Ship, count_nearby_enemies).
+
+
 %%% --------------------------------------------------------------------
 %%% Callbacks
 %%% --------------------------------------------------------------------
@@ -133,8 +144,11 @@ init([{ship, Ship}|_Args]) ->
 handle_call({command, Command}, _From, State0) ->
     {Reply, State} = handle_command(Command, State0),
     {reply, Reply, State};
+handle_call(Command, {Pid, _Ref}, #ship_state{ commander=Pid }=State0) ->
+    {Reply, State} = handle_commander_request(Command, State0),
+    {reply, Reply, State};
 handle_call(_Call, _From, State) ->
-    {reply, ok, State}.
+    {reply, not_commander, State}.
 
 handle_cast(_Cast, State) ->
     {noreply, State}.
@@ -199,6 +213,10 @@ handle_command({srscan}, State) ->
     {sync_notify({srscan, {Stardate, [State|Data]}}, State), State};
 handle_command({lrscan}, State) ->
     {sync_notify({lrscan, erltrek_galaxy:lrscan()}, State), State};
+handle_command({impulse, Course}, State) ->
+    %% TODO: get speed from somewhere
+    %% Free move until told otherwise..
+    {erltrek_galaxy:impulse(Course, 1.5), State#ship_state{ tsect=undefined }};
 handle_command({impulse, SX, SY}, State) ->
     SC = #sectxy{ x=SX, y=SY },
     {erltrek_move:impulse(SC), State#ship_state{ tquad=undefined, tsect=SC }};
@@ -206,6 +224,8 @@ handle_command({impulse, QX, QY, SX, SY}, State) ->
     QC = #quadxy{ x=QX, y=QY },
     SC = #sectxy{ x=SX, y=SY },
     {erltrek_move:impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}};
+handle_command(stop, State) ->
+    {erltrek_galaxy:impulse(0,0), State};
 handle_command({phaser, SX, SY, Energy}, #ship_state{ energy=E }=State) ->
     %% TODO: No firing when docked
     NKQ = erltrek_galaxy:count_nearby_enemies(),
@@ -219,6 +239,13 @@ handle_command({phaser, SX, SY, Energy}, #ship_state{ energy=E }=State) ->
     end;
 handle_command(Cmd, State) ->
     {{unknown_command, Cmd}, State}.
+
+
+handle_commander_request(get_status, State) ->
+    {State, State};
+handle_commander_request(count_nearby_enemies, State) ->
+    {erltrek_galaxy:count_nearby_enemies(), State}.
+
 
 %% Notify commander of ship events
 notify(_Event, #ship_state{ commander=undefined }) -> ok;
@@ -238,7 +265,7 @@ absorb_hit(Level, #ship_state{ ship=#ship_def{ durability=D }, shield=S }=State)
     Shield = if Shield0 =< 0 ->
                      ok = notify(shields_gone, State),
                      0;
-                true -> 
+                true ->
                      ok = notify({shield_level, Shield0}, State),
                      Shield0
              end,

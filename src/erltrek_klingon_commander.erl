@@ -80,36 +80,132 @@
 %%% --------------------------------------------------------------------
 
 -module(erltrek_klingon_commander).
+-behaviour(gen_fsm).
 
+%% API
 -export([start/1]).
+
+%% States
+-export([idle/2, scout/2, aggressive/2, evasive/2]).
+
+%% Callbacks
+-export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
+         terminate/3, code_change/4]).
 
 -include("erltrek.hrl").
 
+%% klingon will start getting away when energy drops below this level
+-define(BADLY_HURT, 200).
+
+-record(state, {
+          ship :: pid(),
+          skill=?TICK_INTERVAL
+         }).
+
+
+%%% --------------------------------------------------------------------
+%%% API
+%%% --------------------------------------------------------------------
+
 -spec start(pid()) -> {ok, pid()}.
-
 start(Ship) ->
-    {ok,
-     spawn(fun() ->
-                   monitor(process, Ship),
-                   command(Ship)
-           end)}.
+    gen_fsm:start(?MODULE, Ship, []).
 
-command(Ship) ->
-    receive
-        {event, _} ->
-            command(Ship);
-        {sync_event, {Pid, Ref}, _} ->
-            Pid ! {Ref, ok},
-            command(Ship);
-        {'DOWN', _Ref, process, Ship, _Info} ->
-            oh_no_ship_destroyed_I_will_die_now_too
-    after
-        ?TICK_INTERVAL ->
-            command_tick(Ship)
+
+%%% --------------------------------------------------------------------
+%%% Callbacks
+%%% --------------------------------------------------------------------
+
+init(Ship) ->
+    monitor(process, Ship),
+    State = #state{ ship=Ship },
+    {ok, idle, State, State#state.skill}.
+
+handle_event(_Event, StateName, StateData) ->
+    next_state(StateName, StateData).
+
+handle_sync_event(_Event, _From, StateName, StateData) ->
+    next_state(StateName, StateData).
+
+handle_info({enter_quadrant, _QC, _SC}, evasive, State) ->
+    ok = erltrek_ship:command(ship(State), stop),
+    %% TODO: is there any way for klingon ships to recharge their energy.. ?
+    %% now would be the time for it
+    next_state(idle, State);
+handle_info({event, _}, StateName, StateData) ->
+    next_state(StateName, StateData);
+handle_info({sync_event, {Pid, Ref}, _}, StateName, StateData) ->
+    Pid ! {Ref, ok},
+    next_state(StateName, StateData);
+handle_info({'DOWN', _Ref, process, _Ship, _Info}, _StateName, StateData) ->
+    {stop, normal, StateData};
+handle_info(_Info, StateName, StateData) ->
+    next_state(StateName, StateData).
+
+terminate(_Reason, _StateName, _StateData) ->
+    ok.
+
+code_change(_OldVsn, StateName, StateData, _Extra) ->
+    {ok, StateName, StateData}.
+
+
+%%% --------------------------------------------------------------------
+%%% States
+%%% --------------------------------------------------------------------
+
+idle(timeout, State) ->
+    %% wait for enterprise to show up
+    case erltrek_ship:count_nearby_enemies(ship(State)) of
+        0 -> next_state(idle, State);
+        _ -> next_state(scout, State)
     end.
 
-command_tick(Ship) ->
-    %% perhaps do something...
+scout(timeout, State) ->
+    %% depending on our energy level, we'll be evasive or aggressive
+    case status(State) of
+        ok ->
+            next_state(aggressive, State);
+        badly_hurt ->
+            next_state(evasive, State)
+    end.
 
-    %% commander didn't die.. so keep on commanding the ship
-    command(Ship).
+evasive(timeout, State) ->
+    %% TODO: check where enterprise are, and go in other direction
+    %% (also check for closest nearby quadrant)
+    Course = tinymt32:uniform(360),
+    ok = erltrek_ship:command(ship(State), {impulse, Course}),
+    %% will stop when we reach new quadrant
+    %% TODO: (not here) we may collide, and need to find another direction..
+    next_state(evasive, State, infinity).
+
+aggressive(timeout, State) ->
+    case status(State) of
+        ok ->
+            %% TODO: attack!
+            next_state(aggressive, State);
+        badly_hurt ->
+            %% go straight to evasive (fast reaction)
+            evasive(timeout, State)
+    end.
+
+
+%%% --------------------------------------------------------------------
+%%% Internal functions
+%%% --------------------------------------------------------------------
+
+next_state(StateName, #state{ skill=Timeout }=StateData) ->
+    next_state(StateName, StateData, Timeout).
+
+next_state(StateName, StateData, Timeout) ->
+    {next_state, StateName, StateData, Timeout}.
+
+ship(#state{ ship=Ship }) -> Ship.
+
+-spec status(#state{}) -> ok | badly_hurt.
+status(State) ->
+    case erltrek_ship:status(ship(State)) of
+        #ship_state{ energy=E } when E > ?BADLY_HURT ->
+            ok;
+        _ ->
+            badly_hurt
+    end.
