@@ -230,12 +230,24 @@ handle_command({phaser, SX, SY, Energy}, #ship_state{ energy=E }=State) ->
     %% TODO: No firing when docked
     NKQ = erltrek_galaxy:count_nearby_enemies(),
     if NKQ == 0 ->
-            {no_klingon_in_quadrant, State};
+           {no_klingon_in_quadrant, State};
        E =< Energy ->
-            {not_enough_energy, State};
+           {not_enough_energy, State};
        true ->
-            {erltrek_phaser:phaser(SX, SY, Energy),
-             State#ship_state{ energy = E - Energy }}
+           {erltrek_phaser:phaser(SX, SY, Energy),
+            State#ship_state{ energy = E - Energy }}
+    end;
+handle_command({dock}, #ship_state{docked = Docked}=State) ->
+    if Docked ->
+           {{dock, already_docked}, State};
+       true ->
+           try_docking(State)
+    end;
+handle_command({undock}, #ship_state{docked = Docked}=State) ->
+    if not Docked ->
+           {{undock, not_docked}, State};
+       true ->
+           {{undock, undock_complete}, State#ship_state{docked = false}}
     end;
 handle_command(Cmd, State) ->
     {{unknown_command, Cmd}, State}.
@@ -295,4 +307,30 @@ update_condition(
             State#ship_state{condition = New};
         true ->
             State
+    end.
+
+%% try docking to the base
+try_docking(
+    #ship_state{ship = #ship_def{
+            max_energy = Maxenergy, max_shield=Maxshield}} = State) ->
+    {QC, SC} = erltrek_galaxy:get_position(),
+    DB = erltrek_galaxy:bases(),
+    case dict:is_key(QC, DB) of
+        % starbase is in the quadrant
+        true ->
+            [TB] = dict:fetch(QC, DB),
+            % if distance < sqrt(2) then dockable
+            case erltrek_calc:sector_distance(SC, TB#base_info.xy) < 1.415 of
+                true ->
+                    {{dock, docking_complete},
+                        State#ship_state{
+                            docked = true,
+                            % replenish energy and shield
+                            energy = Maxenergy,
+                            shield = Maxshield}};
+                false ->
+                    {{dock, base_not_adjacent}, State}
+            end;
+        false ->
+            {{dock, base_not_in_quadrant}, State}
     end.
