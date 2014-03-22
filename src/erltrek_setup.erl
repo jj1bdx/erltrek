@@ -91,8 +91,7 @@
         rand_quad/1,
         rand_sect/1,
         setup_galaxy/0,
-        setup_sector/6,
-        setup_state/0
+        setup_sector/6
         ]).
 
 -import(erltrek_calc, [quadxy_index/1, sectxy_index/1]).
@@ -411,42 +410,3 @@ setup_sector(QC, DS, DI, DB, DH, DKQ) ->
     end,
     {SECT6, DKS2}.
 
-%% setup game state, which returns:
-%% * Enterprise status as #enterprise_status
-%% * number of Klingons
-%% * dicts with keys of quadxy on:
-%%   * stars, values of #sectxy list (of multiple stars)
-%%   * inhabited systems, values of #inhabited_info list (one element per list)
-%%   * bases, values of #base_info list (one element per list)
-%%   * holes, values of #sectxy list (of multiple stars)
-%%   * number of klingons, values of integer (NOT a list)
-%% * sector array for the current quadrant where Enterprise resides
-%% * a dict of key #sectxy with value #klingon_status for the current quadrant
-
--spec setup_state() -> game_state().
-
-setup_state() ->
-    Tick = ?INITTICK,
-    {NK, DS, DI, DB, DH, DKQ} = erltrek_setup:setup_galaxy(),
-    % put enterprise to where a base resides if possible
-    LB = dict:fetch_keys(DB),
-    QC = case length(LB) > 0 of
-        true ->
-            hd(LB);
-        false ->
-            #quadxy{x = tinymt32:uniform(?NQUADS) - 1,
-                    y = tinymt32:uniform(?NQUADS) - 1}
-    end,
-    {SECT, DKS} = erltrek_setup:setup_sector(QC, DS, DI, DB, DH, DKQ),
-    % put enterprise in the current quadrant
-    SC = rand_sect(SECT),
-    SECT2 = array:set(sectxy_index(SC), s_enterprise, SECT),
-    % setup enterprise status
-    SHIP = #enterprise_status{quadxy = QC, sectxy = SC,
-        energy = ?SHIPENERGY, shield = ?SHIPSHIELD,
-        impulse_move = false, impulse_course = [],
-        warp_move = false, warp_course = [],
-        docked = false, condition = cond_green,
-        next_command = {}},
-    % return the values as a tuple
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT2, DKS}.
