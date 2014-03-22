@@ -165,6 +165,8 @@ handle_info({distance_traveled, _}, State) ->
 handle_info({phaser_hit, Level, _Info}=Event, State) ->
     ok = notify(Event, State),
     {noreply, absorb_hit(Level, State)};
+handle_info({update_condition}, State) ->
+    {noreply, update_condition(State)};
 handle_info(_Info, State) ->
     %% jj1bdx: how should these info messages be handled? Just ignored?
     %% kaos: Yes, I think so, but for now, lets print them so we spot
@@ -245,3 +247,25 @@ absorb_hit(Level, #ship_state{ energy=E }=State) when Level < E ->
     ok = notify({damage_level, Level}, State),
     State#ship_state{ energy=E - Level };
 absorb_hit(_, _) -> exit(normal).
+
+%% update ship condition flag
+update_condition(
+    #ship_state{ship = #ship_def{max_energy = Maxenergy},
+        condition = Old} = State) ->
+    % update ship condition
+    New = case {
+        erltrek_galaxy:count_nearby_enemies() > 0,
+        State#ship_state.energy < Maxenergy div 5,
+        State#ship_state.docked} of
+            {_, _, true} -> cond_docked;
+            {false, true, false} -> cond_yellow;
+            {true, _, false} -> cond_red;
+            {false, false, false} -> cond_green
+    end,
+    if
+        Old =/= New ->
+            ok = notify({condition, New}, State),
+            State#ship_state{condition = New};
+        true ->
+            State
+    end.
