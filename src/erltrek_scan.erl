@@ -101,8 +101,7 @@ condition_string(cond_docked) -> "DOCKED".
 
 %% Display long range sensor output from the game state
 
--spec lrscan_string(game_state()) -> iolist();
-                   (list()) -> iolist().
+-spec lrscan_string(list()) -> iolist().
 
 lrscan_string([Data|Scan]) ->
     #ship_data{ quad=#quadxy{ x=QX, y=QY } } = Data,
@@ -152,8 +151,7 @@ scan_char({Class, _}) ->
 
 %% Display current sector info and ship status from the game state
 
--spec srscan_string(game_state()) -> iolist();
-                   ({integer(), list()}) -> iolist().
+-spec srscan_string({integer(), list()}) -> iolist().
 
 srscan_string({Stardate, Scan}) ->
     Ship = lists:keyfind(ship_state, 1, Scan),
