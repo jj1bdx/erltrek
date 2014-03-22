@@ -217,13 +217,23 @@ handle_command({impulse, Course}, State) ->
     %% TODO: get speed from somewhere
     %% Free move until told otherwise..
     {erltrek_galaxy:impulse(Course, 1.5), State#ship_state{ tsect=undefined }};
-handle_command({impulse, SX, SY}, State) ->
-    SC = #sectxy{ x=SX, y=SY },
-    {erltrek_move:impulse(SC), State#ship_state{ tquad=undefined, tsect=SC }};
-handle_command({impulse, QX, QY, SX, SY}, State) ->
-    QC = #quadxy{ x=QX, y=QY },
-    SC = #sectxy{ x=SX, y=SY },
-    {erltrek_move:impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}};
+handle_command({impulse, SX, SY}, #ship_state{docked = D} = State) ->
+    if
+        D ->
+            {{move, no_move_while_docked}, State};
+        true ->
+            SC = #sectxy{ x=SX, y=SY },
+            {erltrek_move:impulse(SC), State#ship_state{ tquad=undefined, tsect=SC }}
+    end;
+handle_command({impulse, QX, QY, SX, SY}, #ship_state{docked = D} = State) ->
+    if
+        D ->
+            {{move, no_move_while_docked}, State};
+        true ->
+            QC = #quadxy{ x=QX, y=QY },
+            SC = #sectxy{ x=SX, y=SY },
+            {erltrek_move:impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}}
+    end;
 handle_command(stop, State) ->
     {erltrek_galaxy:impulse(0,0), State};
 handle_command({phaser, SX, SY, Energy},

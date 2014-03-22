@@ -367,6 +367,8 @@ process_result({phaser_hit, Hits}) ->
     end;
 process_result({move, no_move_to_same_position}) ->
     io:format("No move to the same position!~n");
+process_result({move, no_move_while_docked}) ->
+    io:format("No move allowed while docked!~n");
 process_result({dock, already_docked}) ->
     io:format("The ship is already docked~n");
 process_result({dock, docking_complete}) ->
