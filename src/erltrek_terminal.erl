@@ -179,15 +179,6 @@ handle_event({condition, Condition}, State) ->
     ok = io:format("Condition changed to: ~s~n",
                    [erltrek_scan:condition_string(Condition)]),
     {ok, State};
-handle_event({phaser, docked}, State) ->
-    ok = io:format("Sorry Captain, we can't fire phaser when docked~n"),
-    {ok, State};
-handle_event({phaser, no_target}, State) ->
-    ok = io:format("No Klingon in sector, phaser not fired~n"),
-    {ok, State};
-handle_event({phaser, fire_level}, State) ->
-    ok = io:format("Firing level exceeds availably energy, phaser not fired~n"),
-    {ok, State};
 handle_event({unknown_command, Command}, State) ->
     ok = io:format("enterprise_command: unknown command: ~p~n", [Command]),
     ok = io:format("enterprise_command: status cleared~n", []),
