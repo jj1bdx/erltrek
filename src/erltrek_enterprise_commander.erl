@@ -112,5 +112,8 @@ command(Ship) ->
 command_tick(Ship) ->
     %% perhaps do something...
 
+    %% Update ship condition flag
+    Ship ! {update_condition},
+
     %% commander didn't die.. so keep on commanding the ship
     command(Ship).
