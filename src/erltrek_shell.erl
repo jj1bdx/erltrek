@@ -365,5 +365,17 @@ process_result({phaser_hit, Hits}) ->
     end;
 process_result({move, no_move_to_same_position}) ->
     io:format("No move to the same position!~n");
+process_result({dock, already_docked}) ->
+    io:format("The ship is already docked~n");
+process_result({dock, dock_complete}) ->
+    io:format("Docking the ship complete~n");
+process_result({dock, base_not_adjacent}) ->
+    io:format("No starbase in adjacent sectors~n");
+process_result({dock, base_not_in_quadrant}) ->
+    io:format("No starbase in the quadrant~n");
+process_result({undock, not_docked}) ->
+    io:format("The ship is not docked~n");
+process_result({undock, undock_complete}) ->
+    io:format("Undocking complete~n");
 process_result(Other) ->
     io:format("Unexpected command result: ~p~n", [Other]).
