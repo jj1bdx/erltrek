@@ -185,6 +185,7 @@
           energy=1 :: pos_integer(),
           shield=0 :: non_neg_integer(),
           condition=cond_green :: ship_condition(),
+          docked=false :: boolean(),
 
           %% traveling target coordinates
           tquad :: #quadxy{},
