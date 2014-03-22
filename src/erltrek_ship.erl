@@ -226,14 +226,17 @@ handle_command({impulse, QX, QY, SX, SY}, State) ->
     {erltrek_move:impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}};
 handle_command(stop, State) ->
     {erltrek_galaxy:impulse(0,0), State};
-handle_command({phaser, SX, SY, Energy}, #ship_state{ energy=E }=State) ->
-    %% TODO: No firing when docked
+handle_command({phaser, SX, SY, Energy},
+        #ship_state{ energy=E, docked = D }=State) ->
     NKQ = erltrek_galaxy:count_nearby_enemies(),
-    if NKQ == 0 ->
-           {no_klingon_in_quadrant, State};
-       E =< Energy ->
-           {not_enough_energy, State};
-       true ->
+    if 
+        D ->
+           {{phaser, no_firing_when_docked}, State};
+        NKQ == 0 ->
+           {{phaser, no_klingon_in_quadrant}, State};
+        E =< Energy ->
+           {{phaser, not_enough_energy}, State};
+        true ->
            {erltrek_phaser:phaser(SX, SY, Energy),
             State#ship_state{ energy = E - Energy }}
     end;

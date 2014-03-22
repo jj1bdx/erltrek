@@ -344,10 +344,12 @@ process_result({unknown_command, Cmd}) ->
       " (https://github.com/jj1bdx/erltrek/issues)~n"
       "Please include the following: ~p~n~n",
       [Cmd]);
-process_result(not_enough_energy) ->
+process_result({phaser, not_enough_energy}) ->
     io:format("Our ship energy reserves are running low!~n");
-process_result(no_klingon_in_quadrant) ->
+process_result({phaser, no_klingon_in_quadrant}) ->
     io:format("No Klingon in the quadrant!~n");
+process_result({phaser, no_firing_when_docked}) ->
+    io:format("No firing allowed when docked!~n");
 %% TODO: the command specific results ought to be taken care of in the command dispatch fun..
 process_result({phaser_hit, Hits}) ->
     case lists:flatten(
