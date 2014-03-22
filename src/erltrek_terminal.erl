@@ -100,9 +100,6 @@ handle_event({won, Message}, State) ->
 handle_event(stop, State) ->
     ok = io:format("Game stopped~n"),
     {ok, State};
-handle_event({move, docked}, State) ->
-    ok = io:format("Sorry Captain, we cannot move while docked~n"),
-    {ok, State};
 handle_event({move, out_of_bound}, State) ->
     ok = io:format("impulse move: course out of bound~n"),
     {ok, State};
