@@ -229,7 +229,7 @@ handle_command(stop, State) ->
 handle_command({phaser, SX, SY, Energy},
         #ship_state{ energy=E, docked = D }=State) ->
     NKQ = erltrek_galaxy:count_nearby_enemies(),
-    if 
+    if
         D ->
            {{phaser, no_firing_when_docked}, State};
         NKQ == 0 ->
