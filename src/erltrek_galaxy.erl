@@ -87,7 +87,7 @@
          stardate/0, get_position/0,
          srscan/0, lrscan/0,
          impulse/2, phaser/2,
-         count_nearby_enemies/0
+         count_nearby_enemies/0, bases/0
         ]).
 
 %% Callbacks
@@ -129,6 +129,7 @@ lrscan() -> call(lrscan).
 impulse(Course, Speed) -> call({impulse, Course, Speed}).
 phaser(Course, Energy) -> call({phaser, Course, Energy}).
 count_nearby_enemies() -> call(count_nearby_enemies).
+bases() -> call(get_bases).
 
 
 %%% --------------------------------------------------------------------
@@ -204,6 +205,9 @@ handle_call(count_nearby_enemies, {Pid, _Ref}, State) ->
         _ ->
             {reply, error, State}
     end;
+handle_call(get_bases, _From, State) ->
+    %% TODO: should non-Enterprise ship have this info?
+    {reply, State#state.bases, State};
 handle_call(Call, _From, State) ->
     {reply, {error, {unknown_call, Call}}, State}.
 
