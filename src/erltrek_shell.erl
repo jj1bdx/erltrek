@@ -363,5 +363,7 @@ process_result({phaser_hit, Hits}) ->
         Msg ->
             io:format(Msg)
     end;
+process_result({move, no_move_to_same_position}) ->
+    io:format("No move to the same position!~n");
 process_result(Other) ->
     io:format("Unexpected command result: ~p~n", [Other]).
