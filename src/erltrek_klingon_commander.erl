@@ -117,6 +117,7 @@ start(Ship) ->
 %%% --------------------------------------------------------------------
 
 init(Ship) ->
+    erltrek_setup:seed(),
     monitor(process, Ship),
     State = #state{ ship=Ship },
     {ok, idle, State, State#state.skill}.

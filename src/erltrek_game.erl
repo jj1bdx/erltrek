@@ -125,6 +125,7 @@ srscan() ->
 %%% --------------------------------------------------------------------
 
 init([]) ->
+    erltrek_setup:seed(),
     erltrek_galaxy:spawn_ship(?enterprise_ship).
 
 handle_call({ship, Command}, _From, Ship) ->

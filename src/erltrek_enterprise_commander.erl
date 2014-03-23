@@ -90,6 +90,7 @@
 start(Ship) ->
     {ok,
      spawn(fun() ->
+                   erltrek_setup:seed(),
                    monitor(process, Ship),
                    command(Ship)
            end)}.
