@@ -326,7 +326,7 @@ setup_klingon_numbers(NKALL, DKQ) ->
     {DKQ2, NKALL2} = case NKNEW =< ?MAXKLQUAD of
         true ->
             {dict:store(QC, NKNEW, DKQ),
-                NKALL - NKNEW};
+                NKALL - NKADD};
         false ->
             {DKQ, NKALL}
     end,
@@ -407,4 +407,3 @@ setup_sector(QC, DS, DI, DB, DH, DKQ) ->
             {SECT5, LKS}
     end,
     {SECT6, LKS2}.
-
