@@ -140,12 +140,7 @@
 %% Enterprise status
 -type ship_condition() :: 'cond_green' | 'cond_yellow' | 'cond_red' | 'cond_docked'.
 
-%% Status for Klingons in the sector
-
--record(klingon_status, {
-        energy :: integer()
-    }).
-
+%% Class of ships
 -type ship_class() :: s_enterprise | s_klingon.
 
 %% Ship data used by erltrek_ship
