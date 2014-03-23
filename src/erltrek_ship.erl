@@ -100,24 +100,22 @@
 %%% --------------------------------------------------------------------
 
 -spec start_link(#ship_def{}) -> {ok, pid()} | ignore | {error, term()}.
-
 start_link(Ship)
   when is_record(Ship, ship_def) ->
     start_link(Ship, []).
 
 
 -spec start_link(#ship_def{}, list()) -> {ok, pid()} | ignore | {error, term()}.
-
 start_link(Ship, Args)
   when is_record(Ship, ship_def), is_list(Args) ->
     gen_server:start_link(?MODULE, [{ship, Ship}|Args], []).
 
-
+-spec command(pid(), tuple()) -> ok | tuple().
 command(Ship, Command) ->
     gen_server:call(Ship, {command, Command}).
 
 
-%% Commander api
+%% Commander API
 status(Ship) ->
     gen_server:call(Ship, get_status).
 
@@ -198,6 +196,8 @@ terminate(_Reason, _State) ->
 %%% Internal functions
 %%% --------------------------------------------------------------------
 
+%%% --------------------------------------------------------------------
+%% Ship commands
 handle_command({srscan}, State) ->
     %% TODO: we can check for damaged scanner device here.. ;)
 
@@ -211,8 +211,10 @@ handle_command({srscan}, State) ->
     %% But for this to work, no event handler (directly or indirectly)
     %% may call into any of the processes in our call chain!
     {sync_notify({srscan, {Stardate, [State|Data]}}, State), State};
+%%% --------------------------------------------------------------------
 handle_command({lrscan}, State) ->
     {sync_notify({lrscan, erltrek_galaxy:lrscan()}, State), State};
+%%% --------------------------------------------------------------------
 handle_command({impulse, Course}, State) ->
     %% TODO: get speed from somewhere
     %% Free move until told otherwise..
@@ -234,8 +236,10 @@ handle_command({impulse, QX, QY, SX, SY}, #ship_state{docked = D} = State) ->
             SC = #sectxy{ x=SX, y=SY },
             {erltrek_move:impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}}
     end;
+%%% --------------------------------------------------------------------
 handle_command(stop, State) ->
     {erltrek_galaxy:impulse(0,0), State};
+%%% --------------------------------------------------------------------
 handle_command({phaser, SX, SY, Energy},
         #ship_state{ energy=E, docked = D }=State) ->
     NKQ = erltrek_galaxy:count_nearby_enemies(),
@@ -250,28 +254,35 @@ handle_command({phaser, SX, SY, Energy},
            {erltrek_phaser:phaser(SX, SY, Energy),
             State#ship_state{ energy = E - Energy }}
     end;
+%%% --------------------------------------------------------------------
 handle_command({dock}, #ship_state{docked = Docked}=State) ->
     if Docked ->
            {{dock, already_docked}, State};
        true ->
            try_docking(State)
     end;
+%%% --------------------------------------------------------------------
 handle_command({undock}, #ship_state{docked = Docked}=State) ->
     if not Docked ->
            {{undock, not_docked}, State};
        true ->
            {{undock, undock_complete}, State#ship_state{docked = false}}
     end;
+%%% --------------------------------------------------------------------
 handle_command(Cmd, State) ->
     {{unknown_command, Cmd}, State}.
 
 
+%%% --------------------------------------------------------------------
+%% Commander requests
 handle_commander_request(get_status, State) ->
     {State, State};
+%%% --------------------------------------------------------------------
 handle_commander_request(count_nearby_enemies, State) ->
     {erltrek_galaxy:count_nearby_enemies(), State}.
 
 
+%%% --------------------------------------------------------------------
 %% Notify commander of ship events
 notify(_Event, #ship_state{ commander=undefined }) -> ok;
 notify(Event, #ship_state{ commander=Commander }) -> Commander ! {event, Event}, ok.
@@ -282,6 +293,7 @@ sync_notify(Event, #ship_state{ commander=Commander }) ->
     Commander ! {sync_event, {self(), Ref}, Event},
     receive {Ref, Rsp} -> Rsp end.
 
+%%% --------------------------------------------------------------------
 %% take damage from enemy attack
 absorb_hit(Level, State) when Level =< 0 -> State;
 absorb_hit(Level, #ship_state{ ship=#ship_def{ durability=D }, shield=S }=State)
@@ -300,6 +312,7 @@ absorb_hit(Level, #ship_state{ energy=E }=State) when Level < E ->
     State#ship_state{ energy=E - Level };
 absorb_hit(_, _) -> exit(normal).
 
+%%% --------------------------------------------------------------------
 %% update ship condition flag
 update_condition(
     #ship_state{ship = #ship_def{max_energy = Maxenergy},
@@ -322,6 +335,7 @@ update_condition(
             State
     end.
 
+%%% --------------------------------------------------------------------
 %% try docking to the base
 try_docking(
     #ship_state{ship = #ship_def{
