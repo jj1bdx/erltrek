@@ -90,6 +90,7 @@
         init_sect/0,
         rand_quad/1,
         rand_sect/1,
+        seed/0,
         setup_galaxy/0,
         setup_sector/6
         ]).
@@ -407,3 +408,9 @@ setup_sector(QC, DS, DI, DB, DH, DKQ) ->
             {SECT5, LKS}
     end,
     {SECT6, LKS2}.
+
+-spec seed() -> #intstate32{}.
+
+seed() ->
+    % TODO: change to tinymt32:uniform(os:timestamp()).
+    tinymt32:seed({100, 200, 300}).
