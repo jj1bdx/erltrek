@@ -149,6 +149,8 @@
           commander :: atom(), %% commander module
           max_energy=1 :: pos_integer(),
           max_shield=0 :: non_neg_integer(),
+          max_speed=1.5 :: float(), %% for impulse engines
+          %% TODO: cost based on actual speed.. faster costs more
           engine_cost=10 :: pos_integer(), %% consumed energy / sector travel
           durability :: fun((body | shield, integer()) -> integer())
          }).
@@ -182,6 +184,10 @@
           condition=cond_green :: ship_condition(),
           docked=false :: boolean(),
 
+          %% speed setting to use when moving (not current speed, that
+          %% is in #ship_data{})
+          speed=0.3 :: float(),
+
           %% traveling target coordinates
           tquad :: #quadxy{},
           tsect :: #sectxy{}
@@ -195,7 +201,7 @@
           quad :: #quadxy{},
           sect :: #sectxy{},
           course=0 :: 0..360,
-          speed=0 :: non_neg_integer()
+          speed=0 :: float()
          }).
 
 %% vim: set ts=4 sw=4 sts=4 et :

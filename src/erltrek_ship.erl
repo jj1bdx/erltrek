@@ -215,17 +215,16 @@ handle_command({srscan}, State) ->
 handle_command({lrscan}, State) ->
     {sync_notify({lrscan, erltrek_galaxy:lrscan()}, State), State};
 %%% --------------------------------------------------------------------
-handle_command({impulse, Course}, State) ->
-    %% TODO: get speed from somewhere
+handle_command({impulse, Course}, #ship_state{ speed=Speed }=State) ->
     %% Free move until told otherwise..
-    {erltrek_galaxy:impulse(Course, 1.5), State#ship_state{ tsect=undefined }};
+    {erltrek_galaxy:impulse(Course, Speed), State#ship_state{ tsect=undefined }};
 handle_command({impulse, SX, SY}, #ship_state{docked = D} = State) ->
     if
         D ->
             {{move, no_move_while_docked}, State};
         true ->
             SC = #sectxy{ x=SX, y=SY },
-            {impulse(SC), State#ship_state{ tquad=undefined, tsect=SC }}
+            {impulse(SC, State), State#ship_state{ tquad=undefined, tsect=SC }}
     end;
 handle_command({impulse, QX, QY, SX, SY}, #ship_state{docked = D} = State) ->
     if
@@ -234,7 +233,7 @@ handle_command({impulse, QX, QY, SX, SY}, #ship_state{docked = D} = State) ->
         true ->
             QC = #quadxy{ x=QX, y=QY },
             SC = #sectxy{ x=SX, y=SY },
-            {impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}}
+            {impulse(QC, SC, State), State#ship_state{ tquad=QC, tsect=SC}}
     end;
 %%% --------------------------------------------------------------------
 handle_command(stop, State) ->
@@ -364,23 +363,23 @@ try_docking(
 
 %%% --------------------------------------------------------------------
 %% impulse move
-impulse(DSC) ->
+impulse(DSC, State) ->
     %% erltrek_galaxy:get_position/0 must be called from a ship process
     {SQC, SSC} = erltrek_galaxy:get_position(),
-    impulse(SQC, SSC, SQC, DSC).
+    impulse(SQC, SSC, SQC, DSC, State).
 
-impulse(DQC, DSC) ->
+impulse(DQC, DSC, State) ->
     %% erltrek_galaxy:get_position/0 must be called from a ship process
     {SQC, SSC} = erltrek_galaxy:get_position(),
-    impulse(SQC, SSC, DQC, DSC).
+    impulse(SQC, SSC, DQC, DSC, State).
 
-impulse(SQC, SSC, DQC, DSC) ->
+impulse(SQC, SSC, DQC, DSC, State) ->
     case erltrek_calc:course_distance(SQC, SSC, DQC, DSC) of
         {ok, _Dx, _Dy, Course, Dist} ->
             if
                 Dist > 0 ->
                     %% TODO: get speed from somewhere ...
-                    erltrek_galaxy:impulse(Course, 1.5);
+                    erltrek_galaxy:impulse(Course, State#ship_state.speed);
                 true ->
                     %% zero distance = no move
                     {move, no_move_to_same_position}
