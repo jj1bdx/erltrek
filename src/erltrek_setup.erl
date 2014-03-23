@@ -343,18 +343,16 @@ fill_sector(LSC, E, SECT) ->
     [H|T] = LSC,
     fill_sector(T, E, array:set(sectxy_index(H), E, SECT)).
 
-%% fill in a sector array and a dict of key #sectxy with value #klingon_status
-%% for the given number of Klingons
+%% fill in a sector array and a list of #sectxy for klingons in the sector
 
--spec fill_klingons(non_neg_integer(), array(), dict()) -> {array(), dict()}.
-
-fill_klingons(0, SECT, DKS) ->
-    {SECT, DKS};
-fill_klingons(N, SECT, DKS) ->
+-spec fill_klingons(non_neg_integer(), array(), [#sectxy{}]) ->
+                           {array(), [#sectxy{}]}.
+fill_klingons(0, SECT, LKS) ->
+    {SECT, LKS};
+fill_klingons(N, SECT, LKS) ->
     SC = rand_sect(SECT),
     fill_klingons(N - 1, array:set(sectxy_index(SC), s_klingon, SECT),
-        % initial energy of klingon
-        dict:append(SC, #klingon_status{energy = ?KLINGONENERGY}, DKS)).
+                  [SC | LKS]).
 
 %% Setup the sector array and a dict of key #sectxy with value #klingon_status
 %% for the given Quadrant of #quadxy and
@@ -363,10 +361,10 @@ fill_klingons(N, SECT, DKS) ->
 %%   * inhabited systems, values of #inhabited_info list (one element per list)
 %%   * bases, values of #base_info list (one element per list)
 %%   * holes, values of #sectxy list (of multiple stars)
-%%   * values of the number of klingons per quadrant
+%% * list of Klingon #sectxy
 
 -spec setup_sector(#quadxy{}, dict(), dict(), dict(), dict(), dict()) ->
-        {array(), dict()}.
+        {array(), [#sectxy{}]}.
 
 setup_sector(QC, DS, DI, DB, DH, DKQ) ->
     SECT = init_sect(),
@@ -401,12 +399,12 @@ setup_sector(QC, DS, DI, DB, DH, DKQ) ->
             SECT4
     end,
     % klingons
-    DKS = dict:new(),
-    {SECT6, DKS2} = case dict:is_key(QC, DKQ) of
+    LKS = [],
+    {SECT6, LKS2} = case dict:is_key(QC, DKQ) of
         true ->
-            fill_klingons(dict:fetch(QC, DKQ), SECT5, DKS);
+            fill_klingons(dict:fetch(QC, DKQ), SECT5, LKS);
         false ->
-            {SECT5, DKS}
+            {SECT5, LKS}
     end,
-    {SECT6, DKS2}.
+    {SECT6, LKS2}.
 
