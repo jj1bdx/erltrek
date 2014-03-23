@@ -303,7 +303,7 @@ find_empty_sector(#state{ galaxy=G }=State) ->
 
 find_empty_sector(QI, State) ->
     SECT = get_quad(QI, State),
-    SI = tinymt32:uniform(array:size(SECT)),
+    SI = tinymt32:uniform(array:size(SECT)) - 1,
     find_empty_sector(QI, SI, SECT, State).
 
 find_empty_sector(QI, SI, SECT, State) ->
