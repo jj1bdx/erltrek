@@ -225,7 +225,7 @@ handle_command({impulse, SX, SY}, #ship_state{docked = D} = State) ->
             {{move, no_move_while_docked}, State};
         true ->
             SC = #sectxy{ x=SX, y=SY },
-            {erltrek_move:impulse(SC), State#ship_state{ tquad=undefined, tsect=SC }}
+            {impulse(SC), State#ship_state{ tquad=undefined, tsect=SC }}
     end;
 handle_command({impulse, QX, QY, SX, SY}, #ship_state{docked = D} = State) ->
     if
@@ -234,7 +234,7 @@ handle_command({impulse, QX, QY, SX, SY}, #ship_state{docked = D} = State) ->
         true ->
             QC = #quadxy{ x=QX, y=QY },
             SC = #sectxy{ x=SX, y=SY },
-            {erltrek_move:impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}}
+            {impulse(QC, SC), State#ship_state{ tquad=QC, tsect=SC}}
     end;
 %%% --------------------------------------------------------------------
 handle_command(stop, State) ->
@@ -360,4 +360,30 @@ try_docking(
             end;
         false ->
             {{dock, base_not_in_quadrant}, State}
+    end.
+
+%%% --------------------------------------------------------------------
+%% impulse move
+impulse(DSC) ->
+    %% erltrek_galaxy:get_position/0 must be called from a ship process
+    {SQC, SSC} = erltrek_galaxy:get_position(),
+    impulse(SQC, SSC, SQC, DSC).
+
+impulse(DQC, DSC) ->
+    %% erltrek_galaxy:get_position/0 must be called from a ship process
+    {SQC, SSC} = erltrek_galaxy:get_position(),
+    impulse(SQC, SSC, DQC, DSC).
+
+impulse(SQC, SSC, DQC, DSC) ->
+    case erltrek_calc:course_distance(SQC, SSC, DQC, DSC) of
+        {ok, _Dx, _Dy, Course, Dist} ->
+            if
+                Dist > 0 ->
+                    %% TODO: get speed from somewhere ...
+                    erltrek_galaxy:impulse(Course, 1.5);
+                true ->
+                    %% zero distance = no move
+                    {move, no_move_to_same_position}
+            end;
+        Error -> {move, Error}
     end.
