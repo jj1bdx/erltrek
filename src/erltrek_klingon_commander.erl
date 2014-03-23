@@ -172,7 +172,7 @@ scout(timeout, State) ->
 evasive(timeout, State) ->
     %% TODO: check where enterprise are, and go in other direction
     %% (also check for closest nearby quadrant)
-    Course = tinymt32:uniform(360),
+    Course = tinymt32:uniform(360) - 1,
     ok = erltrek_ship:command(ship(State), {impulse, Course}),
     %% will stop when we reach new quadrant
     %% TODO: (not here) we may collide, and need to find another direction..
