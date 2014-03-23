@@ -154,7 +154,7 @@ gen_quad_list(N) ->
 
 gen_quad_list(0, L, _) ->
     L;
-gen_quad_list(N, L, A) ->
+gen_quad_list(N, L, A) when is_integer(N), N > 0 ->
     QC = rand_quad(A),
     gen_quad_list(N - 1, [QC|L], array:set(quadxy_index(QC), q_fill, A)).
 
@@ -172,7 +172,7 @@ gen_sect_list(N, ENT, SECT) ->
 
 gen_sect_list(0, _, L, SECT) ->
     {SECT, L};
-gen_sect_list(N, ENT, L, A) ->
+gen_sect_list(N, ENT, L, A) when is_integer(N), N > 0 ->
     SC = rand_sect(A),
     gen_sect_list(N - 1, ENT, [SC|L], array:set(sectxy_index(SC), ENT, A)).
 
@@ -307,7 +307,7 @@ setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
 
 setup_klingon_numbers(0, DKQ) ->
     DKQ;
-setup_klingon_numbers(NKALL, DKQ) ->
+setup_klingon_numbers(NKALL, DKQ) when is_integer(NKALL), NKALL > 0 ->
     N = tinymt32:uniform(4),
     NKADD = case N > NKALL of
         true ->
@@ -350,7 +350,7 @@ fill_sector(LSC, E, SECT) ->
                            {array(), [#sectxy{}]}.
 fill_klingons(0, SECT, LKS) ->
     {SECT, LKS};
-fill_klingons(N, SECT, LKS) ->
+fill_klingons(N, SECT, LKS) when is_integer(N), N > 0 ->
     SC = rand_sect(SECT),
     fill_klingons(N - 1, array:set(sectxy_index(SC), s_klingon, SECT),
                   [SC | LKS]).
