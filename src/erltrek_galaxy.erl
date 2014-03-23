@@ -145,9 +145,9 @@ init([]) ->
             galaxy=array:map(
                      fun (QI, _) ->
                              QC = erltrek_calc:index_quadxy(QI),
-                             {SECT, DKS} = erltrek_setup:setup_sector(
+                             {SECT, LKS} = erltrek_setup:setup_sector(
                                              QC, DS, DI, DB, DH, DKQ),
-                             spawn_klingons(DKS, QC, SECT)
+                             spawn_klingons(LKS, QC, SECT)
                      end,
                      erltrek_setup:init_quad()),
             stars = DS,
@@ -276,9 +276,9 @@ lookup_sector(SC, Quad) ->
 lookup_sector(QC, SC, State) ->
     lookup_sector(SC, get_quad(QC, State)).
 
-spawn_klingons(DKS, QC, SECT0) ->
-    dict:fold(
-      fun (SC, [#klingon_status{}], SECT) ->
+spawn_klingons(LKS, QC, SECT0) ->
+    lists:foldl(
+      fun (SC, SECT) ->
               ShipDef = ?klingon_ship,
               {ok, Ship} = erltrek_ship_sup:start_ship([ShipDef]),
               self() ! {register_ship, Ship,
@@ -287,7 +287,7 @@ spawn_klingons(DKS, QC, SECT0) ->
                            pos=erltrek_calc:galaxy({QC, SC})
                           }},
               update_sector(SC, {s_klingon, Ship}, SECT)
-      end, SECT0, DKS).
+      end, SECT0, LKS).
 
 place_object(Object, State) ->
     {QI, SI} = find_empty_sector(State),
