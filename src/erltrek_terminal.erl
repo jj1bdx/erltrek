@@ -156,9 +156,9 @@ handle_event({phaser_hit, Level, {Class, SC}}, State) ->
                     SC#sectxy.x, SC#sectxy.y,
                     Level]),
     {ok, State};
-handle_event({killed, s_klingon, _QC, SC}, State) ->
-    ok = io:format("Klingon at sector ~b,~b killed~n",
-                   [SC#sectxy.x, SC#sectxy.y]),
+handle_event({killed, s_klingon, QC, SC}, State) ->
+    ok = io:format("Klingon at quadrant/sector ~b,~b/~b,~b killed~n",
+                   [QC#quadxy.x, QC#quadxy.y, SC#sectxy.x, SC#sectxy.y]),
     {ok, State};
 handle_event({killed, s_enterprise, _QC, _SC}, State) ->
     erltrek_game:lost("Enterprise was destroyed"),
