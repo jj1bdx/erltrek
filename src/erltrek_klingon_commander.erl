@@ -86,7 +86,7 @@
 -export([start/1]).
 
 %% States
--export([idle/2, scout/2, aggressive/2, evasive/2]).
+-export([idle/2, scout/2, aggressive/2, evasive/2, escaping/2]).
 
 %% Callbacks
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -128,10 +128,9 @@ handle_event(_Event, StateName, StateData) ->
 handle_sync_event(_Event, _From, StateName, StateData) ->
     next_state(StateName, StateData).
 
-handle_info({enter_quadrant, _QC, _SC}, evasive, State) ->
+handle_info({enter_quadrant, _QC, _SC}, escaping, State) ->
     ok = erltrek_ship:command(ship(State), stop),
-    %% TODO: is there any way for klingon ships to recharge their energy.. ?
-    %% now would be the time for it
+    %% TODO: recharge ship as we got away
     next_state(idle, State);
 handle_info({event, _}, StateName, StateData) ->
     next_state(StateName, StateData);
@@ -173,11 +172,12 @@ scout(timeout, State) ->
 evasive(timeout, State) ->
     %% TODO: check where enterprise are, and go in other direction
     %% (also check for closest nearby quadrant)
+    %% This may also take us into a negative energy barrier..
     Course = tinymt32:uniform(360) - 1,
     ok = erltrek_ship:command(ship(State), {impulse, Course}),
     %% will stop when we reach new quadrant
     %% TODO: (not here) we may collide, and need to find another direction..
-    next_state(evasive, State, infinity).
+    next_state(escaping, State, infinity).
 
 aggressive(timeout, State) ->
     case status(State) of
@@ -189,6 +189,12 @@ aggressive(timeout, State) ->
             evasive(timeout, State)
     end.
 
+escaping(timeout, State) ->
+    %% We'll get here after an event has occured..  but we want to
+    %% keep going.. (could check if we need to change direction or
+    %% anything else..)  Also, we don't need to be called regularly
+    %% (hence infinity as timeout)
+    next_state(escaping, State, infinity).
 
 %%% --------------------------------------------------------------------
 %%% Internal functions
