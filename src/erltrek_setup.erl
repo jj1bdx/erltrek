@@ -412,5 +412,9 @@ setup_sector(QC, DS, DI, DB, DH, DKQ) ->
 -spec seed() -> #intstate32{}.
 
 seed() ->
-    % TODO: change to tinymt32:uniform(os:timestamp()).
+    % TODO: change to tinymt32:uniform(os:timestamp())
+    % TODO: or even safer way as in LYSE
+    % <http://learnyousomeerlang.com/buckets-of-sockets>
+    % <<A:32, B:32, C:32>> = crypto:rand_bytes(12),
+    % tinymt32:seed({A,B,C}).
     tinymt32:seed({100, 200, 300}).
