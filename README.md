@@ -3,30 +3,41 @@
 * Requirement: R16B03-1
 * License: BSD 3-clause (Note: tinymt-erlang has its own BSD license, compatible with this software)
 
-## Major change coming
+## Changes in this version
 
-* Introduction of erltrek\_galaxy gen\_server will change the whole programming model (by Andreas Stenius)
-* See `kaos-galaxy-server` branch for the preview
+Contributed by Andreas Stenius:
+
+* The galaxy is a process (see `erltrek_galaxy`)
+* The ships (Enterprise and Klingons) are processes
+* The game no longer depends on internal time synchronization
 
 ## Goals
 
-* Incorporating true concurrency (= game proceeds in real-time)
-* Not altering the traditional Star Trek model
+* Incorporate true concurrency (= game proceeds in real-time)
+* Keep following the traditional Star Trek model
     * Coordinate system: 2D and dual layer (Quadrants + Sectors)
     * Weapons: phaser (torpedo is optional)
     * Not too fast but not too slow
 * Start from a simplified model but make it extendable
+* Write in pure Erlang/OTP
+
+# Non-goals
+
+* Using NIFs (unless absolutely necessary)
 
 ## Functions implemented at tag `baselevel_20140318`
 
 * Game field setup
 * Impulse engine for Enterprise
-* Klingon firing to Enterprise
 * Enterprise firing phaser to Klingon
 * Enterprise can dock/undock to/from the starbase
 * The Game is now a proper Erlang application (by Andreas Stenius)
 * Game message handled by an gen\_event server (by Andreas Stenius)
 * Dedicated command shell (by Andreas Stenius)
+
+## Functions under development
+
+* Klingon firing to Enterprise
 
 ## How to run (will invoke a dedicated shell)
 
@@ -35,9 +46,9 @@
 ## On random number initialization
 
 Seeding of tinymt32 module is intentionally omitted to make casual testing
-easier. The players will see the same internal state every time when
-`erltrek_game:game_start/0` is invoked.  *This feature will surely be removed
-in later versions.*
+easier. The processes using tinymt32 module will begin with the same internal state.
+See `erltrek_setup:seed/0` for the details.
+*This feature will surely be removed in later versions.*
 
 ## Related YouTube Talk at Erlang Factory SF Bay 2014
 
@@ -47,7 +58,6 @@ in later versions.*
 
 ## TODO
 
-* Introducing new Erlang process for asynchronous entities (=not synchronizing with the timer in `erltrek_game` gen\_server)
 * Documentation in the source code (edoc or edown)
 * Eunit test cases
 * Porting to 17.0 (maps may replace most of dict functionality)
