@@ -267,7 +267,7 @@ index_sectxy(SI) when is_integer(SI), SI >= 0 ->
 
 %% galaxy coordinate conversion
 
--spec galaxy(#galaxy{}) -> {#quadxy{}, #sectxy{}}.
+-spec galaxy(#galaxy{} | {#quadxy{}, #sectxy{}}) -> {#quadxy{}, #sectxy{}}.
 
 galaxy(#galaxy{ x=GXf, y=GYf }) ->
     GX = trunc(GXf), GY = trunc(GYf),
