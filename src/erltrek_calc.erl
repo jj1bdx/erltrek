@@ -92,7 +92,6 @@
          sector_course/2,
          sector_course_distance/2,
          sector_distance/2,
-         track_course/4,
          quadxy_index/1,
          sectxy_index/1,
          index_quadxy/1,
@@ -160,87 +159,6 @@ course_distance(SQC, SSC, DQC, DSC) ->
         false ->
             out_of_bound
     end.
-
-%% Calculate course and distance between two quad/sect coordinates
-%% and output the per-sector coordinate pair list
-%% Input: source #quadxy, #sectxy, dest #quadxy, #sectxy
-%% Output:
-%%   difference of X,
-%%   difference of Y,
-%%   course (0-360 degrees)
-%%   distance (unit: sector),
-%%   list of {#quadxy, #sectxy} in the path
-
--spec track_course(#quadxy{}, #sectxy{}, #quadxy{}, #sectxy{}) ->
-    {ok, integer(), integer(), float(), float(), [{#quadxy{}, #sectxy{}}]} | out_of_bound.
-
-track_course(SQC, SSC, DQC, DSC) ->
-    case course_distance(SQC, SSC, DQC, DSC) of
-        out_of_bound ->
-            out_of_bound;
-        {ok, DIFFX, DIFFY, CDEG, DISTSD} ->
-            LQC = case DIFFX == 0 andalso DIFFY == 0 of
-                true -> [];
-                false -> list_track(SQC, SSC, DIFFX, DIFFY)
-            end,
-            {ok, DIFFX, DIFFY, CDEG, DISTSD, LQC}
-    end.
-
--spec list_track(#quadxy{}, #sectxy{}, integer(), integer()) -> [{#quadxy{}, #sectxy{}}].
-
-list_track(SQC, SSC, DIFFX, DIFFY) ->
-    case abs(DIFFX) > abs(DIFFY) of
-        true ->
-            list_track_x(SQC, SSC, DIFFX, DIFFY);
-        false ->
-            list_track_y(SQC, SSC, DIFFX, DIFFY)
-    end.
-
--spec list_track_x(#quadxy{}, #sectxy{}, integer(), integer()) -> [{#quadxy{}, #sectxy{}}].
-
-list_track_x(QC, SC, DIFFX, DIFFY) ->
-    IX = ((QC#quadxy.x * ?NSECTS) + SC#sectxy.x),
-    Y = float((QC#quadxy.y * ?NSECTS) + SC#sectxy.y),
-    N = abs(DIFFX),
-    IDX = DIFFX div N,
-    DY = DIFFY / N,
-    list_track_x_elem(N, IX, IDX, Y, DY, []).
-
--spec list_track_x_elem(integer(), integer(), integer(),
-    float(), float(), [{#quadxy{}, #sectxy{}}]) -> [{#quadxy{}, #sectxy{}}].
-
-list_track_x_elem(0, _IX, _IDX, _Y, _DY, PATH) ->
-    lists:reverse(PATH);
-list_track_x_elem(N, IX, IDX, Y, DY, PATH) ->
-    IX2 = IX + IDX,
-    Y2 = Y + DY,
-    IY = trunc(Y2 + 0.5),
-    NQC = #quadxy{x = IX2 div ?NSECTS, y = IY div ?NSECTS},
-    NSC = #sectxy{x = IX2 rem ?NSECTS, y = IY rem ?NSECTS},
-    list_track_x_elem(N - 1, IX2, IDX, Y2, DY, [{NQC, NSC}|PATH]).
-
--spec list_track_y(#quadxy{}, #sectxy{}, integer(), integer()) -> [{#quadxy{}, #sectxy{}}].
-
-list_track_y(QC, SC, DIFFX, DIFFY) ->
-    X = float((QC#quadxy.x * ?NSECTS) + SC#sectxy.x),
-    IY = ((QC#quadxy.y * ?NSECTS) + SC#sectxy.y),
-    N = abs(DIFFY),
-    IDY = DIFFY div N,
-    DX = DIFFX / N,
-    list_track_y_elem(N, X, DX, IY, IDY, []).
-
--spec list_track_y_elem(integer(), float(), float(),
-    integer(), integer(), [{#quadxy{}, #sectxy{}}]) -> [{#quadxy{}, #sectxy{}}].
-
-list_track_y_elem(0, _X, _DX, _IY, _IDY, PATH) ->
-    lists:reverse(PATH);
-list_track_y_elem(N, X, DX, IY, IDY, PATH) ->
-    IY2 = IY + IDY,
-    X2 = X + DX,
-    IX = trunc(X2 + 0.5),
-    NQC = #quadxy{x = IX div ?NSECTS, y = IY2 div ?NSECTS},
-    NSC = #sectxy{x = IX rem ?NSECTS, y = IY2 rem ?NSECTS},
-    list_track_y_elem(N - 1, X2, DX, IY2, IDY, [{NQC, NSC}|PATH]).
 
 %% Calculate the destination coordinate from given coordinate
 %% and course (0-360 degrees)
@@ -349,10 +267,12 @@ index_sectxy(SI) when is_integer(SI), SI >= 0 ->
 
 %% galaxy coordinate conversion
 
+-spec galaxy(#galaxy{}) -> {#quadxy{}, #sectxy{}}.
+
 galaxy(#galaxy{ x=GXf, y=GYf }) ->
     GX = trunc(GXf), GY = trunc(GYf),
     {#quadxy{ x=GX div ?NSECTS, y=GY div ?NSECTS},
      #sectxy{ x=GX rem ?NSECTS, y=GY rem ?NSECTS}};
 galaxy({#quadxy{ x=QX, y=QY }, #sectxy{ x=SX, y=SY }}) ->
-    #galaxy{ x = (QX * ?NSECTS) + SX + 0.5,
-             y = (QY * ?NSECTS) + SY + 0.5}.
+    #galaxy{ x = trunc((QX * ?NSECTS) + SX + 0.5),
+             y = trunc((QY * ?NSECTS) + SY + 0.5)}.
