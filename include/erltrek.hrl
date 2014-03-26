@@ -201,7 +201,7 @@
           quad :: #quadxy{},
           sect :: #sectxy{},
           course=0 :: 0..360,
-          speed=0 :: float()
+          speed=0.0 :: float()
          }).
 
 %% vim: set ts=4 sw=4 sts=4 et :
