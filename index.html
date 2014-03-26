@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Erltrek : An Erlang Star Trek game" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Erltrek</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/jj1bdx/erltrek">View on GitHub</a>
+
+          <h1 id="project_title">Erltrek</h1>
+          <h2 id="project_tagline">An Erlang Star Trek game</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/jj1bdx/erltrek/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/jj1bdx/erltrek/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a name="erltrek-star-trek-game-in-erlang" class="anchor" href="#erltrek-star-trek-game-in-erlang"><span class="octicon octicon-link"></span></a>Erltrek: Star Trek Game in Erlang</h1>
+
+<ul>
+<li>Requirement: Erlang/OTP R16B03-1</li>
+<li>Tested on: OS X 10.9.2, FreeBSD 10-STABLE</li>
+<li>License: BSD 3-clause (Note: tinymt-erlang has its own BSD license, compatible with this software)</li>
+<li><em>Note well: this program is still in the alpha level. Please report bugs to the GitHub issues and contribute through the pull requests.</em></li>
+</ul><h2>
+<a name="goals" class="anchor" href="#goals"><span class="octicon octicon-link"></span></a>Goals</h2>
+
+<ul>
+<li>Incorporate true concurrency (= game proceeds in real-time)</li>
+<li>Keep following the traditional Star Trek model
+
+<ul>
+<li>Coordinate system: 2D and dual layer (Quadrants + Sectors)</li>
+<li>Weapons: phaser (torpedo is optional)</li>
+<li>Not too fast but not too slow</li>
+</ul>
+</li>
+<li>Start from a simplified model but make it extendable</li>
+<li>Write in pure Erlang/OTP</li>
+</ul><h2>
+<a name="non-goals" class="anchor" href="#non-goals"><span class="octicon octicon-link"></span></a>Non-goals</h2>
+
+<ul>
+<li>Using NIFs (unless absolutely necessary)</li>
+</ul><h2>
+<a name="functions-implemented-at-tag-first_galaxy_server" class="anchor" href="#functions-implemented-at-tag-first_galaxy_server"><span class="octicon octicon-link"></span></a>Functions implemented at tag <code>first_galaxy_server</code>
+</h2>
+
+<p>(Most of code files are revised and rewritten by Andreas Stenius)</p>
+
+<ul>
+<li>Game field setup</li>
+<li>Impulse engine for Enterprise</li>
+<li>Enterprise firing phaser to Klingon</li>
+<li>Enterprise can dock/undock to/from the starbase</li>
+<li>The Game is now a proper Erlang application</li>
+<li>Game message handled by an gen_event server</li>
+<li>Dedicated command shell</li>
+<li>The galaxy is a process (see <code>erltrek_galaxy</code>)</li>
+<li>The ships (Enterprise and Klingons) are processes</li>
+<li>The game no longer depends on internal time synchronization</li>
+</ul><h2>
+<a name="functions-under-development" class="anchor" href="#functions-under-development"><span class="octicon octicon-link"></span></a>Functions under development</h2>
+
+<ul>
+<li>Klingon firing to Enterprise</li>
+<li>Torpedoes</li>
+</ul><h2>
+<a name="how-to-run-will-invoke-a-dedicated-shell" class="anchor" href="#how-to-run-will-invoke-a-dedicated-shell"><span class="octicon octicon-link"></span></a>How to run (will invoke a dedicated shell)</h2>
+
+<pre><code>./game.sh
+</code></pre>
+
+<h2>
+<a name="on-random-number-initialization" class="anchor" href="#on-random-number-initialization"><span class="octicon octicon-link"></span></a>On random number initialization</h2>
+
+<p>The processes using tinymt32 module will begin with the same internal state,
+for an easy debugging.  See <code>erltrek_setup:seed/0</code> for the details.  <em>This
+feature will surely be removed in later versions.</em> Also, the players should be
+aware that all ships are <em>concurrently</em> running, so the sequence of execution
+will <em>not</em> be guaranteed.</p>
+
+<h2>
+<a name="related-youtube-talk-at-erlang-factory-sf-bay-2014" class="anchor" href="#related-youtube-talk-at-erlang-factory-sf-bay-2014"><span class="octicon octicon-link"></span></a>Related YouTube Talk at Erlang Factory SF Bay 2014</h2>
+
+<p>(Courtesy Erlang Solutions)</p>
+
+<ul>
+<li><a href="http://youtu.be/1mJUhUDipuo">http://youtu.be/1mJUhUDipuo</a></li>
+</ul><h2>
+<a name="todo" class="anchor" href="#todo"><span class="octicon octicon-link"></span></a>TODO</h2>
+
+<ul>
+<li>Documentation in the source code (edoc or edown)</li>
+<li>Eunit test cases</li>
+<li>Porting to 17.0 (maps may replace most of dict functionality)</li>
+<li>Note: dialyzer remote type issues incompatibility between R16B03-1 and 17.0-rc2 reported as in
+<a href="http://erlang.org/pipermail/erlang-questions/2014-February/077945.html">http://erlang.org/pipermail/erlang-questions/2014-February/077945.html</a> and <a href="http://erlang.org/pipermail/erlang-questions/2014-February/077955.html">http://erlang.org/pipermail/erlang-questions/2014-February/077955.html</a>; all -spec entries must be rewritten.</li>
+<li>Running on Windows</li>
+</ul><h2>
+<a name="authors" class="anchor" href="#authors"><span class="octicon octicon-link"></span></a>Authors</h2>
+
+<ul>
+<li>Andreas Stenius</li>
+<li>Kenji Rikitake</li>
+</ul><h2>
+<a name="acknowledgments" class="anchor" href="#acknowledgments"><span class="octicon octicon-link"></span></a>Acknowledgments</h2>
+
+<ul>
+<li>Cimarron Taylor</li>
+<li>Eric Allman</li>
+<li>Francesco Cesarini</li>
+<li>Fréd Hébert</li>
+<li>Kyoko Rikitake</li>
+<li>Loïc Hoguin</li>
+<li>Robert Virding</li>
+</ul>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Erltrek maintained by <a href="https://github.com/jj1bdx">jj1bdx</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
