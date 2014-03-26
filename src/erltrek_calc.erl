@@ -96,7 +96,8 @@
          sectxy_index/1,
          index_quadxy/1,
          index_sectxy/1,
-         galaxy/1
+         galaxy_to_quadsect/1,
+         quadsect_to_galaxy/1
         ]).
 
 -include("erltrek.hrl").
@@ -267,12 +268,15 @@ index_sectxy(SI) when is_integer(SI), SI >= 0 ->
 
 %% galaxy coordinate conversion
 
--spec galaxy(#galaxy{} | {#quadxy{}, #sectxy{}}) -> {#quadxy{}, #sectxy{}}.
+-spec galaxy_to_quadsect(#galaxy{}) -> {#quadxy{}, #sectxy{}}.
 
-galaxy(#galaxy{ x=GXf, y=GYf }) ->
+galaxy_to_quadsect(#galaxy{ x=GXf, y=GYf }) ->
     GX = trunc(GXf), GY = trunc(GYf),
     {#quadxy{ x=GX div ?NSECTS, y=GY div ?NSECTS},
-     #sectxy{ x=GX rem ?NSECTS, y=GY rem ?NSECTS}};
-galaxy({#quadxy{ x=QX, y=QY }, #sectxy{ x=SX, y=SY }}) ->
+     #sectxy{ x=GX rem ?NSECTS, y=GY rem ?NSECTS}}.
+
+-spec quadsect_to_galaxy({#quadxy{}, #sectxy{}}) -> #galaxy{}.
+
+quadsect_to_galaxy({#quadxy{ x=QX, y=QY }, #sectxy{ x=SX, y=SY }}) ->
     #galaxy{ x = trunc((QX * ?NSECTS) + SX + 0.5),
              y = trunc((QY * ?NSECTS) + SY + 0.5)}.
