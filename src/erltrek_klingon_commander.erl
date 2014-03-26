@@ -130,8 +130,12 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 
 handle_info({enter_quadrant, _QC, _SC}, escaping, State) ->
     ok = erltrek_ship:command(ship(State), stop),
-    %% TODO: recharge ship as we got away
-    next_state(idle, State);
+    next_state(idle, State#ship_state{
+                       energy = State#ship_state.ship#ship_def.max_energy,
+                       shield = State#ship_state.ship#ship_def.max_shield
+                      });
+handle_info({event, {condition, cond_red}}, idle, State) ->
+    next_state(scout, State);
 handle_info({event, _}, StateName, StateData) ->
     next_state(StateName, StateData);
 handle_info({sync_event, {Pid, Ref}, _}, StateName, StateData) ->
@@ -157,10 +161,8 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 
 idle(timeout, State) ->
     %% wait for enterprise to show up
-    case erltrek_ship:count_nearby_enemies(ship(State)) of
-        0 -> next_state(idle, State);
-        _ -> next_state(scout, State)
-    end.
+    ship(State) ! {update_condition},
+    next_state(idle, State).
 
 scout(timeout, State) ->
     %% depending on our energy level, we'll be evasive or aggressive
