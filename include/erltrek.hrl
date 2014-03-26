@@ -200,7 +200,7 @@
           pos :: #galaxy{},
           quad :: #quadxy{},
           sect :: #sectxy{},
-          course=0 :: 0..360,
+          course=0.0 :: float(), % 0..360
           speed=0.0 :: float()
          }).
 
