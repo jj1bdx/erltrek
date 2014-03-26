@@ -96,7 +96,7 @@
 %% maximum concurrent distress calls
 -define(MAXDISTR, 5).
 %% Version number string
--define(ERLTREK_VERSION, "0.0").
+-define(ERLTREK_VERSION, "0.1").
 %% Debug trace flag
 -define(DEBUG_TRACE, true).
 %% Initial Enterprise energy
