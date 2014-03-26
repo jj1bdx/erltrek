@@ -113,6 +113,7 @@
 %%% API
 %%% --------------------------------------------------------------------
 
+-spec start_link() -> {ok, pid()} | {ok, pid(), term()} | {error, term()}.
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
@@ -122,19 +123,36 @@ spawn_ship(Ship) when is_record(Ship, ship_def)->
     ok = gen_server:cast(?MODULE, {new_ship, Ship#ship_def.class, Pid}),
     {ok, Pid}.
 
+-spec get_position() -> {reply, term(), #state{}}.
 get_position() -> call(get_position).
+
+-spec stardate() -> {reply, term(), #state{}}.
 stardate() -> call(get_stardate).
+
+-spec srscan() -> {reply, term(), #state{}}.
 srscan() -> call(srscan).
+
+-spec lrscan() -> {reply, term(), #state{}}.
 lrscan() -> call(lrscan).
+
+-spec impulse(non_neg_integer(), non_neg_integer()) -> {reply, term(), #state{}}.
 impulse(Course, Speed) -> call({impulse, Course, Speed}).
+
+-spec phaser(non_neg_integer(), non_neg_integer()) -> {reply, term(), #state{}}.
 phaser(Course, Energy) -> call({phaser, Course, Energy}).
+
+-spec count_nearby_enemies() -> {reply, term(), #state{}}.
 count_nearby_enemies() -> call(count_nearby_enemies).
+
+-spec bases() -> {reply, term(), #state{}}.
 bases() -> call(get_bases).
 
 
 %%% --------------------------------------------------------------------
 %%% Callbacks
 %%% --------------------------------------------------------------------
+
+-spec init([]) -> {ok, #state{}}.
 
 init([]) ->
     erltrek_setup:seed(),
@@ -156,6 +174,8 @@ init([]) ->
             bases = DB,
             holes = DH
            }}.
+
+-spec handle_call(term(), term(), #state{}) -> {reply, term(), #state{}}.
 
 handle_call(get_stardate, _From, State) ->
     {reply, trunc(State#state.stardate), State};
@@ -212,16 +232,20 @@ handle_call(get_bases, _From, State) ->
 handle_call(Call, _From, State) ->
     {reply, {error, {unknown_call, Call}}, State}.
 
+-spec handle_cast(term(), #state{}) -> {noreply, #state{}}.
+
 handle_cast({new_ship, Class, Pid}, State0) ->
     {QC, SC, State} = place_object({Class, Pid}, State0),
     handle_info({register_ship, Pid,
                  #ship_data{
                     class=Class,
-                    pos=erltrek_calc:galaxy({QC, SC})
+                    pos=erltrek_calc:quadsect_to_galaxy({QC, SC})
                    }},
                 State);
 handle_cast(_Cast, State) ->
     {noreply, State}.
+
+-spec handle_info(term(), #state{}) -> {noreply, #state{}}.
 
 handle_info(tick, State) ->
     {noreply, tick(State)};
@@ -251,11 +275,14 @@ terminate(_Reason, _State) ->
 %%% Internal functions
 %%% --------------------------------------------------------------------
 
+-spec call(term()) -> {reply, term(), #state{}}.
 call(Msg) -> gen_server:call(?MODULE, Msg).
 
+-spec quadxy_index(non_neg_integer() | #quadxy{}) -> non_neg_integer().
 quadxy_index(QI) when is_integer(QI) -> QI rem (?NQUADS * ?NQUADS);
 quadxy_index(QC) -> erltrek_calc:quadxy_index(QC).
 
+-spec sectxy_index(non_neg_integer() | #sectxy{}) -> non_neg_integer().
 sectxy_index(SI) when is_integer(SI) -> SI rem (?NSECTS * ?NSECTS);
 sectxy_index(SC) -> erltrek_calc:sectxy_index(SC).
 
@@ -285,7 +312,7 @@ spawn_klingons(LKS, QC, SECT0) ->
               self() ! {register_ship, Ship,
                         #ship_data{
                            class=ShipDef#ship_def.class,
-                           pos=erltrek_calc:galaxy({QC, SC})
+                           pos=erltrek_calc:quadsect_to_galaxy({QC, SC})
                           }},
               update_sector(SC, {s_klingon, Ship}, SECT)
       end, SECT0, LKS).
@@ -331,7 +358,7 @@ set_ship_vector(Course, Speed, Data) ->
     Data#ship_data{ course=Course / 180 * math:pi(), speed=Speed }.
 
 update_ship_pos(#ship_data{ pos=GC, quad=QC, sect=SC }=Data) ->
-    case erltrek_calc:galaxy(GC) of
+    case erltrek_calc:galaxy_to_quadsect(GC) of
         {QC, SC} -> Data;
         {QC, NSC} ->
             {{enter_sector, QC, NSC},
@@ -352,8 +379,8 @@ update_ship_pos(Ship, Data0, State) ->
                     #ship_data{ quad=DQC, sect=DSC } = Data,
                     Ship ! {distance_traveled,
                             erltrek_calc:sector_distance(
-                              erltrek_calc:galaxy({SQC, SSC}),
-                              erltrek_calc:galaxy({DQC, DSC}))},
+                              erltrek_calc:quadsect_to_galaxy({SQC, SSC}),
+                              erltrek_calc:quadsect_to_galaxy({DQC, DSC}))},
                     store_ship(
                       Ship, Data,
                       move_object(SQC, SSC, DQC, DSC, State));
@@ -365,7 +392,7 @@ update_ship_pos(Ship, Data0, State) ->
                             Event},
                     %% stop ship dead in its tracks..
                     #ship_data{ quad=SQC, sect=SSC } = Data0,
-                    GC = erltrek_calc:galaxy({SQC, SSC}),
+                    GC = erltrek_calc:quadsect_to_galaxy({SQC, SSC}),
                     store_ship(Ship, Data0#ship_data{ pos=GC, speed=0 }, State)
             end
     end.
