@@ -332,46 +332,45 @@ place_object(Object, State) ->
     {index_quadxy(QI), index_sectxy(SI),
      update_sector(QI, SI, Object, State)}.
 
--spec find_empty_sector(#state{}) -> {non_neg_integer(), non_neg_integer()}.
-find_empty_sector(#state{ galaxy=G }=State) ->
-    S = array:size(G),
-    %% make sure we eventually have searched all sectors before giving up
-    %% by starting somewhere in 2*NQUADS..NQUADS, and downto 0.
-    QI = tinymt32:uniform(S) + S,
-    find_empty_sector(QI, State).
+%% maximum number of empty sector search attempts
 
--spec find_empty_sector(non_neg_integer(), #state{}) ->
-    {non_neg_integer(), non_neg_integer()}.
-find_empty_sector(QI, State) ->
+-define(MAX_ATTEMPTS, 10000).
+
+-spec find_empty_sector(#state{}) -> {non_neg_integer(), non_neg_integer()}.
+find_empty_sector(State) ->
+    find_empty_sector(?MAX_ATTEMPTS, State).
+
+-spec find_empty_sector(non_neg_integer(), #state{}) -> 
+    {non_neg_integer(), non_neg_integer()} | no_empty_sector_found.
+
+find_empty_sector(0, _State) -> no_empty_sector_found;
+find_empty_sector(N, #state{ galaxy=G }=State) when is_integer(N), N > 0 ->
+    %% 0 =< QI =< (array:size(G) - 1),  0 =< SI =< (array:size(SECT) - 1)
+    QI = tinymt32:uniform(array:size(G)) - 1,
     SECT = get_quad(index_quadxy(QI), State),
     SI = tinymt32:uniform(array:size(SECT)) - 1,
-    find_empty_sector(QI, SI, SECT, State).
-
--spec find_empty_sector(non_neg_integer(), non_neg_integer(), array(), #state{}) ->
-    {non_neg_integer(), non_neg_integer()}.
-find_empty_sector(QI, SI, SECT, State) ->
-    case lookup_sector(SI, SECT) of
+    case lookup_sector(index_sectxy(SI), SECT) of
         s_empty -> {QI, SI};
-        _ when SI > 0 ->
-            find_empty_sector(QI, SI - 1, SECT, State);
-        _ when QI > 0 ->
-            find_empty_sector(QI - 1, State);
-        _ ->
-            no_empty_sector_found
+        _ -> find_empty_sector(N - 1, State)
     end.
 
+-spec find_ship(pid(), #state{}) -> {ok, #ship_data{}} | error.
 find_ship(Ship, #state{ ships=Ships }) ->
     orddict:find(Ship, Ships).
 
+-spec store_ship(pid(), #ship_data{}, #state{}) -> #state{}.
 store_ship(Ship, Data, #state{ ships=Ships }=State) ->
     State#state{ ships=orddict:store(Ship, Data, Ships) }.
 
+-spec erase_ship(pid(), #state{}) -> #state{}.
 erase_ship(Ship, #state{ ships=Ships }=State) ->
     State#state{ ships=orddict:erase(Ship, Ships) }.
 
+-spec set_ship_vector(non_neg_integer(), float(), #ship_data{}) -> #ship_data{}.
 set_ship_vector(Course, Speed, Data) ->
     Data#ship_data{ course=Course / 180 * math:pi(), speed=Speed }.
 
+-spec update_ship_pos(#ship_data{}) -> #ship_data{}.
 update_ship_pos(#ship_data{ pos=GC, quad=QC, sect=SC }=Data) ->
     case erltrek_calc:galaxy_to_quadsect(GC) of
         {QC, SC} -> Data;
@@ -383,6 +382,7 @@ update_ship_pos(#ship_data{ pos=GC, quad=QC, sect=SC }=Data) ->
              Data#ship_data{ quad=NQC, sect=NSC }}
     end.
 
+-spec update_ship_pos(pid(), #ship_data{}, #state{}) -> #state{}.
 update_ship_pos(Ship, Data0, State) ->
     case update_ship_pos(Data0) of
         Data0 -> store_ship(Ship, Data0, State); %% moved just a fraction within current sector
