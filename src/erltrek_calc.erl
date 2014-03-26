@@ -92,11 +92,12 @@
          sector_course/2,
          sector_course_distance/2,
          sector_distance/2,
-         track_course/4,
          quadxy_index/1,
          sectxy_index/1,
          index_quadxy/1,
-         index_sectxy/1
+         index_sectxy/1,
+         galaxy_to_quadsect/1,
+         quadsect_to_galaxy/1
         ]).
 
 -include("erltrek.hrl").
@@ -160,87 +161,6 @@ course_distance(SQC, SSC, DQC, DSC) ->
             out_of_bound
     end.
 
-%% Calculate course and distance between two quad/sect coordinates
-%% and output the per-sector coordinate pair list
-%% Input: source #quadxy, #sectxy, dest #quadxy, #sectxy
-%% Output:
-%%   difference of X,
-%%   difference of Y,
-%%   course (0-360 degrees)
-%%   distance (unit: sector),
-%%   list of {#quadxy, #sectxy} in the path
-
--spec track_course(#quadxy{}, #sectxy{}, #quadxy{}, #sectxy{}) ->
-    {ok, integer(), integer(), float(), float(), [{#quadxy{}, #sectxy{}}]} | out_of_bound.
-
-track_course(SQC, SSC, DQC, DSC) ->
-    case course_distance(SQC, SSC, DQC, DSC) of
-        out_of_bound ->
-            out_of_bound;
-        {ok, DIFFX, DIFFY, CDEG, DISTSD} ->
-            LQC = case DIFFX == 0 andalso DIFFY == 0 of
-                true -> [];
-                false -> list_track(SQC, SSC, DIFFX, DIFFY)
-            end,
-            {ok, DIFFX, DIFFY, CDEG, DISTSD, LQC}
-    end.
-
--spec list_track(#quadxy{}, #sectxy{}, integer(), integer()) -> [{#quadxy{}, #sectxy{}}].
-
-list_track(SQC, SSC, DIFFX, DIFFY) ->
-    case abs(DIFFX) > abs(DIFFY) of
-        true ->
-            list_track_x(SQC, SSC, DIFFX, DIFFY);
-        false ->
-            list_track_y(SQC, SSC, DIFFX, DIFFY)
-    end.
-
--spec list_track_x(#quadxy{}, #sectxy{}, integer(), integer()) -> [{#quadxy{}, #sectxy{}}].
-
-list_track_x(QC, SC, DIFFX, DIFFY) ->
-    IX = ((QC#quadxy.x * ?NSECTS) + SC#sectxy.x),
-    Y = float((QC#quadxy.y * ?NSECTS) + SC#sectxy.y),
-    N = abs(DIFFX),
-    IDX = DIFFX div N,
-    DY = DIFFY / N,
-    list_track_x_elem(N, IX, IDX, Y, DY, []).
-
--spec list_track_x_elem(integer(), integer(), integer(),
-    float(), float(), [{#quadxy{}, #sectxy{}}]) -> [{#quadxy{}, #sectxy{}}].
-
-list_track_x_elem(0, _IX, _IDX, _Y, _DY, PATH) ->
-    lists:reverse(PATH);
-list_track_x_elem(N, IX, IDX, Y, DY, PATH) ->
-    IX2 = IX + IDX,
-    Y2 = Y + DY,
-    IY = trunc(Y2 + 0.5),
-    NQC = #quadxy{x = IX2 div ?NSECTS, y = IY div ?NSECTS},
-    NSC = #sectxy{x = IX2 rem ?NSECTS, y = IY rem ?NSECTS},
-    list_track_x_elem(N - 1, IX2, IDX, Y2, DY, [{NQC, NSC}|PATH]).
-
--spec list_track_y(#quadxy{}, #sectxy{}, integer(), integer()) -> [{#quadxy{}, #sectxy{}}].
-
-list_track_y(QC, SC, DIFFX, DIFFY) ->
-    X = float((QC#quadxy.x * ?NSECTS) + SC#sectxy.x),
-    IY = ((QC#quadxy.y * ?NSECTS) + SC#sectxy.y),
-    N = abs(DIFFY),
-    IDY = DIFFY div N,
-    DX = DIFFX / N,
-    list_track_y_elem(N, X, DX, IY, IDY, []).
-
--spec list_track_y_elem(integer(), float(), float(),
-    integer(), integer(), [{#quadxy{}, #sectxy{}}]) -> [{#quadxy{}, #sectxy{}}].
-
-list_track_y_elem(0, _X, _DX, _IY, _IDY, PATH) ->
-    lists:reverse(PATH);
-list_track_y_elem(N, X, DX, IY, IDY, PATH) ->
-    IY2 = IY + IDY,
-    X2 = X + DX,
-    IX = trunc(X2 + 0.5),
-    NQC = #quadxy{x = IX div ?NSECTS, y = IY2 div ?NSECTS},
-    NSC = #sectxy{x = IX rem ?NSECTS, y = IY2 rem ?NSECTS},
-    list_track_y_elem(N - 1, X2, DX, IY2, IDY, [{NQC, NSC}|PATH]).
-
 %% Calculate the destination coordinate from given coordinate
 %% and course (0-360 degrees)
 %% and distance (unit: sector)
@@ -268,36 +188,51 @@ destination(SQC, SSC, COURSE, DIST) ->
             out_of_bound
     end.
 
+%% Calculate delta x and y between two coordinates
+
+-spec sector_delta(XY, XY) -> {number(), number()} when XY :: #sectxy{} | #galaxy{}.
+sector_delta(#sectxy{ x=SX, y=SY }, #sectxy{ x=DX, y=DY }) ->
+    {DX - SX, DY - SY};
+sector_delta(#galaxy{ x=SX, y=SY }, #galaxy{ x=DX, y=DY }) ->
+    {DX - SX, DY - SY}.
+
+
 %% Calculate course and distance between two sectors
 %% course (0-360 degrees, 0: -X direction, clockwise (e.g., 90: +Y direction)),
 
--spec sector_course_distance(#sectxy{}, #sectxy{}) -> {float(), float()}.
+-spec sector_course_distance(XY, XY) -> {float(), float()} when XY :: #sectxy{} | #galaxy{}.
 
 sector_course_distance(SC, DC) ->
-    DX = DC#sectxy.x - SC#sectxy.x,
-    DY = DC#sectxy.y - SC#sectxy.y,
+    Delta = sector_delta(SC, DC),
+    {sector_course(Delta), sector_distance(Delta)}.
+
+%% Calculate course between two sectors
+
+-spec sector_course(XY, XY) -> float() when XY :: #sectxy{} | #galaxy{}.
+
+sector_course(SC, DC) ->
+    sector_course(sector_delta(SC, DC)).
+
+-spec sector_course({number(), number()}) -> float().
+sector_course({DX, DY}) ->
     CRAD = math:atan2(DY, -DX),
     CRAD2 = case CRAD < 0 of
         true -> (CRAD + (2 * math:pi()));
         false -> CRAD
     end,
-    {CRAD2 * 180 / math:pi(), math:sqrt((DX*DX) + (DY*DY))}.
+    CRAD2 * 180 / math:pi().
 
-%% Calculate course between two sectors
-
--spec sector_course(#sectxy{}, #sectxy{}) -> float().
-
-sector_course(SC, DC) ->
-    {COURSE, _DISTANCE} = sector_course_distance(SC, DC),
-    COURSE.
 
 %% Calculate distance between two sectors
 
--spec sector_distance(#sectxy{}, #sectxy{}) -> float().
+-spec sector_distance(XY, XY) -> float() when XY :: #sectxy{} | #galaxy{}.
 
 sector_distance(SC, DC) ->
-    {_COURSE, DISTANCE} = sector_course_distance(SC, DC),
-    DISTANCE.
+    sector_distance(sector_delta(SC, DC)).
+
+-spec sector_distance({number(), number()}) -> float().
+sector_distance({DX, DY}) ->
+    math:sqrt((DX*DX) + (DY*DY)).
 
 %% convert quadrant coordinate record to Quad array position
 
@@ -330,3 +265,17 @@ index_sectxy(SI) when is_integer(SI), SI >= 0 ->
     %% make the index wrap in case it goes out of bounds
     B = SI rem (?NSECTS * ?NSECTS),
     #sectxy{ x = B div ?NSECTS, y = B rem ?NSECTS }.
+
+%% galaxy coordinate conversion
+
+-spec galaxy_to_quadsect(#galaxy{}) -> {#quadxy{}, #sectxy{}}.
+
+galaxy_to_quadsect(#galaxy{ x=GXf, y=GYf }) ->
+    GX = trunc(GXf), GY = trunc(GYf),
+    {#quadxy{ x=GX div ?NSECTS, y=GY div ?NSECTS},
+     #sectxy{ x=GX rem ?NSECTS, y=GY rem ?NSECTS}}.
+
+-spec quadsect_to_galaxy({#quadxy{}, #sectxy{}}) -> #galaxy{}.
+
+quadsect_to_galaxy({#quadxy{ x=QX, y=QY }, #sectxy{ x=SX, y=SY }}) ->
+    #galaxy{ x = (QX * ?NSECTS) + SX + 0.5, y = (QY * ?NSECTS) + SY + 0.5}.

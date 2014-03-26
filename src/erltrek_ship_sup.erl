@@ -35,14 +35,27 @@
 %%% SUCH DAMAGE.
 %%% --------------------------------------------------------------------
 
--module(erltrek).
+-module(erltrek_ship_sup).
+-behaviour(supervisor).
 
--export([start/0, stop/0]).
+%% API
+-export([start_link/0, start_ship/1]).
 
--spec start() -> ok | {error, term()}.
-start() ->
-    application:start(erltrek).
+%% Callbacks
+-export([init/1]).
 
--spec stop() -> ok | {error, term()}.
-stop() ->
-    application:stop(erltrek).
+start_link() ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+
+start_ship(Args) when is_list(Args) ->
+    supervisor:start_child(?MODULE, Args).
+
+init(_Args) ->
+    RestartStrategy = simple_one_for_one,
+    MaxRestarts = 1,
+    MaxTime = 60,
+    Child = [{ship,
+              {erltrek_ship, start_link, []},
+              temporary, brutal_kill, worker, [erltrek_ship]}
+            ],
+    {ok, {{RestartStrategy, MaxRestarts, MaxTime}, Child}}.

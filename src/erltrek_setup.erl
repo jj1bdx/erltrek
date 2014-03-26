@@ -90,9 +90,9 @@
         init_sect/0,
         rand_quad/1,
         rand_sect/1,
+        seed/0,
         setup_galaxy/0,
-        setup_sector/6,
-        setup_state/0
+        setup_sector/6
         ]).
 
 -import(erltrek_calc, [quadxy_index/1, sectxy_index/1]).
@@ -154,7 +154,7 @@ gen_quad_list(N) ->
 
 gen_quad_list(0, L, _) ->
     L;
-gen_quad_list(N, L, A) ->
+gen_quad_list(N, L, A) when is_integer(N), N > 0 ->
     QC = rand_quad(A),
     gen_quad_list(N - 1, [QC|L], array:set(quadxy_index(QC), q_fill, A)).
 
@@ -172,7 +172,7 @@ gen_sect_list(N, ENT, SECT) ->
 
 gen_sect_list(0, _, L, SECT) ->
     {SECT, L};
-gen_sect_list(N, ENT, L, A) ->
+gen_sect_list(N, ENT, L, A) when is_integer(N), N > 0 ->
     SC = rand_sect(A),
     gen_sect_list(N - 1, ENT, [SC|L], array:set(sectxy_index(SC), ENT, A)).
 
@@ -267,7 +267,7 @@ setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
             SC = rand_sect(SECT),
             {array:set(sectxy_index(SC), s_base, SECT),
             % add the base info
-            % @todo add attacked, etc
+            % TODO: add attacked, etc
             dict:append(QC, #base_info{xy = SC}, DB)};
         false ->
             {SECT, DB}
@@ -278,7 +278,7 @@ setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
             SYSTEMNAME = dict:fetch(QC, DINAME),
             {1,
             array:set(sectxy_index(SC2), s_inhabited, SECT2),
-            % @todo add distressed, etc
+            % TODO: add distressed, etc
             dict:append(QC,
                 #inhabited_info{xy = SC2,
                     systemname = SYSTEMNAME},
@@ -307,7 +307,7 @@ setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
 
 setup_klingon_numbers(0, DKQ) ->
     DKQ;
-setup_klingon_numbers(NKALL, DKQ) ->
+setup_klingon_numbers(NKALL, DKQ) when is_integer(NKALL), NKALL > 0 ->
     N = tinymt32:uniform(4),
     NKADD = case N > NKALL of
         true ->
@@ -344,18 +344,16 @@ fill_sector(LSC, E, SECT) ->
     [H|T] = LSC,
     fill_sector(T, E, array:set(sectxy_index(H), E, SECT)).
 
-%% fill in a sector array and a dict of key #sectxy with value #klingon_status
-%% for the given number of Klingons
+%% fill in a sector array and a list of #sectxy for klingons in the sector
 
--spec fill_klingons(non_neg_integer(), array(), dict()) -> {array(), dict()}.
-
-fill_klingons(0, SECT, DKS) ->
-    {SECT, DKS};
-fill_klingons(N, SECT, DKS) ->
+-spec fill_klingons(non_neg_integer(), array(), [#sectxy{}]) ->
+                           {array(), [#sectxy{}]}.
+fill_klingons(0, SECT, LKS) ->
+    {SECT, LKS};
+fill_klingons(N, SECT, LKS) when is_integer(N), N > 0 ->
     SC = rand_sect(SECT),
     fill_klingons(N - 1, array:set(sectxy_index(SC), s_klingon, SECT),
-        % initial energy of klingon
-        dict:append(SC, #klingon_status{energy = ?KLINGONENERGY}, DKS)).
+                  [SC | LKS]).
 
 %% Setup the sector array and a dict of key #sectxy with value #klingon_status
 %% for the given Quadrant of #quadxy and
@@ -364,10 +362,10 @@ fill_klingons(N, SECT, DKS) ->
 %%   * inhabited systems, values of #inhabited_info list (one element per list)
 %%   * bases, values of #base_info list (one element per list)
 %%   * holes, values of #sectxy list (of multiple stars)
-%%   * values of the number of klingons per quadrant
+%% * list of Klingon #sectxy
 
 -spec setup_sector(#quadxy{}, dict(), dict(), dict(), dict(), dict()) ->
-        {array(), dict()}.
+        {array(), [#sectxy{}]}.
 
 setup_sector(QC, DS, DI, DB, DH, DKQ) ->
     SECT = init_sect(),
@@ -402,51 +400,21 @@ setup_sector(QC, DS, DI, DB, DH, DKQ) ->
             SECT4
     end,
     % klingons
-    DKS = dict:new(),
-    {SECT6, DKS2} = case dict:is_key(QC, DKQ) of
+    LKS = [],
+    {SECT6, LKS2} = case dict:is_key(QC, DKQ) of
         true ->
-            fill_klingons(dict:fetch(QC, DKQ), SECT5, DKS);
+            fill_klingons(dict:fetch(QC, DKQ), SECT5, LKS);
         false ->
-            {SECT5, DKS}
+            {SECT5, LKS}
     end,
-    {SECT6, DKS2}.
+    {SECT6, LKS2}.
 
-%% setup game state, which returns:
-%% * Enterprise status as #enterprise_status
-%% * number of Klingons
-%% * dicts with keys of quadxy on:
-%%   * stars, values of #sectxy list (of multiple stars)
-%%   * inhabited systems, values of #inhabited_info list (one element per list)
-%%   * bases, values of #base_info list (one element per list)
-%%   * holes, values of #sectxy list (of multiple stars)
-%%   * number of klingons, values of integer (NOT a list)
-%% * sector array for the current quadrant where Enterprise resides
-%% * a dict of key #sectxy with value #klingon_status for the current quadrant
+-spec seed() -> #intstate32{}.
 
--spec setup_state() -> game_state().
-
-setup_state() ->
-    Tick = ?INITTICK,
-    {NK, DS, DI, DB, DH, DKQ} = erltrek_setup:setup_galaxy(),
-    % put enterprise to where a base resides if possible
-    LB = dict:fetch_keys(DB),
-    QC = case length(LB) > 0 of
-        true ->
-            hd(LB);
-        false ->
-            #quadxy{x = tinymt32:uniform(?NQUADS) - 1,
-                    y = tinymt32:uniform(?NQUADS) - 1}
-    end,
-    {SECT, DKS} = erltrek_setup:setup_sector(QC, DS, DI, DB, DH, DKQ),
-    % put enterprise in the current quadrant
-    SC = rand_sect(SECT),
-    SECT2 = array:set(sectxy_index(SC), s_enterprise, SECT),
-    % setup enterprise status
-    SHIP = #enterprise_status{quadxy = QC, sectxy = SC,
-        energy = ?SHIPENERGY, shield = ?SHIPSHIELD,
-        impulse_move = false, impulse_course = [],
-        warp_move = false, warp_course = [],
-        docked = false, condition = cond_green,
-        next_command = {}},
-    % return the values as a tuple
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT2, DKS}.
+seed() ->
+    % TODO: change to tinymt32:uniform(os:timestamp())
+    % TODO: or even safer way as in LYSE
+    % <http://learnyousomeerlang.com/buckets-of-sockets>
+    % <<A:32, B:32, C:32>> = crypto:rand_bytes(12),
+    % tinymt32:seed({A,B,C}).
+    tinymt32:seed({100, 200, 300}).

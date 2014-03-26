@@ -82,6 +82,7 @@
 -module(erltrek_terminal).
 
 -export([init/1, handle_event/2, handle_info/2, terminate/2]).
+-export([describe_object/1]).
 
 -include("erltrek.hrl").
 
@@ -99,9 +100,6 @@ handle_event({won, Message}, State) ->
 handle_event(stop, State) ->
     ok = io:format("Game stopped~n"),
     {ok, State};
-handle_event({move, docked}, State) ->
-    ok = io:format("Sorry Captain, we cannot move while docked~n"),
-    {ok, State};
 handle_event({move, out_of_bound}, State) ->
     ok = io:format("impulse move: course out of bound~n"),
     {ok, State};
@@ -109,7 +107,7 @@ handle_event({move, CDEG, DISTSD}, State) ->
     ok = io:format("impulse move: course = ~.1f, distance = ~.1f~n",
                    [CDEG, DISTSD]),
     {ok, State};
-handle_event({move_quad, QC, SC}, State) ->
+handle_event({enter_quadrant, QC, SC}, State) ->
     ok = io:format("impulse move cross-quadrant to ~b,~b/~b,~b~n",
                    [QC#quadxy.x, QC#quadxy.y,
                     SC#sectxy.x, SC#sectxy.y]),
@@ -117,7 +115,7 @@ handle_event({move_quad, QC, SC}, State) ->
 handle_event({move_quad, failed}, State) ->
     ok = io:format("impulse move: cross-quadrant step move failed, stop~n"),
     {ok, State};
-handle_event({move_sect, QC, SC}, State) ->
+handle_event({enter_sector, QC, SC}, State) ->
     ok = io:format("impulse move to ~b,~b/~b,~b~n",
                    [QC#quadxy.x, QC#quadxy.y,
                     SC#sectxy.x, SC#sectxy.y]),
@@ -128,13 +126,11 @@ handle_event({move_sect, failed}, State) ->
 handle_event(move_done, State) ->
     ok = io:format("impulse move done~n"),
     {ok, State};
-handle_event({display_position, GameState}, State) ->
-    {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
-    ok = io:format("Current position: ~b,~b/~b,~b~n",
-                   [SHIP#enterprise_status.quadxy#quadxy.x,
-                    SHIP#enterprise_status.quadxy#quadxy.y,
-                    SHIP#enterprise_status.sectxy#sectxy.x,
-                    SHIP#enterprise_status.sectxy#sectxy.y]),
+handle_event({collision, Object, {_, QC, SC}}, State) ->
+    ok = io:format("Collision with ~s at ~b,~b/~b,~b~n",
+                   [describe_object(Object),
+                    QC#quadxy.x, QC#quadxy.y,
+                    SC#sectxy.x, SC#sectxy.y]),
     {ok, State};
 handle_event({lrscan, GameState}, State) ->
     ok = io:format("~s", [erltrek_scan:lrscan_string(GameState)]),
@@ -154,13 +150,18 @@ handle_event({klingon_move, SK, SKM}, State) ->
                    [SK#sectxy.x, SK#sectxy.y,
                        SKM#sectxy.x, SKM#sectxy.y]),
     {ok, State};
-handle_event({phaser_hit, SK, HIT}, State) ->
-    ok = io:format("Phaser hit to Klingon at sector ~b,~b level ~b~n",
-                   [SK#sectxy.x, SK#sectxy.y, HIT]),
+handle_event({phaser_hit, Level, {Class, SC}}, State) ->
+    ok = io:format("~s hit with phasers from sector ~b,~b level ~b~n",
+                   [describe_object(Class),
+                    SC#sectxy.x, SC#sectxy.y,
+                    Level]),
     {ok, State};
-handle_event({killed, SK}, State) ->
-    ok = io:format("Klingon at sector ~b,~b killed~n",
-                   [SK#sectxy.x, SK#sectxy.y]),
+handle_event({killed, s_klingon, QC, SC}, State) ->
+    ok = io:format("Klingon at quadrant/sector ~b,~b/~b,~b killed~n",
+                   [QC#quadxy.x, QC#quadxy.y, SC#sectxy.x, SC#sectxy.y]),
+    {ok, State};
+handle_event({killed, s_enterprise, _QC, _SC}, State) ->
+    erltrek_game:lost("Enterprise was destroyed"),
     {ok, State};
 handle_event(shields_gone, State) ->
     ok = io:format("Shield gone~n"),
@@ -174,33 +175,6 @@ handle_event({shield_level, NSHIELD}, State) ->
 handle_event({condition, Condition}, State) ->
     ok = io:format("Condition changed to: ~s~n",
                    [erltrek_scan:condition_string(Condition)]),
-    {ok, State};
-handle_event({dock, already_docked}, State) ->
-    ok = io:format("The ship is already docked~n"),
-    {ok, State};
-handle_event({dock, dock_complete}, State) ->
-    ok = io:format("Docking the ship complete~n"),
-    {ok, State};
-handle_event({dock, base_not_adjacent}, State) ->
-    ok = io:format("No starbase in adjacent sectors, unable to dock~n"),
-    {ok, State};
-handle_event({dock, base_not_in_quadrant}, State) ->
-    ok = io:format("No starbase in the quadrant~n"),
-    {ok, State};
-handle_event({undock, not_docked}, State) ->
-    ok = io:format("The ship is not docked~n"),
-    {ok, State};
-handle_event({undock, undock_complete}, State) ->
-    ok = io:format("The ship is now undocked~n"),
-    {ok, State};
-handle_event({phaser, docked}, State) ->
-    ok = io:format("Sorry Captain, we can't fire phaser when docked~n"),
-    {ok, State};
-handle_event({phaser, no_target}, State) ->
-    ok = io:format("No Klingon in sector, phaser not fired~n"),
-    {ok, State};
-handle_event({phaser, fire_level}, State) ->
-    ok = io:format("Firing level exceeds availably energy, phaser not fired~n"),
     {ok, State};
 handle_event({unknown_command, Command}, State) ->
     ok = io:format("enterprise_command: unknown command: ~p~n", [Command]),
@@ -218,3 +192,12 @@ handle_info({'EXIT', Pid, Reason}, State) ->
     ok = io:format("~p: 'EXIT' received, Pid: ~p, Reason:~p~n",
                    [?MODULE, Pid, Reason]),
     {ok, State}.
+
+describe_object(s_klingon) -> "Klingon";
+describe_object(s_base) -> "Starbase";
+describe_object(s_star) -> "Star";
+describe_object(s_inhabited) -> "Star";
+describe_object(s_hole) -> "Black hole";
+describe_object(s_empty) -> "Empty";
+describe_object(Other) ->
+    io_lib:format("<unknown object: ~p>", [Other]).

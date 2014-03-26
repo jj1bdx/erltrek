@@ -82,97 +82,10 @@
 
 -include("erltrek.hrl").
 
--export([lrscan/1,
-         srscan/1,
-         adjacent_sector_contents/2,
-         %
-         condition_string/1,
+-export([condition_string/1,
          lrscan_string/1,
          srscan_string/1
         ]).
-
--spec lrscan(game_state()) -> ok.
-lrscan(GameState) ->
-    erltrek_event:notify({lrscan, GameState}).
-
--spec srscan(game_state()) -> ok.
-srscan(GameState) ->
-    erltrek_event:notify({srscan, GameState}).
-
-%% Return specified quadrant info string from
-%% * Quadrant coordinate #quadxy
-%% * dicts with keys of quadxy on:
-%%   * stars, values of #sectxy list (of multiple stars)
-%%   * inhabited systems, values of #inhabited_info list (one element per list)
-%%   * bases, values of #base_info list (one element per list)
-%%   * values of the number of klingons per quadrant
-
--spec quadstr(#quadxy{}, dict(), dict(), dict(), dict()) -> string().
-
-quadstr(QC, DS, DI, DB, DKQ) ->
-    case erltrek_calc:in_quadxy(QC) of
-        true ->
-            NS = case dict:is_key(QC, DS) of
-                true -> length(dict:fetch(QC, DS));
-                false -> 0
-            end,
-            NS2 = case dict:is_key(QC, DI) of
-                true -> NS + 1;
-                false -> NS
-            end,
-            NB = case dict:is_key(QC, DB) of
-                true -> 1;
-                false -> 0
-            end,
-            NK = case dict:is_key(QC, DKQ) of
-                true -> dict:fetch(QC, DKQ);
-                false -> 0
-            end,
-            [$0 + NK, $0 + NB, $0 + NS2];
-        false ->
-            % negative energy barrier, out of quadrant range
-            " * "
-    end.
-
-%% print lrscan line for each list of X
-
--spec lrscan_lines([integer()], [integer()], dict(), dict(), dict(),
- dict()) -> iolist().
-
-lrscan_lines([], _LY, _DS, _DI, _DB, _DKQ) ->
-    "   -------------------\n\n";
-lrscan_lines([X|LXT], LY, DS, DI, DB, DKQ) ->
-    [case erltrek_calc:in_quadrant(X) of
-         true -> [32, $0 + X, 32, $!];
-         false -> "   !"
-     end,
-     [" " ++ quadstr(QC, DS, DI, DB, DKQ) ++ " !"
-      || QC <- [#quadxy{x = X, y = Y} || Y <- LY]],
-     "\n"
-     | lrscan_lines(LXT, LY, DS, DI, DB, DKQ)].
-
-%% Display long range sensor output from the game state
-
--spec lrscan_string(game_state()) -> iolist().
-
-lrscan_string(GameState) ->
-    {_Tick, SHIP, _NK, DS, DI, DB, _DH, DKQ, _SECT, _DKS} = GameState,
-    QC = SHIP#enterprise_status.quadxy,
-    QX = QC#quadxy.x,
-    QY = QC#quadxy.y,
-    LY = lists:seq(QY - 1, QY + 1),
-    %% begin iolist result
-    [io_lib:format("Long range scan for Quadrant ~b,~b~n", [QX, QY]),
-     "   ",
-     [case erltrek_calc:in_quadrant(Y) of
-              true ->
-                  "   " ++ [$0 + Y] ++ "  ";
-              false ->
-                  "      "
-      end || Y <- LY],
-     "\n"
-     "   -------------------\n"
-     | lrscan_lines(lists:seq(QX - 1, QX + 1), LY, DS, DI, DB, DKQ)].
 
 
 %% Fetch condition string
@@ -186,91 +99,115 @@ condition_string(cond_red) -> "RED";
 condition_string(cond_docked) -> "DOCKED".
 
 
+%% Display long range sensor output from the game state
+
+-spec lrscan_string(list()) -> iolist().
+
+lrscan_string([Data|Scan]) ->
+    #ship_data{ quad=#quadxy{ x=QX, y=QY } } = Data,
+    %% begin iolist result
+    [io_lib:format("Long range scan for Quadrant ~b,~b~n", [QX, QY]),
+     "   ",
+     [case erltrek_calc:in_quadrant(Y) of
+              true ->
+                  "   " ++ [$0 + Y] ++ "  ";
+              false ->
+                  "      "
+      end || Y <- lists:seq(QY - 1, QY + 1)],
+     "\n"
+     "   -------------------\n",
+     [lrscan_lines(X, Scan) || X <- lists:seq(QX - 1, QX + 1)],
+     "   -------------------\n\n"].
+
+%% print lrscan line for each list of X
+
+lrscan_lines(X, Scan) ->
+    [case erltrek_calc:in_quadrant(X) of
+         true -> [32, $0 + X, 32, $!];
+         false -> "   !"
+     end,
+     [if Props == negative_energy_barrier -> "  *  !";
+         true -> io_lib:format(
+                   " ~3.b !",
+                   [lists:foldl(
+                      fun ({stars, S}, C) -> C + S;
+                          ({bases, B}, C) -> C + 10 * B;
+                          ({enemies, K}, C) -> C + 100 * K
+                      end, 0, Props)])
+      end || {#quadxy{ x=QX }, Props} <- Scan,
+             QX == X],
+     "\n"].
+
+
+scan_char(s_empty) -> $.;
+scan_char(s_star) -> $*;
+scan_char(s_enterprise) -> $E;
+scan_char(s_base) -> $#;
+scan_char(s_inhabited) -> $@;
+scan_char(s_klingon) -> $K;
+scan_char(s_hole) -> $H;
+scan_char({Class, _}) ->
+    scan_char(Class).
+
 %% Display current sector info and ship status from the game state
 
--spec srscan_string(game_state()) -> iolist().
+-spec srscan_string({integer(), list()}) -> iolist().
 
-srscan_string(GameState) ->
-    {Tick, SHIP, NK, _DS, DI, _DB, _DH, _DKQ, SECT, _DKS} = GameState,
-    DISP = orddict:from_list([
-            {s_empty, $.}, {s_star, $*}, {s_enterprise, $E},
-            {s_base, $#}, {s_inhabited, $@}, {s_klingon, $K},
-            {s_hole, $H}]),
-    LT = integer_to_list(Tick),
+srscan_string({Stardate, Scan}) ->
+    Ship = lists:keyfind(ship_state, 1, Scan),
+    Data = lists:keyfind(ship_data, 1, Scan),
+    Quad = proplists:get_value(quad, Scan),
+    Enemies = proplists:get_value(enemies, Scan, unknown),
+
+    LT = integer_to_list(Stardate),
     {LT1, LT2} = lists:split(length(LT) - 2, LT),
-    STATUS = [
-        io_lib:format("Stardate:      ~s.~s", [LT1, LT2]),
-        io_lib:format("Position:      ~b,~b/~b,~b",
-            [SHIP#enterprise_status.quadxy#quadxy.x,
-             SHIP#enterprise_status.quadxy#quadxy.y,
-             SHIP#enterprise_status.sectxy#sectxy.x,
-             SHIP#enterprise_status.sectxy#sectxy.y]),
-        io_lib:format("Condition:     ~s",
-            [condition_string(SHIP#enterprise_status.condition)]),
-        io_lib:format("Energy:        ~b", [SHIP#enterprise_status.energy]),
-        io_lib:format("Shield:        ~b", [SHIP#enterprise_status.shield]),
-        io_lib:format("Klingons:      ~b", [NK])
+    STATUS =
+        [io_lib:format("Stardate:      ~s.~s", [LT1, LT2]),
+         io_lib:format("Position:      ~b,~b/~b,~b",
+                       [Data#ship_data.quad#quadxy.x,
+                        Data#ship_data.quad#quadxy.y,
+                        Data#ship_data.sect#sectxy.x,
+                        Data#ship_data.sect#sectxy.y]),
+         io_lib:format("Condition:     ~s",
+                       [condition_string(Ship#ship_state.condition)]),
+         io_lib:format("Energy:        ~b", [Ship#ship_state.energy]),
+         io_lib:format("Shield:        ~b", [Ship#ship_state.shield]),
+         io_lib:format("Klingons:      ~p", [Enemies])
         ],
     %% begin iolist result
     ["Short range sensor scan\n",
      "  0 1 2 3 4 5 6 7 8 9\n",
-     srscan_xline(0, STATUS, SECT, DISP),
+     srscan_xline(0, STATUS, Quad),
      "  0 1 2 3 4 5 6 7 8 9\n",
-     case dict:is_key(SHIP#enterprise_status.quadxy, DI) of
-         true ->
-             LI = dict:fetch(SHIP#enterprise_status.quadxy, DI),
-             [I] = LI,
-             io_lib:format("Starsystem ~s~n", [I#inhabited_info.systemname]);
-         false ->
-             [] % do nothing
+     case lists:keyfind(inhabited_info, 1, Scan) of
+         #inhabited_info{ systemname=Name } ->
+             io_lib:format("Starsystem ~s~n", [Name]);
+         false -> [] % do nothing
      end].
 
--spec srscan_xline(non_neg_integer(), [string()], array(), orddict()) -> iolist().
 
-srscan_xline(?NSECTS, _SL, _SECT, _DISP) -> [];
-srscan_xline(X, SL, SECT, DISP) ->
+-spec srscan_xline(non_neg_integer(), [string()], array()) -> iolist().
+
+srscan_xline(?NSECTS, _SL, _SECT) -> [];
+srscan_xline(X, SL, SECT) ->
     {Status, SLT} =
         case SL of
             [H|T] -> {H, T};
             T -> {[], T}
         end,
     [io_lib:format("~c ", [X + $0]),
-     srscan_ypos(0, X, SECT, DISP),
+     srscan_ypos(0, X, SECT),
      io_lib:format("~c  ", [X + $0]),
      Status, "\n"
-     | srscan_xline(X + 1, SLT, SECT, DISP)].
+     | srscan_xline(X + 1, SLT, SECT)].
 
--spec srscan_ypos(non_neg_integer(), non_neg_integer(), array(), orddict()) -> iolist().
+-spec srscan_ypos(non_neg_integer(), non_neg_integer(), array()) -> iolist().
 
-srscan_ypos(?NSECTS, _X, _SECT, _DISP) -> [];
-srscan_ypos(Y, X, SECT, DISP) ->
+srscan_ypos(?NSECTS, _X, _SECT) -> [];
+srscan_ypos(Y, X, SECT) ->
     [io_lib:format(
-       "~c ", [orddict:fetch(
-                 array:get(erltrek_calc:sectxy_index(#sectxy{x = X, y = Y}),
-                           SECT), DISP)])
-     | srscan_ypos(Y + 1, X, SECT, DISP)].
-
-%% Return the list of adjacent sectors
-%% with the tuple of sector coordinates and contents
-%% (content is out_of_bound if outside the sector)
-
--spec adjacent_sector_contents(#sectxy{}, array()) ->
-    [{#sectxy{}, sector_entity() | out_of_bound}].
-
-adjacent_sector_contents(SC, SECT) ->
-    SX = SC#sectxy.x,
-    SY = SC#sectxy.y,
-    [{#sectxy{x = X, y = Y}, sector_content(X, Y, SECT)} ||
-        X <- [SX - 1, SX, SX + 1], Y <- [SY - 1, SY, SY + 1]].
-
--spec sector_content(sectcoord(), sectcoord(), array()) ->
-    sector_entity() | out_of_bound.
-
-sector_content(SX, SY, SECT) ->
-    case erltrek_calc:in_sector(SX, SY) of
-        false ->
-            out_of_bound;
-        true ->
-            array:get(erltrek_calc:sectxy_index(
-                    #sectxy{x = SX, y = SY}), SECT)
-    end.
+       "~c ", [scan_char(
+                 array:get(
+                   erltrek_calc:sectxy_index(#sectxy{x = X, y = Y}),
+                   SECT))])
+     | srscan_ypos(Y + 1, X, SECT)].

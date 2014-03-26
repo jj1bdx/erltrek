@@ -83,6 +83,8 @@
 
 -export([start/0]).
 
+-include("erltrek.hrl").
+
 -record(command, {
           name :: atom() | list(atom()),
           expand = true :: boolean(), %% tab complete command? (default: yes)
@@ -109,7 +111,8 @@ server_loop() ->
                     io:format("My sincere apologies, Captain, I do not understand your command: ~s", [Command]);
                 {error, Message} ->
                     io:format("Hrrm.. you need to quit slurring, Captain~n  (~s)~n", [Message]);
-                {ok, _} -> nop
+                {ok, Result} ->
+                    process_result(Result)
             end,
             server_loop();
         eof ->
@@ -130,7 +133,7 @@ dispatch_command(Command) ->
         {_Location, Mod, Desc} ->
             {error, Mod:format_error(Desc)};
         ok ->
-            {ok, skipped}
+            {ok, ok}
     end.
 
 parse_command({ok, [Name|Args], _}) ->
@@ -330,3 +333,53 @@ commands() ->
                    end
        }
     ].
+
+process_result(ok) -> ok;
+process_result({unknown_command, Cmd}) ->
+    io:format(
+      "~n"
+      "Your command seems valid Captain, however there is no one onboard this ship"
+      " that knows how to carry it out.~n"
+      "Our sincere apologies, perhaps notify the ship manufacturer for updated manuals:"
+      " (https://github.com/jj1bdx/erltrek/issues)~n"
+      "Please include the following: ~p~n~n",
+      [Cmd]);
+process_result({phaser, not_enough_energy}) ->
+    io:format("Our ship energy reserves are running low!~n");
+process_result({phaser, no_klingon_in_quadrant}) ->
+    io:format("No Klingon in the quadrant!~n");
+process_result({phaser, no_firing_when_docked}) ->
+    io:format("No firing allowed when docked!~n");
+%% TODO: the command specific results ought to be taken care of in the command dispatch fun..
+process_result({phaser_hit, Hits}) ->
+    case lists:flatten(
+           [io_lib:format(
+              "Phaser hit ~s at sector ~b,~b level ~b~n",
+              [erltrek_terminal:describe_object(Class),
+               SX, SY, Level])
+            || {#sectxy{ x=SX, y=SY }, Class, Level} <- Hits,
+               Level > 0])
+    of
+        [] ->
+            io:format("Phaser did not hit any targets.~n");
+        Msg ->
+            io:format(Msg)
+    end;
+process_result({move, no_move_to_same_position}) ->
+    io:format("No move to the same position!~n");
+process_result({move, no_move_while_docked}) ->
+    io:format("No move allowed while docked!~n");
+process_result({dock, already_docked}) ->
+    io:format("The ship is already docked~n");
+process_result({dock, docking_complete}) ->
+    io:format("Docking the ship complete~n");
+process_result({dock, base_not_adjacent}) ->
+    io:format("No starbase in adjacent sectors~n");
+process_result({dock, base_not_in_quadrant}) ->
+    io:format("No starbase in the quadrant~n");
+process_result({undock, not_docked}) ->
+    io:format("The ship is not docked~n");
+process_result({undock, undock_complete}) ->
+    io:format("Undocking complete~n");
+process_result(Other) ->
+    io:format("Unexpected command result: ~p~n", [Other]).
