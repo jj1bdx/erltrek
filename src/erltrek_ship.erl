@@ -318,25 +318,20 @@ absorb_hit(_, _) -> exit(normal).
 
 %%% --------------------------------------------------------------------
 %% update ship condition flag
-update_condition(
-    #ship_state{ship = #ship_def{max_energy = Maxenergy},
-        condition = Old} = State) ->
-    % update ship condition
-    New = case {
-        erltrek_galaxy:count_nearby_enemies() > 0,
-        State#ship_state.energy < Maxenergy div 5,
-        State#ship_state.docked} of
-            {_, _, true} -> cond_docked;
-            {false, true, false} -> cond_yellow;
-            {true, _, false} -> cond_red;
-            {false, false, false} -> cond_green
-    end,
-    if
-        Old =/= New ->
+update_condition(#ship_state{ condition=Condition }=State) ->
+    case get_condition(State) of
+        Condition -> State;
+        New ->
             ok = notify({condition, New}, State),
-            State#ship_state{condition = New};
-        true ->
-            State
+            State#ship_state{ condition = New }
+    end.
+
+get_condition(#ship_state{ docked=true }) -> cond_docked;
+get_condition(#ship_state{ energy=E, ship=#ship_def{ max_energy=M }}) ->
+    case erltrek_galaxy:count_nearby_enemies() of
+        0 when E < M div 5 -> cond_yellow;
+        0 -> cond_green;
+        _ -> cond_red
     end.
 
 %%% --------------------------------------------------------------------
