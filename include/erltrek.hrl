@@ -120,7 +120,7 @@
 
 -type quadcoord() :: 0..(?NQUADS - 1).
 -type sectcoord() :: 0..(?NSECTS - 1).
--type galacoord() :: 0..(?NQUADS * ?NSECTS - 1).
+-type galacoord() :: float() % 0..(?NQUADS * ?NSECTS - 1)
 
 -record(quadxy, { x :: quadcoord(), y :: quadcoord()}).
 -record(sectxy, { x :: sectcoord(), y :: sectcoord()}).
