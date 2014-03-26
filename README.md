@@ -15,7 +15,7 @@
 * Start from a simplified model but make it extendable
 * Write in pure Erlang/OTP
 
-# Non-goals
+## Non-goals
 
 * Using NIFs (unless absolutely necessary)
 
