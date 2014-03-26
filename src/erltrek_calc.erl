@@ -278,5 +278,4 @@ galaxy_to_quadsect(#galaxy{ x=GXf, y=GYf }) ->
 -spec quadsect_to_galaxy({#quadxy{}, #sectxy{}}) -> #galaxy{}.
 
 quadsect_to_galaxy({#quadxy{ x=QX, y=QY }, #sectxy{ x=SX, y=SY }}) ->
-    #galaxy{ x = trunc((QX * ?NSECTS) + SX + 0.5),
-             y = trunc((QY * ?NSECTS) + SY + 0.5)}.
+    #galaxy{ x = (QX * ?NSECTS) + SX + 0.5, y = (QY * ?NSECTS) + SY + 0.5}.
