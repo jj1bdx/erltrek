@@ -139,6 +139,8 @@ handle_info({sync_event, {Pid, Ref}, _}, StateName, StateData) ->
     next_state(StateName, StateData);
 handle_info({'DOWN', _Ref, process, _Ship, _Info}, _StateName, StateData) ->
     {stop, normal, StateData};
+handle_info({ship_destroyed, _Ship, _Reason}, _StateName, StateData) ->
+    {stop, normal, StateData};
 handle_info(_Info, StateName, StateData) ->
     next_state(StateName, StateData).
 

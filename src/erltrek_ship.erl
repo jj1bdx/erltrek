@@ -191,8 +191,11 @@ handle_info(_Info, State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-terminate(_Reason, _State) ->
-    ok.
+terminate(_Reason, #ship_state{ commander=undefined }) ->
+    ok;
+terminate(Reason, #ship_state{ commander=Pid }) ->
+    Pid ! {ship_destroyed, self(), Reason}.
+
 
 %%% --------------------------------------------------------------------
 %%% Internal functions
