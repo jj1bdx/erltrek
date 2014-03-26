@@ -368,7 +368,7 @@ erase_ship(Ship, #state{ ships=Ships }=State) ->
 
 -spec set_ship_vector(non_neg_integer(), float(), #ship_data{}) -> #ship_data{}.
 set_ship_vector(Course, Speed, Data) ->
-    Data#ship_data{ course=Course / 180 * math:pi(), speed=Speed }.
+    Data#ship_data{ course = Course / 180 * math:pi(), speed=Speed }.
 
 -spec update_ship_pos(#ship_data{}) -> #ship_data{}.
 update_ship_pos(#ship_data{ pos=GC, quad=QC, sect=SC }=Data) ->
@@ -412,6 +412,8 @@ update_ship_pos(Ship, Data0, State) ->
             end
     end.
 
+-spec move_object(#quadxy{}, #sectxy{}, #quadxy{}, #sectxy{}, #state{}) -> #state{}.
+
 move_object(SQC, SSC, DQC, DSC, State) ->
     Quad = get_quad(SQC, State),
     Object = lookup_sector(SSC, Quad),
@@ -422,25 +424,33 @@ move_object(SQC, SSC, DQC, DSC, State) ->
         update_sector(SSC, s_empty, Quad),
         State)).
 
+-spec move_ships(float(), #state{}) -> #state{}.
+
 move_ships(Delta, #state{ ships=Ships }=State0) ->
     Moved = orddict:fold(
               fun (_, #ship_data{ speed=0 }, Acc) -> Acc;
                   (Ship, #ship_data{
-                            pos=#galaxy{ x=GX, y=GY },
+                            pos=#galaxy{x = GX, y = GY},
                             speed=Speed, course=Course }=Data,
                    Acc) ->
                       Dist = Speed * Delta,
                       DX = Dist * -math:cos(Course),
                       DY = Dist * math:sin(Course),
-                      [{Ship, Data#ship_data{ pos=#galaxy{ x=GX + DX, y=GY + DY }}}|Acc]
+                      [{Ship, Data#ship_data{
+                                  pos=#galaxy{x = GX + DX,
+                                              y = GY + DY}}}|Acc]
               end, [], Ships),
     lists:foldl(
       fun ({Ship, Data}, State) ->
               update_ship_pos(Ship, Data, State)
       end, State0, Moved).
 
+-spec elapsed(erlang:timestamp(), erlang:timestamp()) -> float().
+
 elapsed({M1, S1, U1}, {M2, S2, U2}) ->
     ((M1 - M2) * 1000000) + (S1 - S2) + ((U1 - U2) / 1000000).
+
+-spec tick(#state{}) -> #state{}.
 
 tick(#state{ stardate=Stardate, sync=Sync }=State0) ->
     Timestamp = os:timestamp(),
@@ -448,6 +458,8 @@ tick(#state{ stardate=Stardate, sync=Sync }=State0) ->
     State = move_ships(Tick, State0),
     erlang:send_after(?GALAXY_TICK, self(), tick),
     State#state{ stardate=Stardate + Tick, sync=Timestamp }.
+
+-spec count_other_ships(ship_class(), #state{} | array()) -> non_neg_integer().
 
 count_other_ships(Class, #state{ ships=Ships }) ->
     orddict:fold(
