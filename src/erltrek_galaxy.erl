@@ -286,24 +286,32 @@ quadxy_index(QC) -> erltrek_calc:quadxy_index(QC).
 sectxy_index(SI) when is_integer(SI) -> SI rem (?NSECTS * ?NSECTS);
 sectxy_index(SC) -> erltrek_calc:sectxy_index(SC).
 
+-spec get_quad(#quadxy{}, #state{}) -> array().
 get_quad(QC, #state{ galaxy=G }) ->
     array:get(quadxy_index(QC), G).
 
+-spec set_quad(#quadxy{}, array(), #state{}) -> #state{}.
 set_quad(QC, Quad, #state{ galaxy=G }=State) ->
     State#state{ galaxy=array:set(quadxy_index(QC), Quad, G) }.
 
+-spec update_sector(#quadxy{}, #sectxy{}, sector_entity(), #state{}) -> #state{}.
 update_sector(QC, SC, Value, State) ->
     set_quad(QC, update_sector(SC, Value, get_quad(QC, State)), State).
 
+-spec update_sector(#sectxy{},
+    sector_entity() | {s_klingon, undefined | pid()}, array()) -> array().
 update_sector(SC, Value, Quad) ->
     array:set(sectxy_index(SC), Value, Quad).
 
+-spec lookup_sector(#sectxy{}, array()) -> sector_entity().
 lookup_sector(SC, Quad) ->
     array:get(sectxy_index(SC), Quad).
 
+-spec lookup_sector(#quadxy{}, #sectxy{}, #state{}) -> sector_entity().
 lookup_sector(QC, SC, State) ->
     lookup_sector(SC, get_quad(QC, State)).
 
+-spec spawn_klingons([#sectxy{}], #quadxy{}, array()) -> array().
 spawn_klingons(LKS, QC, SECT0) ->
     lists:foldl(
       fun (SC, SECT) ->
@@ -317,11 +325,14 @@ spawn_klingons(LKS, QC, SECT0) ->
               update_sector(SC, {s_klingon, Ship}, SECT)
       end, SECT0, LKS).
 
+-spec place_object(sector_entity() | {ship_class, pid()}, #state{}) ->
+    {#quadxy{}, #sectxy{}, #state{}}.
 place_object(Object, State) ->
     {QI, SI} = find_empty_sector(State),
     {index_quadxy(QI), index_sectxy(SI),
      update_sector(QI, SI, Object, State)}.
 
+-spec find_empty_sector(#state{}) -> {non_neg_integer(), non_neg_integer()}.
 find_empty_sector(#state{ galaxy=G }=State) ->
     S = array:size(G),
     %% make sure we eventually have searched all sectors before giving up
@@ -329,11 +340,15 @@ find_empty_sector(#state{ galaxy=G }=State) ->
     QI = tinymt32:uniform(S) + S,
     find_empty_sector(QI, State).
 
+-spec find_empty_sector(non_neg_integer(), #state{}) ->
+    {non_neg_integer(), non_neg_integer()}.
 find_empty_sector(QI, State) ->
-    SECT = get_quad(QI, State),
+    SECT = get_quad(index_quadxy(QI), State),
     SI = tinymt32:uniform(array:size(SECT)) - 1,
     find_empty_sector(QI, SI, SECT, State).
 
+-spec find_empty_sector(non_neg_integer(), non_neg_integer(), array(), #state{}) ->
+    {non_neg_integer(), non_neg_integer()}.
 find_empty_sector(QI, SI, SECT, State) ->
     case lookup_sector(SI, SECT) of
         s_empty -> {QI, SI};
