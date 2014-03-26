@@ -5,11 +5,6 @@
 * License: BSD 3-clause (Note: tinymt-erlang has its own BSD license, compatible with this software)
 * *Note well: this program is still in the alpha level. Please report bugs to the GitHub issues and contribute through the pull requests.*
 
-## Major change coming
-
-* Introduction of erltrek\_galaxy gen\_server will change the whole programming model (by Andreas Stenius)
-* See `kaos-galaxy-server` branch for the preview
-
 ## Goals
 
 * Incorporate true concurrency (= game proceeds in real-time)
