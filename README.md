@@ -47,7 +47,9 @@
 
 The processes using tinymt32 module will begin with the same internal state,
 for an easy debugging.  See `erltrek_setup:seed/0` for the details.  *This
-feature will surely be removed in later versions.*
+feature will surely be removed in later versions.* Also, the players should be
+aware that all ships are *concurrently* running, so the sequence of execution
+will *not* be guaranteed.
 
 ## Related YouTube Talk at Erlang Factory SF Bay 2014
 
