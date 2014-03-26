@@ -150,6 +150,7 @@
           max_energy=1 :: pos_integer(),
           max_shield=0 :: non_neg_integer(),
           max_speed=1.5 :: float(), %% for impulse engines
+          initial_speed=0.8 :: float(), %% initial speed for impulse engines
           %% TODO: cost based on actual speed.. faster costs more
           engine_cost=10 :: pos_integer(), %% consumed energy / sector travel
           durability :: fun((body | shield, integer()) -> integer())
@@ -161,6 +162,7 @@
            commander = erltrek_enterprise_commander,
            max_energy = ?SHIPENERGY,
            max_shield = ?SHIPSHIELD,
+           initial_speed = 0.9,
            durability = fun (body, D) when D > 0 -> trunc(D * 1.3) + 10;
                             (_, D) -> D
                         end
@@ -172,6 +174,7 @@
            commander = erltrek_klingon_commander,
            max_energy = ?KLINGONENERGY,
            max_shield = 0,
+           initial_speed = 0.3,
            durability = fun (_, D) -> D end
           }).
 

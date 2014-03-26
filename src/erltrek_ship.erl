@@ -136,8 +136,9 @@ init([{ship, Ship}|_Args]) ->
                    {ok, Pid} = Commander:start(self()),
                    Pid
            end,
-    #ship_def{ max_energy=E, max_shield=S } = Ship,
-    {ok, #ship_state{ ship = Ship, energy = E, shield = S,
+    #ship_def{ max_energy=E, max_shield=S, initial_speed = IS } = Ship,
+    {ok, #ship_state{ ship = Ship,
+                      energy = E, shield = S, speed = IS,
                       commander = Cmdr }}.
 
 handle_call({command, Command}, _From, State0) ->
