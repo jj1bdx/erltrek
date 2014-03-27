@@ -158,7 +158,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 
 idle(timeout, State) ->
     %% wait for enterprise to show up
-    ship(State) ! {update_condition},
+    ship(State) ! update_condition,
     next_state(idle, State).
 
 scout(timeout, State) ->

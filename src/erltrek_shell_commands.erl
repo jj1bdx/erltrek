@@ -124,9 +124,9 @@ commands() ->
     [#command{
         name = srscan,
         help = "Perform a short range scan in current quadrant.",
-        dispatch = fun ([]) -> ?CMD({srscan});
+        dispatch = fun ([]) -> ?CMD(srscan);
                        (_) -> io:format("A scan is a scan, Captain..~n"),
-                              ?CMD({srscan})
+                              ?CMD(srscan)
                    end,
         result = fun ({ok, Scan}) ->
                          io:format("~s", [erltrek_scan:srscan_string(Scan)]);
@@ -136,9 +136,9 @@ commands() ->
      #command{
         name = lrscan,
         help = "Perform a long range scan covering current and neighbouring quadrants.",
-        dispatch = fun ([]) -> ?CMD({lrscan});
+        dispatch = fun ([]) -> ?CMD(lrscan);
                        (_) -> io:format("A scan is a scan, Captain..~n"),
-                              ?CMD({lrscan})
+                              ?CMD(lrscan)
                    end,
         result = fun ({ok, Scan}) ->
                          io:format("~s", [erltrek_scan:lrscan_string(Scan)]);
@@ -211,9 +211,9 @@ commands() ->
      #command{
         name = dock,
         help = "Dock a starbase in adjacent sectors.",
-        dispatch = fun ([]) -> ?CMD({dock});
+        dispatch = fun ([]) -> ?CMD(dock);
                        (_) -> io:format("Docking is docking, Captain..~n"),
-                              ?CMD({dock})
+                              ?CMD(dock)
                    end,
         result = fun ({dock, already_docked}) ->
                          io:format("The ship is already docked~n");
@@ -229,9 +229,9 @@ commands() ->
      #command{
         name = undock,
         help = "Undock from a starbase currently docked.",
-        dispatch = fun ([]) -> ?CMD({undock});
+        dispatch = fun ([]) -> ?CMD(undock);
                        (_) -> io:format("Undocking is undocking, Captain..~n"),
-                              ?CMD({undock})
+                              ?CMD(undock)
                    end,
         result = fun ({undock, not_docked}) ->
                          io:format("The ship is not docked~n");

@@ -179,7 +179,7 @@ handle_info({distance_traveled, _}, State) ->
 handle_info({phaser_hit, Level, _Info}=Event, State) ->
     ok = notify(Event, State),
     {noreply, absorb_hit(Level, State)};
-handle_info({update_condition}, State) ->
+handle_info(update_condition, State) ->
     {noreply, update_condition(State)};
 handle_info(_Info, State) ->
     %% jj1bdx: how should these info messages be handled? Just ignored?
@@ -203,13 +203,13 @@ terminate(Reason, #ship_state{ commander=Pid }) ->
 
 %%% --------------------------------------------------------------------
 %% Ship commands
-handle_command({srscan}, State) ->
+handle_command(srscan, State) ->
     %% TODO: we can check for damaged scanner device here.. ;)
     Stardate = erltrek_galaxy:stardate(),
     Data = erltrek_galaxy:srscan(),
     {{ok, {Stardate, [State|Data]}}, State};
 %%% --------------------------------------------------------------------
-handle_command({lrscan}, State) ->
+handle_command(lrscan, State) ->
     {{ok, erltrek_galaxy:lrscan()}, State};
 %%% --------------------------------------------------------------------
 handle_command({impulse, Course}, #ship_state{ speed=Speed }=State) ->
@@ -251,14 +251,14 @@ handle_command({phaser, SX, SY, Energy},
             State#ship_state{ energy = E - Energy }}
     end;
 %%% --------------------------------------------------------------------
-handle_command({dock}, #ship_state{docked = Docked}=State) ->
+handle_command(dock, #ship_state{docked = Docked}=State) ->
     if Docked ->
            {{dock, already_docked}, State};
        true ->
            try_docking(State)
     end;
 %%% --------------------------------------------------------------------
-handle_command({undock}, #ship_state{docked = Docked}=State) ->
+handle_command(undock, #ship_state{docked = Docked}=State) ->
     if not Docked ->
            {{undock, not_docked}, State};
        true ->

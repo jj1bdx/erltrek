@@ -117,7 +117,7 @@ enterprise_command(Command) ->
     gen_server:call(?MODULE, {ship, Command}).
 
 srscan() ->
-    enterprise_command({srscan}).
+    enterprise_command(srscan).
 
 
 %%% --------------------------------------------------------------------
