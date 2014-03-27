@@ -237,32 +237,31 @@ handle_command(stop, State) ->
     {erltrek_galaxy:impulse(0,0), State};
 %%% --------------------------------------------------------------------
 handle_command({phaser, SX, SY, Energy},
-        #ship_state{ energy=E, docked = D }=State) ->
+               #ship_state{ energy=E, docked = D }=State) ->
     NKQ = erltrek_galaxy:count_nearby_enemies(),
     if
         D ->
-           {{phaser, no_firing_when_docked}, State};
+            {{phaser, no_firing_when_docked}, State};
         NKQ == 0 ->
-           {{phaser, no_klingon_in_quadrant}, State};
+            {{phaser, no_klingon_in_quadrant}, State};
         E =< Energy ->
-           {{phaser, not_enough_energy}, State};
+            {{phaser, not_enough_energy}, State};
         true ->
-           {erltrek_phaser:phaser(SX, SY, Energy),
-            State#ship_state{ energy = E - Energy }}
+            {phaser(SX, SY, Energy), State#ship_state{ energy = E - Energy }}
     end;
 %%% --------------------------------------------------------------------
 handle_command(dock, #ship_state{docked = Docked}=State) ->
     if Docked ->
-           {{dock, already_docked}, State};
+            {{dock, already_docked}, State};
        true ->
-           try_docking(State)
+            try_docking(State)
     end;
 %%% --------------------------------------------------------------------
 handle_command(undock, #ship_state{docked = Docked}=State) ->
     if not Docked ->
-           {{undock, not_docked}, State};
+            {{undock, not_docked}, State};
        true ->
-           {{undock, undock_complete}, State#ship_state{docked = false}}
+            {{undock, undock_complete}, State#ship_state{docked = false}}
     end;
 %%% --------------------------------------------------------------------
 handle_command(Cmd, State) ->
@@ -371,4 +370,14 @@ impulse(SQC, SSC, DQC, DSC, State) ->
                     {move, no_move_to_same_position}
             end;
         Error -> {move, Error}
+    end.
+
+%%% --------------------------------------------------------------------
+%% fire phasers
+phaser(SX, SY, Energy) ->
+    {QC, SC} = erltrek_galaxy:get_position(),
+    case erltrek_calc:course_distance(QC, SC, QC, #sectxy{ x=SX, y=SY }) of
+        {ok, _Dx, _Dy, Course, _Dist} ->
+            erltrek_galaxy:phaser(Course, Energy);
+        Error -> {phaser, Error}
     end.
