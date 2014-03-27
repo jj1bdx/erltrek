@@ -207,5 +207,16 @@
           speed=0.0 :: float()
          }).
 
+%% shell command record
+-record(command, {
+          name :: atom() | list(atom()),
+          expand = true :: boolean(), %% tab complete command? (default: yes)
+          desc = "(no arguments)" :: string(), %% printed on expand command
+          help = "No help available for this command." :: string(),
+          dispatch :: fun((list()) -> ok),
+          result = ok :: fun ((term()) -> ok) | term()
+         }).
+
+
 %% vim: set ts=4 sw=4 sts=4 et :
 %% emacs: -*- mode:erlang; tab-width:4; indent-tabs-mode:nil;  -*-

@@ -205,20 +205,12 @@ terminate(Reason, #ship_state{ commander=Pid }) ->
 %% Ship commands
 handle_command({srscan}, State) ->
     %% TODO: we can check for damaged scanner device here.. ;)
-
-    %% collect data (i.e. perform the scan) here, now, then send that
-    %% off as a short range scan result for output.
-
     Stardate = erltrek_galaxy:stardate(),
     Data = erltrek_galaxy:srscan(),
-
-    %% Using sync notify so the output is presented before returning.
-    %% But for this to work, no event handler (directly or indirectly)
-    %% may call into any of the processes in our call chain!
-    {sync_notify({srscan, {Stardate, [State|Data]}}, State), State};
+    {{ok, {Stardate, [State|Data]}}, State};
 %%% --------------------------------------------------------------------
 handle_command({lrscan}, State) ->
-    {sync_notify({lrscan, erltrek_galaxy:lrscan()}, State), State};
+    {{ok, erltrek_galaxy:lrscan()}, State};
 %%% --------------------------------------------------------------------
 handle_command({impulse, Course}, #ship_state{ speed=Speed }=State) ->
     %% Free move until told otherwise..
@@ -291,11 +283,6 @@ handle_commander_request(count_nearby_enemies, State) ->
 notify(_Event, #ship_state{ commander=undefined }) -> ok;
 notify(Event, #ship_state{ commander=Commander }) -> Commander ! {event, Event}, ok.
 
-sync_notify(_Event, #ship_state{ commander=undefined }) -> ok;
-sync_notify(Event, #ship_state{ commander=Commander }) ->
-    Ref = make_ref(),
-    Commander ! {sync_event, {self(), Ref}, Event},
-    receive {Ref, Rsp} -> Rsp end.
 
 %%% --------------------------------------------------------------------
 %% take damage from enemy attack
