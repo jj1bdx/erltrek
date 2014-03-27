@@ -83,7 +83,7 @@
 -behaviour(gen_fsm).
 
 %% API
--export([start/1]).
+-export([start_link/1]).
 
 %% States
 -export([idle/2, scout/2, aggressive/2, evasive/2, escaping/2]).
@@ -107,9 +107,9 @@
 %%% API
 %%% --------------------------------------------------------------------
 
--spec start(pid()) -> {ok, pid()}.
-start(Ship) ->
-    gen_fsm:start(?MODULE, Ship, []).
+-spec start_link(pid()) -> {ok, pid()}.
+start_link(Ship) ->
+    gen_fsm:start_link(?MODULE, Ship, []).
 
 
 %%% --------------------------------------------------------------------
@@ -118,7 +118,6 @@ start(Ship) ->
 
 init(Ship) ->
     erltrek_setup:seed(),
-    monitor(process, Ship),
     State = #state{ ship=Ship },
     {ok, idle, State, State#state.skill}.
 
@@ -141,8 +140,6 @@ handle_info({event, _}, StateName, StateData) ->
 handle_info({sync_event, {Pid, Ref}, _}, StateName, StateData) ->
     Pid ! {Ref, ok},
     next_state(StateName, StateData);
-handle_info({'DOWN', _Ref, process, _Ship, _Info}, _StateName, StateData) ->
-    {stop, normal, StateData};
 handle_info({ship_destroyed, _Ship, _Reason}, _StateName, StateData) ->
     {stop, normal, StateData};
 handle_info(_Info, StateName, StateData) ->

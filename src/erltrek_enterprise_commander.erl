@@ -81,19 +81,19 @@
 
 -module(erltrek_enterprise_commander).
 
--export([start/1]).
+-export([start_link/1]).
 
 -include("erltrek.hrl").
 
--spec start(pid()) -> {ok, pid()}.
+-spec start_link(pid()) -> {ok, pid()}.
 
-start(Ship) ->
+start_link(Ship) ->
     {ok,
-     spawn(fun() ->
-                   erltrek_setup:seed(),
-                   monitor(process, Ship),
-                   command(Ship)
-           end)}.
+     spawn_link(
+       fun() ->
+               erltrek_setup:seed(),
+               command(Ship)
+       end)}.
 
 command(Ship) ->
     receive
@@ -102,9 +102,7 @@ command(Ship) ->
             command(Ship);
         {sync_event, {Pid, Ref}, Event} ->
             Pid ! {Ref, erltrek_event:sync_notify(Event)},
-            command(Ship);
-        {'DOWN', _Ref, process, Ship, _Info} ->
-            oh_no_ship_destroyed_I_will_die_now_too
+            command(Ship)
     after
         ?TICK_INTERVAL ->
             command_tick(Ship)

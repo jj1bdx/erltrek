@@ -133,7 +133,7 @@ init([{ship, Ship}|_Args]) ->
                undefined ->
                    undefined;
                Commander ->
-                   {ok, Pid} = Commander:start(self()),
+                   {ok, Pid} = Commander:start_link(self()),
                    Pid
            end,
     #ship_def{ max_energy=E, max_shield=S, initial_speed = IS } = Ship,
@@ -378,7 +378,6 @@ impulse(SQC, SSC, DQC, DSC, State) ->
         {ok, _Dx, _Dy, Course, Dist} ->
             if
                 Dist > 0 ->
-                    %% TODO: get speed from somewhere ...
                     erltrek_galaxy:impulse(Course, State#ship_state.speed);
                 true ->
                     %% zero distance = no move
