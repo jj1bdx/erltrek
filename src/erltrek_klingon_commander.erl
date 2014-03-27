@@ -183,8 +183,7 @@ evasive(timeout, State) ->
 aggressive(timeout, State) ->
     case status(State) of
         ok ->
-            %% TODO: attack!
-            next_state(aggressive, State);
+            attack(State);
         badly_hurt ->
             %% go straight to evasive (fast reaction)
             evasive(timeout, State)
@@ -217,3 +216,18 @@ status(State) ->
         _ ->
             badly_hurt
     end.
+
+attack(State) ->
+    {ok, {_, Data}} = erltrek_ship:command(ship(State), srscan),
+    Quad = proplists:get_value(quad, Data),
+    SI = array:sparse_foldl(
+          fun (I, {s_enterprise, _}, _) -> I;
+              (_, _, I) -> I
+          end, false, Quad),
+    %% TODO: check distance, maybe we should get closer to make the shot more effective
+    if is_integer(SI) ->
+            #sectxy{ x=SX, y=SY } = erltrek_calc:index_sectxy(SI),
+            {phaser_hit, _} = erltrek_ship:command(ship(State), {phaser, SX, SY, 100});
+       true -> nop
+    end,
+    next_state(aggressive, State).
