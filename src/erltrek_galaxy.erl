@@ -433,6 +433,8 @@ move_ships(Delta, #state{ ships=Ships }=State0) ->
                             pos=#galaxy{x = GX, y = GY},
                             speed=Speed, course=Course }=Data,
                    Acc) ->
+                      % Note: Delta unit in Seconds
+                      % 0 =< Speed * Delta < 1.0
                       Dist = Speed * Delta,
                       DX = Dist * -math:cos(Course),
                       DY = Dist * math:sin(Course),
