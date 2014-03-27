@@ -81,12 +81,11 @@
 
 -module(erltrek_shell).
 
--export([start/0, find_command/2, token_to_name/1]).
+-export([start/0, find_command/1, token_to_name/1]).
 -import(erltrek_shell_commands, [commands/0]).
 
 -include("erltrek.hrl").
 
--define(DEFAULT_PHASER_ENERGY, 100).
 
 start() ->
     spawn(fun server/0).

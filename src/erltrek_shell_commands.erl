@@ -82,7 +82,7 @@
 -module(erltrek_shell_commands).
 
 -export([commands/0]).
--import(erltrek_shell, [find_command/2, token_to_name/1]).
+-import(erltrek_shell, [find_command/1, token_to_name/1]).
 
 -include("erltrek.hrl").
 
@@ -246,16 +246,17 @@ commands() ->
         help = "List available commands, or show help for specific commands.",
         dispatch = fun ([]) ->
                            [io:format("~-12s ~s~n", [Name, Desc])
-                            || #command{ name=Name, desc=Desc } <- commands()];
+                            || #command{ name=Name, desc=Desc } <- commands()],
+                           ok;
                        (Names) ->
-                           Cmds = commands(),
-                           [case find_command(Name, Cmds) of
+                           [case find_command(Name) of
                                 #command{ name=N, desc=D, help=H } ->
                                     io:format("~-12s ~s~n~s~n~n", [N, D, H]);
                                 _ ->
                                     io:format("Sorry, command ~s is not known to us.~n",
                                               [token_to_name(Name)])
-                            end || Name <- Names]
+                            end || Name <- Names],
+                           ok
                    end
        },
      #command{
