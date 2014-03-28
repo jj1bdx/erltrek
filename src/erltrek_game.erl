@@ -117,8 +117,10 @@ enterprise_command(Command) ->
     gen_server:call(?MODULE, {ship, Command}).
 
 srscan() ->
-    enterprise_command(srscan).
-
+    % Shell shortcut code
+    % see erltrek_shell_commands:command/0
+    {ok, Scan} = enterprise_command(srscan),
+    io:format("~s", [erltrek_scan:srscan_string(Scan)]).
 
 %%% --------------------------------------------------------------------
 %% Callbacks
