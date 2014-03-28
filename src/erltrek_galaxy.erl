@@ -433,8 +433,11 @@ move_ships(Delta, #state{ ships=Ships }=State0) ->
                             pos=#galaxy{x = GX, y = GY},
                             speed=Speed, course=Course }=Data,
                    Acc) ->
-                      % Note: Delta unit in Seconds
-                      % 0 =< Speed * Delta < 1.0
+                      % Note from @jj1bdx:
+                      % Delta unit in Seconds
+                      % abs(Speed * Delta) < 1.0
+                      % Otherwise skipping sectors may occur
+                      % @kaos: am I correct?
                       Dist = Speed * Delta,
                       DX = Dist * -math:cos(Course),
                       DY = Dist * math:sin(Course),
