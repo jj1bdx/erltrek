@@ -83,7 +83,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, spawn_ship/1,
+-export([start_link/0, spawn_ship/1, spawn_ship/2,
          stardate/0, get_position/0,
          srscan/0, lrscan/0,
          impulse/2, phaser/2,
@@ -121,6 +121,13 @@ start_link() ->
 spawn_ship(Ship) when is_record(Ship, ship_def)->
     {ok, Pid} = erltrek_ship_sup:start_ship([Ship]),
     ok = gen_server:cast(?MODULE, {new_ship, Ship#ship_def.class, Pid}),
+    {ok, Pid}.
+
+-spec spawn_ship(#quadxy{}, #ship_def{}) -> {ok, pid()}.
+
+spawn_ship(QC, Ship) when is_record(QC, quadxy), is_record(Ship, ship_def)->
+    {ok, Pid} = erltrek_ship_sup:start_ship([Ship]),
+    ok = gen_server:cast(?MODULE, {new_ship_quad, QC, Ship#ship_def.class, Pid}),
     {ok, Pid}.
 
 -spec get_position() -> {reply, term(), #state{}}.
@@ -242,6 +249,14 @@ handle_cast({new_ship, Class, Pid}, State0) ->
                     pos=erltrek_calc:quadsect_to_galaxy({QC, SC})
                    }},
                 State);
+handle_cast({new_ship_quad, QC, Class, Pid}, State0) ->
+    {QC, SC, State} = place_object_quad(QC, {Class, Pid}, State0),
+    handle_info({register_ship, Pid,
+                 #ship_data{
+                    class=Class,
+                    pos=erltrek_calc:quadsect_to_galaxy({QC, SC})
+                   }},
+                State);
 handle_cast(_Cast, State) ->
     {noreply, State}.
 
@@ -332,26 +347,46 @@ place_object(Object, State) ->
     {index_quadxy(QI), index_sectxy(SI),
      update_sector(QI, SI, Object, State)}.
 
+-spec place_object_quad(#quadxy{}, sector_entity() | {ship_class, pid()}, #state{}) ->
+    {#quadxy{}, #sectxy{}, #state{}}.
+place_object_quad(QC, Object, State) ->
+    {QI, SI} = find_empty_sector_quad(quadxy_index(QC), State),
+    {index_quadxy(QI), index_sectxy(SI),
+     update_sector(QI, SI, Object, State)}.
+
 %% maximum number of empty sector search attempts
 
 -define(MAX_ATTEMPTS, 10000).
 
--spec find_empty_sector(#state{}) -> {non_neg_integer(), non_neg_integer()}.
+-spec find_empty_sector(#state{}) ->
+    {non_neg_integer(), non_neg_integer()} | no_empty_sector_found.
 find_empty_sector(State) ->
     find_empty_sector(?MAX_ATTEMPTS, State).
 
--spec find_empty_sector(non_neg_integer(), #state{}) -> 
+-spec find_empty_sector(non_neg_integer(), #state{}) ->
     {non_neg_integer(), non_neg_integer()} | no_empty_sector_found.
 
-find_empty_sector(0, _State) -> no_empty_sector_found;
 find_empty_sector(N, #state{ galaxy=G }=State) when is_integer(N), N > 0 ->
+    %% 0 =< QI =< (array:size(G) - 1)
+    find_empty_sector_quad(N, tinymt32:uniform(array:size(G)) - 1, State).
+
+-spec find_empty_sector_quad(non_neg_integer(), #state{}) ->
+    {non_neg_integer(), non_neg_integer()} | no_empty_sector_found.
+
+find_empty_sector_quad(QI, State) when is_integer(QI), QI >= 0 ->
+    find_empty_sector_quad(?MAX_ATTEMPTS, QI, State).
+
+-spec find_empty_sector_quad(non_neg_integer(), non_neg_integer(), #state{}) ->
+    {non_neg_integer(), non_neg_integer()} | no_empty_sector_found.
+
+find_empty_sector_quad(0, _QI, _State) -> no_empty_sector_found;
+find_empty_sector_quad(N, QI, State) when is_integer(N), N > 0 ->
     %% 0 =< QI =< (array:size(G) - 1),  0 =< SI =< (array:size(SECT) - 1)
-    QI = tinymt32:uniform(array:size(G)) - 1,
     SECT = get_quad(index_quadxy(QI), State),
     SI = tinymt32:uniform(array:size(SECT)) - 1,
     case lookup_sector(index_sectxy(SI), SECT) of
         s_empty -> {QI, SI};
-        _ -> find_empty_sector(N - 1, State)
+        _ -> find_empty_sector_quad(N - 1, QI, State)
     end.
 
 -spec find_ship(pid(), #state{}) -> {ok, #ship_data{}} | error.
