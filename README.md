@@ -19,13 +19,14 @@
 
 * Using NIFs (unless absolutely necessary)
 
-## Functions implemented at tag `first_galaxy_server`
+## Functions implemented at tag `baselevel_20140330`
 
 (Most of code files are revised and rewritten by Andreas Stenius)
 
 * Game field setup
 * Impulse engine for Enterprise
 * Enterprise firing phaser to Klingon
+* Klingon firing to Enterprise
 * Enterprise can dock/undock to/from the starbase
 * The Game is now a proper Erlang application
 * Game message handled by an gen\_event server
@@ -36,7 +37,6 @@
 
 ## Functions under development
 
-* Klingon firing to Enterprise
 * Torpedoes
 
 ## How to run (will invoke a dedicated shell)
