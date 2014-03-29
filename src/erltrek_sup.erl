@@ -47,14 +47,26 @@ init(_Args) ->
     RestartStrategy = one_for_all,
     MaxRestarts = 1,
     MaxTime = 60,
-    Childs = [{game,
-               {erltrek_game, start_link, []},
-               permanent, 60000, worker, [erltrek_game]},
-              {events,
+    %% NOTE: the supervisor starts the children from top to bottom in this list
+    %% So, children with dependencies must be listed after those they depend on.
+    Childs = [{events,
                {erltrek_event, start_link,
-                %% todo: make this configurable by
+                %% TODO: make this configurable by
                 %% placing it in the app enviorment or some such..
                 [[{erltrek_terminal, []}]]},
-               permanent, brutal_kill, worker, dynamic}
+               permanent, brutal_kill, worker, dynamic},
+
+              {ships,
+               {erltrek_ship_sup, start_link, []},
+               permanent, 5000, supervisor, [erltrek_ship_sup]},
+
+              {galaxy, %% depends on 'ships' supervisor
+               {erltrek_galaxy, start_link, []},
+               permanent, 5000, worker, [erltrek_galaxy]},
+
+              %% start game last, so everything else is in place when we get there
+              {game,
+               {erltrek_game, start_link, []},
+               permanent, 60000, worker, [erltrek_game]}
              ],
     {ok, {{RestartStrategy, MaxRestarts, MaxTime}, Childs}}.

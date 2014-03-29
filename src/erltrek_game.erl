@@ -81,25 +81,22 @@
 -module(erltrek_game).
 -behaviour(gen_server).
 
--export([
-         code_change/3,
+%% API
+-export([start_link/0, start_link/1, stop/0,
          enterprise_command/1,
-         handle_call/3,
-         handle_cast/2,
-         handle_info/2,
-         init/1,
-         lose/1,
-         start_game/0,
-         start_link/0,
-         start_link/1,
-         stop/0,
-         terminate/2,
-         won/1
-     ]).
+         lost/1, won/1, srscan/0
+        ]).
+
+%% Callbacks
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         code_change/3, terminate/2]).
 
 -include("erltrek.hrl").
 
+
+%%% --------------------------------------------------------------------
 %% public APIs
+%%% --------------------------------------------------------------------
 
 start_link() ->
     start_link([]).
@@ -107,51 +104,34 @@ start_link() ->
 start_link(Args) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, Args, []).
 
-start_game() ->
-    gen_server:call(?MODULE, start_game).
-
 stop() ->
     gen_server:cast(?MODULE, {stop, stop}).
 
-lose(Message) ->
-    gen_server:cast(?MODULE, {stop, {lose, Message}}).
+lost(Message) ->
+    gen_server:cast(?MODULE, {stop, {lost, Message}}).
 
 won(Message) ->
     gen_server:cast(?MODULE, {stop, {won, Message}}).
 
 enterprise_command(Command) ->
-    gen_server:call(?MODULE, {enterprise_command, Command}).
+    gen_server:call(?MODULE, {ship, Command}).
 
+srscan() ->
+    enterprise_command({srscan}).
+
+
+%%% --------------------------------------------------------------------
 %% Callbacks
+%%% --------------------------------------------------------------------
 
 init([]) ->
-    {ok, []}.
+    erltrek_setup:seed(),
+    erltrek_galaxy:spawn_ship(?enterprise_ship).
 
-handle_call(start_game, _From, _State) ->
-    % Initialize {Tick,SHIP,NK,DS,DI,DB,DH,DKQ,SECT,DKS} 
-    InitState = erltrek_setup:setup_state(),
-    % wait one second to start the game
-    Timer = erlang:send_after(1000, self(), tick_event),
-    % build gen_server State
-    GameStateAndTimer = {Timer, InitState},
-    {reply, ok, GameStateAndTimer};
-handle_call({enterprise_command, Command}, _From, GameStateAndTimer) ->
-    {Timer, GameState} = GameStateAndTimer,
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
-    case SHIP#enterprise_status.next_command =:= {} of
-        true ->
-            SHIP2 = SHIP#enterprise_status{next_command = Command},
-            NewGameState = {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS},
-            NewGameStateAndTimer = {Timer, NewGameState},
-            {reply, ok, NewGameStateAndTimer};
-        false ->
-            {reply, command_refused, GameStateAndTimer}
-    end;
-handle_call(get_state, _From, State) ->
-    {reply, State, State}.
+handle_call({ship, Command}, _From, Ship) ->
+    {reply, erltrek_ship:command(Ship, Command), Ship}.
 
-terminate(normal, {Timer, _GameState}) ->
-    erlang:cancel_timer(Timer),
+terminate(_Reason, _Ship) ->
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -161,16 +141,6 @@ handle_cast({stop, Event}, State) ->
     ok = erltrek_event:sync_notify(Event),
     {stop, normal, State}.
 
-handle_info(tick_event, GameStateAndTimer) ->
-    {OldTimer, GameState} = GameStateAndTimer,
-    erlang:cancel_timer(OldTimer),
-    % do interval timer task here
-    % CAUTION: DO NOT change Tick value inside!
-    NewGameState = erltrek_event:timer_tasks(GameState),
-    % increment tick counter and restart timer
-    NewTimer = erlang:send_after(?TICK_INTERVAL, self(), tick_event),
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = NewGameState,
-    NewGameState2 = {Tick + 1, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS},
-    NewGameStateAndTimer = {NewTimer, NewGameState2},
-    {noreply, NewGameStateAndTimer}.
+handle_info(_, State) ->
+    {noreply, State}.
 

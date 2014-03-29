@@ -83,4 +83,7 @@
 
 -export([start/0]).
 
+% See lib/kernel/src/user_drv.erl
+-spec start() -> pid().
+
 start() -> user_drv:start(['tty_sl -c -e', {erltrek_shell, start, []}]).

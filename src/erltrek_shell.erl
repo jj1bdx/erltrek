@@ -83,6 +83,8 @@
 
 -export([start/0]).
 
+-include("erltrek.hrl").
+
 -record(command, {
           name :: atom() | list(atom()),
           expand = true :: boolean(), %% tab complete command? (default: yes)
@@ -90,6 +92,8 @@
           help = "No help available for this command." :: string(),
           dispatch :: fun((list()) -> ok)
          }).
+
+-define(DEFAULT_PHASER_ENERGY, 100).
 
 start() ->
     spawn(fun server/0).
@@ -102,14 +106,13 @@ server() ->
 server_loop() ->
     case io:get_line("Command > ") of
         Command when is_list(Command) ->
-            case parse_command(erl_scan:string(Command)) of
-                {#command{ dispatch=Dispatch }, Args} ->
-                    Dispatch(Args);
-                {undefined, _} ->
+            case dispatch_command(Command) of
+                not_found ->
                     io:format("My sincere apologies, Captain, I do not understand your command: ~s", [Command]);
-                {_Location, Mod, Desc} ->
-                    io:format("Hrrm.. you need to quit slurring, Captain~n  (~p)~n", [Mod:format_error(Desc)]);
-                ok -> ok
+                {error, Message} ->
+                    io:format("Hrrm.. you need to quit slurring, Captain~n  (~s)~n", [Message]);
+                {ok, Result} ->
+                    process_result(Result)
             end,
             server_loop();
         eof ->
@@ -121,25 +124,43 @@ server_loop() ->
             server_loop()
     end.
 
+dispatch_command(Command) ->
+    case parse_command(erl_scan:string(Command)) of
+        {#command{ dispatch=Dispatch }, Args} ->
+            {ok, Dispatch(Args)};
+        {undefined, _} ->
+            not_found;
+        {_Location, Mod, Desc} ->
+            {error, Mod:format_error(Desc)};
+        ok ->
+            {ok, ok}
+    end.
+
 parse_command({ok, [Name|Args], _}) ->
-    {find_command(Name, commands()),
+    {find_command(Name),
      [Arg || Arg <- Args, element(1, Arg) =/= ',']
     };
 parse_command({ok, [], _}) -> ok;
 parse_command({error, Info, _Location}) -> Info.
 
-token_to_name({_,_,Name}) -> Name;
-token_to_name({Name,_}) -> Name;
+token_to_name({_, _, Name}) -> Name;
+token_to_name({Name, _}) -> Name;
 token_to_name(Name) -> Name.
 
-find_command(Token, Cmds) ->
+find_command(Token) ->
     Name = token_to_name(Token),
-    case find_command1(Name, Cmds) of
+    Cmds = commands(),
+    case find_command(Name, Cmds) of
         undefined ->
-            NameR = lists:reverse(atom_to_list(Name)),
+            NameR = if is_atom(Name) ->
+                            lists:reverse(atom_to_list(Name));
+                       is_list(Name) ->
+                            lists:reverse(Name);
+                       true -> ignore
+                    end,
             case (get_expand_fun())(NameR) of
                 {yes, Suffix, _} ->
-                    find_command1(list_to_atom(lists:reverse(NameR, Suffix)), Cmds);
+                    find_command(list_to_atom(lists:reverse(NameR, Suffix)), Cmds);
                 {_, _, []} ->
                     undefined;
                 {_, _, Matches} ->
@@ -149,9 +170,9 @@ find_command(Token, Cmds) ->
         Cmd -> Cmd
     end.
 
-find_command1(_, []) -> undefined;
-find_command1(Name, [#command{ name=Name }=Cmd|_]) -> Cmd;
-find_command1(Name, [_|Cmds]) -> find_command1(Name, Cmds).
+find_command(_, []) -> undefined;
+find_command(Name, [#command{ name=Name }=Cmd|_]) -> Cmd;
+find_command(Name, [_|Cmds]) -> find_command(Name, Cmds).
 
 get_expand_fun() ->
     Commands = [begin
@@ -162,7 +183,7 @@ get_expand_fun() ->
                    Expand =:= true],
     fun ("") ->
             {yes, "", [Name || {_, #command{ name=Name }} <- Commands]};
-        (Input) ->
+        (Input) when is_list(Input) ->
             %% note: Input is the current command line, reversed!
             Tokens = string:tokens(Input, " "),
             Command = lists:last(Tokens),
@@ -177,12 +198,42 @@ get_expand_fun() ->
                           end, [Desc]};
                 [] -> {no, "", []};
                 _ -> {no, "", [Name || {_, #command{ name=Name }} <- Matches]}
-            end
+            end;
+        (ignore) -> {no, "", []}
     end.
 
 
 -define(CMD(C), erltrek_game:enterprise_command(C)).
--define(I(V), {integer,_, V}).
+-define(I(V), {integer, _, V}).
+
+-spec get_coord(string(), Default) -> {integer(), integer()} | Default.
+get_coord(Prompt, Default) ->
+    case io:get_line(Prompt) of
+        "\n" -> Default;
+        Rsp when is_list(Rsp) ->
+            case erl_scan:string(Rsp) of
+                {ok, [?I(X), ?I(Y)], _} -> {X, Y};
+                {ok, [?I(X), {',', _}, ?I(Y)], _} -> {X, Y};
+                _ ->
+                    io:format("Please provide X and Y coordinates, or no value for ~p.~n", [Default]),
+                    get_coord(Prompt, Default)
+            end;
+        _ -> Default
+    end.
+
+-spec get_integer(string(), Default) -> integer() | Default.
+get_integer(Prompt, Default) ->
+    case io:get_line(Prompt) of
+        "\n" -> Default;
+        Rsp when is_list(Rsp) ->
+            case erl_scan:string(Rsp) of
+                {ok, [?I(V)], _} -> V;
+                _ ->
+                    io:format("Please provide integer value, or no value for ~p.~n", [Default]),
+                    get_integer(Prompt, Default)
+            end;
+        _ -> Default
+    end.
 
 commands() ->
     [#command{
@@ -207,16 +258,33 @@ commands() ->
         help = "Start impulse engine, heading for given sector (in current or specified quadrant).",
         dispatch = fun ([?I(SX), ?I(SY)]) -> ?CMD({impulse, SX, SY});
                        ([?I(QX), ?I(QY), ?I(SX), ?I(SY)]) -> ?CMD({impulse, QX, QY, SX, SY});
-                       ([]) -> io:format("I need direction, Captain!~n");
+                       ([]) ->
+                           Q = get_coord("Quadrant: ", default),
+                           S = get_coord("Sector: ", abort),
+                           case {Q, S} of
+                               {{QX, QY}, {SX, SY}} ->
+                                   ?CMD({impulse, QX, QY, SX, SY});
+                               {default, {SX, SY}} ->
+                                   ?CMD({impulse, SX, SY});
+                               _ -> nop
+                           end;
                        (_) -> io:format("Bad impulse directions, Captain!~n")
                    end
        },
      #command{
         name = phaser,
         desc = "Sector X, Y, Energy",
-        help = "Fire with ship pasers on sector.",
+        help = "Fire with ship phasers on sector.",
         dispatch = fun ([?I(SX), ?I(SY), ?I(E)]) -> ?CMD({phaser, SX, SY, E});
-                       (_) -> io:format("I need data, Captain!~n")
+                       ([]) ->
+                           S = get_coord("Sector: ", abort),
+                           E = get_integer("Energy: ", ?DEFAULT_PHASER_ENERGY),
+                           case {S, E} of
+                               {{SX, SY}, E} ->
+                                   ?CMD({phaser, SX, SY, E});
+                               _ -> nop
+                           end;
+                       (_) -> io:format("Bad phaser command, Captain!~n")
                    end
        },
      #command{
@@ -265,3 +333,53 @@ commands() ->
                    end
        }
     ].
+
+process_result(ok) -> ok;
+process_result({unknown_command, Cmd}) ->
+    io:format(
+      "~n"
+      "Your command seems valid Captain, however there is no one onboard this ship"
+      " that knows how to carry it out.~n"
+      "Our sincere apologies, perhaps notify the ship manufacturer for updated manuals:"
+      " (https://github.com/jj1bdx/erltrek/issues)~n"
+      "Please include the following: ~p~n~n",
+      [Cmd]);
+process_result({phaser, not_enough_energy}) ->
+    io:format("Our ship energy reserves are running low!~n");
+process_result({phaser, no_klingon_in_quadrant}) ->
+    io:format("No Klingon in the quadrant!~n");
+process_result({phaser, no_firing_when_docked}) ->
+    io:format("No firing allowed when docked!~n");
+%% TODO: the command specific results ought to be taken care of in the command dispatch fun..
+process_result({phaser_hit, Hits}) ->
+    case lists:flatten(
+           [io_lib:format(
+              "Phaser hit ~s at sector ~b,~b level ~b~n",
+              [erltrek_terminal:describe_object(Class),
+               SX, SY, Level])
+            || {#sectxy{ x=SX, y=SY }, Class, Level} <- Hits,
+               Level > 0])
+    of
+        [] ->
+            io:format("Phaser did not hit any targets.~n");
+        Msg ->
+            io:format(Msg)
+    end;
+process_result({move, no_move_to_same_position}) ->
+    io:format("No move to the same position!~n");
+process_result({move, no_move_while_docked}) ->
+    io:format("No move allowed while docked!~n");
+process_result({dock, already_docked}) ->
+    io:format("The ship is already docked~n");
+process_result({dock, docking_complete}) ->
+    io:format("Docking the ship complete~n");
+process_result({dock, base_not_adjacent}) ->
+    io:format("No starbase in adjacent sectors~n");
+process_result({dock, base_not_in_quadrant}) ->
+    io:format("No starbase in the quadrant~n");
+process_result({undock, not_docked}) ->
+    io:format("The ship is not docked~n");
+process_result({undock, undock_complete}) ->
+    io:format("Undocking complete~n");
+process_result(Other) ->
+    io:format("Unexpected command result: ~p~n", [Other]).

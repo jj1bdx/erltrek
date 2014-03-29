@@ -96,7 +96,7 @@
 %% maximum concurrent distress calls
 -define(MAXDISTR, 5).
 %% Version number string
--define(ERLTREK_VERSION, "0.0").
+-define(ERLTREK_VERSION, "0.1").
 %% Debug trace flag
 -define(DEBUG_TRACE, true).
 %% Initial Enterprise energy
@@ -120,9 +120,11 @@
 
 -type quadcoord() :: 0..(?NQUADS - 1).
 -type sectcoord() :: 0..(?NSECTS - 1).
+-type galacoord() :: float(). % 0..(?NQUADS * ?NSECTS - 1)
 
 -record(quadxy, { x :: quadcoord(), y :: quadcoord()}).
 -record(sectxy, { x :: sectcoord(), y :: sectcoord()}).
+-record(galaxy, { x :: galacoord(), y :: galacoord()}).
 
 %% entity atom in the sector array
 
@@ -136,33 +138,74 @@
 -record(inhabited_info, { xy :: #sectxy{}, systemname :: string()}).
 
 %% Enterprise status
+-type ship_condition() :: 'cond_green' | 'cond_yellow' | 'cond_red' | 'cond_docked'.
 
--record(enterprise_status, {
-        quadxy :: #quadxy{},
-        sectxy :: #sectxy{},
-        energy :: integer(),
-        shield :: integer(),
-        impulse_move :: boolean(),
-        impulse_course :: [{#quadxy{}, #sectxy{}}],
-        warping :: boolean(),
-        docked :: boolean(),
-        condition:: 'cond_green' | 'cond_yellow' | 'cond_red' | 'cond_docked',
-        % next command content
-        next_command :: tuple()
-    }).
+%% Class of ships
+-type ship_class() :: s_enterprise | s_klingon.
 
-%% Status for Klingons in the sector
+%% Ship data used by erltrek_ship
+-record(ship_def, {
+          class :: ship_class(),
+          commander :: atom(), %% commander module
+          max_energy=1 :: pos_integer(),
+          max_shield=0 :: non_neg_integer(),
+          max_speed=1.5 :: float(), %% for impulse engines
+          initial_speed=0.8 :: float(), %% initial speed for impulse engines
+          %% TODO: cost based on actual speed.. faster costs more
+          engine_cost=10 :: pos_integer(), %% consumed energy / sector travel
+          durability :: fun((body | shield, integer()) -> integer())
+         }).
 
--record(klingon_status, {
-        energy :: integer()
-    }).
+-define(enterprise_ship,
+        #ship_def{
+           class = s_enterprise,
+           commander = erltrek_enterprise_commander,
+           max_energy = ?SHIPENERGY,
+           max_shield = ?SHIPSHIELD,
+           initial_speed = 0.9,
+           durability = fun (body, D) when D > 0 -> trunc(D * 1.3) + 10;
+                            (_, D) -> D
+                        end
+          }).
 
-%% Tuple type for saving Game State
-%% {Tick,SHIP,NK,DS,DI,DB,DH,DKQ,SECT,DKS} = GameState
+-define(klingon_ship,
+        #ship_def{
+           class = s_klingon,
+           commander = erltrek_klingon_commander,
+           max_energy = ?KLINGONENERGY,
+           max_shield = 0,
+           initial_speed = 0.3,
+           durability = fun (_, D) -> D end
+          }).
 
--type game_state() ::
-    {non_neg_integer(), #enterprise_status{}, non_neg_integer(),
-     dict(), dict(), dict(), dict(), dict(), array(), dict()}.
+%% Ship state used by erltrek_ship (also used in some event notifications)
+-record(ship_state, {
+          ship=#ship_def{} :: #ship_def{},
+          commander :: pid(), %% commander process
+          energy=1 :: pos_integer(),
+          shield=0 :: non_neg_integer(),
+          condition=cond_green :: ship_condition(),
+          docked=false :: boolean(),
+
+          %% speed setting to use when moving (not current speed, that
+          %% is in #ship_data{})
+          speed=0.3 :: float(),
+
+          %% traveling target coordinates
+          tquad :: #quadxy{},
+          tsect :: #sectxy{}
+         }).
+
+
+%% galaxy data about ship used by erltrek_galaxy
+-record(ship_data, {
+          class :: ship_class(),
+          pos :: #galaxy{},
+          quad :: #quadxy{},
+          sect :: #sectxy{},
+          course=0.0 :: float(), % 0..360
+          speed=0.0 :: float()
+         }).
 
 %% vim: set ts=4 sw=4 sts=4 et :
 %% emacs: -*- mode:erlang; tab-width:4; indent-tabs-mode:nil;  -*-

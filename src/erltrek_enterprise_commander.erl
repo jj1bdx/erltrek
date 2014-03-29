@@ -1,11 +1,12 @@
-%%% --------------------------------------------------------------------
+%%% -------------------------------------------------------------------
 %%% Erltrek ("this software") is covered under the BSD 3-clause
 %%% license.
 %%%
 %%% This product includes software developed by the University of
 %%% California, Berkeley and its contributors.
 %%%
-%%% Copyright (c) 2014 Kenji Rikitake. All rights reserved.
+%%% Copyright (c) 2014 Kenji Rikitake and Andreas Stenius.
+%%% All rights reserved.
 %%%
 %%% Redistribution and use in source and binary forms, with or without
 %%% modification, are permitted provided that the following conditions
@@ -19,10 +20,10 @@
 %%%   disclaimer in the documentation and/or other materials provided
 %%%   with the distribution.
 %%%
-%%% * Neither the name of Kenji Rikitake, k2r.org, nor the names of
-%%%   its contributors may be used to endorse or promote products
-%%%   derived from this software without specific prior written
-%%%   permission.
+%%% * Neither the name of Kenji Rikitake, Andreas Stenius, k2r.org,
+%%%   nor the names of its contributors may be used to endorse or
+%%%   promote products derived from this software without specific
+%%%   prior written permission.
 %%%
 %%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 %%% CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
@@ -78,78 +79,42 @@
 %%% [End of LICENSE]
 %%% --------------------------------------------------------------------
 
--module(erltrek_dock).
+-module(erltrek_enterprise_commander).
+
+-export([start/1]).
 
 -include("erltrek.hrl").
 
--export([dock/1,
-        undock/1
-        ]).
+-spec start(pid()) -> {ok, pid()}.
 
-%% Docking a starbase
+start(Ship) ->
+    {ok,
+     spawn(fun() ->
+                   erltrek_setup:seed(),
+                   monitor(process, Ship),
+                   command(Ship)
+           end)}.
 
--spec dock(game_state()) -> game_state().
-
-dock(GameState) ->
-    {_Tick, SHIP, _NK, _DS, _DI, _DB, _DH, _DKQ, _SECT, _DKS} = GameState,
-    case SHIP#enterprise_status.docked of
-        true ->
-            erltrek_event:notify({dock, already_docked}),
-            GameState;
-        false ->
-            try_docking(GameState)
-    end.
-        
-%% Undocking from a starbase
-
--spec undock(game_state()) -> game_state().
-
-undock(GameState) ->
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
-    case SHIP#enterprise_status.docked of
-        false ->
-            erltrek_event:notify({undock, not_docked}),
-            GameState;
-        true ->
-            SHIP2 = SHIP#enterprise_status{docked = false},
-            erltrek_event:notify({undock, undock_complete}),
-            {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS}
+command(Ship) ->
+    receive
+        {event, Event} ->
+            ok = erltrek_event:notify(Event),
+            command(Ship);
+        {sync_event, {Pid, Ref}, Event} ->
+            Pid ! {Ref, erltrek_event:sync_notify(Event)},
+            command(Ship);
+        {'DOWN', _Ref, process, Ship, _Info} ->
+            oh_no_ship_destroyed_I_will_die_now_too
+    after
+        ?TICK_INTERVAL ->
+            command_tick(Ship)
     end.
 
-%% Try docking a starbase
+command_tick(Ship) ->
+    %% perhaps do something...
 
--spec try_docking(game_state()) -> game_state().
+    %% Update ship condition flag
+    Ship ! {update_condition},
 
-try_docking(GameState) ->
-    {Tick, SHIP, NK, DS, DI, DB, DH, DKQ, SECT, DKS} = GameState,
-    QC = SHIP#enterprise_status.quadxy,
-    SC = SHIP#enterprise_status.sectxy,
-    SX = SC#sectxy.x,
-    SY = SC#sectxy.y,
-    SHIP2 = case dict:is_key(QC, DB) of
-        % Starbase exists in the quadrant
-        true ->
-            [TB] = dict:fetch(QC, DB),
-            BC = TB#base_info.xy,
-            BX = BC#sectxy.x,
-            BY = BC#sectxy.y,
-            % If the starbase is at an adjacent sector,
-            % Enterprise can be docked
-            case abs(SX - BX) =< 1 andalso abs(SY - BY) =< 1 of
-                true ->
-                    erltrek_event:notify({dock, dock_complete}),
-                    % Dock and restore energy and shield
-                    SHIP#enterprise_status{
-                        docked = true,
-                        energy = ?SHIPENERGY,
-                        shield = ?SHIPSHIELD};
-                false ->
-                    erltrek_event:notify({dock, base_not_adjacent}),
-                    SHIP
-            end;
-        false ->
-            erltrek_event:notify({dock, base_not_in_quadrant}),
-            SHIP
-    end,
-    {Tick, SHIP2, NK, DS, DI, DB, DH, DKQ, SECT, DKS}.
-
+    %% commander didn't die.. so keep on commanding the ship
+    command(Ship).
