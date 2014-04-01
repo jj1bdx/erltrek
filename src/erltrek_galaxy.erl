@@ -130,28 +130,28 @@ spawn_ship(QC, Ship) when is_record(QC, quadxy), is_record(Ship, ship_def)->
     ok = gen_server:cast(?MODULE, {new_ship_quad, QC, Ship#ship_def.class, Pid}),
     {ok, Pid}.
 
--spec get_position() -> {reply, term(), #state{}}.
+-spec get_position() -> term().
 get_position() -> call(get_position).
 
--spec stardate() -> {reply, term(), #state{}}.
+-spec stardate() -> term().
 stardate() -> call(get_stardate).
 
--spec srscan() -> {reply, term(), #state{}}.
+-spec srscan() -> term().
 srscan() -> call(srscan).
 
--spec lrscan() -> {reply, term(), #state{}}.
+-spec lrscan() -> term().
 lrscan() -> call(lrscan).
 
--spec impulse(non_neg_integer(), non_neg_integer()) -> {reply, term(), #state{}}.
+-spec impulse(number(), number()) -> term().
 impulse(Course, Speed) -> call({impulse, Course, Speed}).
 
--spec phaser(non_neg_integer(), non_neg_integer()) -> {reply, term(), #state{}}.
+-spec phaser(number(), non_neg_integer()) -> term().
 phaser(Course, Energy) -> call({phaser, Course, Energy}).
 
--spec count_nearby_enemies() -> {reply, term(), #state{}}.
+-spec count_nearby_enemies() -> term().
 count_nearby_enemies() -> call(count_nearby_enemies).
 
--spec bases() -> {reply, term(), #state{}}.
+-spec bases() -> term().
 bases() -> call(get_bases).
 
 
@@ -290,7 +290,7 @@ terminate(_Reason, _State) ->
 %%% Internal functions
 %%% --------------------------------------------------------------------
 
--spec call(term()) -> {reply, term(), #state{}}.
+-spec call(term()) -> term().
 call(Msg) -> gen_server:call(?MODULE, Msg).
 
 -spec quadxy_index(non_neg_integer() | #quadxy{}) -> non_neg_integer().
