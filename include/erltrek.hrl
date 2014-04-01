@@ -182,7 +182,7 @@
 -record(ship_state, {
           ship=#ship_def{} :: #ship_def{},
           commander :: pid(), %% commander process
-          energy=1 :: pos_integer(),
+          energy=1 :: non_neg_integer(),
           shield=0 :: non_neg_integer(),
           condition=cond_green :: ship_condition(),
           docked=false :: boolean(),
