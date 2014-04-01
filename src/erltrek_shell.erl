@@ -81,7 +81,11 @@
 
 -module(erltrek_shell).
 
--export([start/0, find_command/1, token_to_name/1]).
+-export([start/0,
+         find_command/1,
+         token_to_name/1,
+         dispatch_and_result/1
+        ]).
 -import(erltrek_shell_commands, [commands/0]).
 
 -include("erltrek.hrl").
@@ -98,17 +102,7 @@ server() ->
 server_loop() ->
     case io:get_line("Command > ") of
         Command when is_list(Command) ->
-            ok = case dispatch_command(Command) of
-                     not_found ->
-                         io:format("My sincere apologies, Captain, I do not understand your command: ~s", [Command]);
-                     {error, Message} ->
-                         io:format("Hrrm.. you need to quit slurring, Captain~n  (~s)~n", [Message]);
-                     {ok, Cmd, Result} ->
-                         process_result(
-                           process_cmd_result(Result, Cmd));
-                     Other ->
-                         process_result(Other)
-                 end,
+            ok = dispatch_and_result(Command),
             server_loop();
         eof ->
             io:format("End of commands~n"),
@@ -117,6 +111,18 @@ server_loop() ->
             io:format("Read command failed: ~s~n",
                       [file:format_error(Desc)]),
             server_loop()
+    end.
+
+dispatch_and_result(Command) ->
+    case dispatch_command(Command) of
+        not_found ->
+            io:format("My sincere apologies, Captain, I do not understand your command: ~s", [Command]);
+        {error, Message} ->
+            io:format("Hrrm.. you need to quit slurring, Captain~n  (~s)~n", [Message]);
+        {ok, Cmd, Result} ->
+            process_result(process_cmd_result(Result, Cmd));
+        Other ->
+            process_result(Other)
     end.
 
 dispatch_command(Command) ->
