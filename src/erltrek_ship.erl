@@ -110,7 +110,7 @@ start_link(Ship, Args)
   when is_record(Ship, ship_def), is_list(Args) ->
     gen_server:start_link(?MODULE, [{ship, Ship}|Args], []).
 
--spec command(pid(), tuple()) -> ok | tuple().
+-spec command(pid(), tuple() | atom()) -> ok | term() | list().
 command(Ship, Command) ->
     gen_server:call(Ship, {command, Command}).
 
