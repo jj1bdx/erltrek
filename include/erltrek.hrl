@@ -189,7 +189,7 @@
 
           %% speed setting to use when moving (not current speed, that
           %% is in #ship_data{})
-          speed=0.3 :: float(),
+          speed=0.3 :: number(),
 
           %% traveling target coordinates
           tquad :: #quadxy{},
@@ -203,8 +203,8 @@
           pos :: #galaxy{},
           quad :: #quadxy{},
           sect :: #sectxy{},
-          course=0.0 :: float(), % 0..360
-          speed=0.0 :: float()
+          course=0.0 :: number(), % 0..360
+          speed=0.0 :: number()
          }).
 
 %% shell command record
