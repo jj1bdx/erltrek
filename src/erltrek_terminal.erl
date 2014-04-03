@@ -170,6 +170,9 @@ handle_event({condition, Condition}, State) ->
     ok = io:format("Condition changed to: ~s~n",
                    [erltrek_scan:condition_string(Condition)]),
     {ok, State};
+handle_event(energy_refilled, State) ->
+    ok = io:format("Ship energy and shield replenished~n"),
+    {ok, State};
 handle_event({unknown_command, Command}, State) ->
     ok = io:format("enterprise_command: unknown command: ~p~n", [Command]),
     ok = io:format("enterprise_command: status cleared~n", []),
