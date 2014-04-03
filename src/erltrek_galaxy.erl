@@ -102,12 +102,11 @@
 
 -record(state, {
           stardate=?INITTICK,
-          sync :: os:timestamp(),
+          sync :: erlang:timestamp(),
           ships,
           galaxy,
           stars, inhabited, bases, holes
          }).
-
 
 %%% --------------------------------------------------------------------
 %%% API
