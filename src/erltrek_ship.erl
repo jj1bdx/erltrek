@@ -110,7 +110,7 @@ start_link(Ship, Args)
   when is_record(Ship, ship_def), is_list(Args) ->
     gen_server:start_link(?MODULE, [{ship, Ship}|Args], []).
 
--spec command(pid(), tuple() | atom()) -> ok | term() | list().
+-spec command(pid(), tuple() | atom()) -> ok | term().
 command(Ship, Command) ->
     gen_server:call(Ship, {command, Command}).
 
@@ -181,11 +181,14 @@ handle_info({phaser_hit, Level, _Info}=Event, State) ->
     {noreply, absorb_hit(Level, State)};
 handle_info(update_condition, State) ->
     {noreply, update_condition(State)};
-handle_info(_Info, State) ->
+handle_info(refill_energy, State) ->
+    %% TODO: Should this refilling-energy command be always accepted?
+    {noreply, refill_energy(State)};
+handle_info(Info, State) ->
     %% jj1bdx: how should these info messages be handled? Just ignored?
     %% kaos: Yes, I think so, but for now, lets print them so we spot
     %% early on if there are messages we miss, but ought to handle
-    io:format("~p ~p: unhandled info: ~p~n", [self(), ?MODULE, _Info]),
+    io:format("~p ~p: unhandled info: ~p~n", [self(), ?MODULE, Info]),
     {noreply, State}.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -321,10 +324,16 @@ get_condition(#ship_state{ energy=E, ship=#ship_def{ max_energy=M }}) ->
     end.
 
 %%% --------------------------------------------------------------------
-%% try docking to the base
-try_docking(
+%% refilling ship energy
+refill_energy(
     #ship_state{ship = #ship_def{
             max_energy = Maxenergy, max_shield=Maxshield}} = State) ->
+        ok = notify(energy_refilled, State),
+        State#ship_state{energy = Maxenergy, shield = Maxshield}.
+
+%%% --------------------------------------------------------------------
+%% try docking to the base
+try_docking(State) ->
     {QC, SC} = erltrek_galaxy:get_position(),
     DB = erltrek_galaxy:bases(),
     case dict:is_key(QC, DB) of
@@ -334,12 +343,9 @@ try_docking(
             % if distance < sqrt(2) then dockable
             case erltrek_calc:sector_distance(SC, TB#base_info.xy) < 1.415 of
                 true ->
+                    State2 = refill_energy(State),
                     {{dock, docking_complete},
-                        State#ship_state{
-                            docked = true,
-                            % replenish energy and shield
-                            energy = Maxenergy,
-                            shield = Maxshield}};
+                        State2#ship_state{docked = true}};
                 false ->
                     {{dock, base_not_adjacent}, State}
             end;
