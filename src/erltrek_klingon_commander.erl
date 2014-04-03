@@ -127,22 +127,26 @@ handle_event(_Event, StateName, StateData) ->
 handle_sync_event(_Event, _From, StateName, StateData) ->
     next_state(StateName, StateData).
 
-handle_info({enter_quadrant, _QC, _SC}, escaping, State) ->
+handle_info({event, {enter_quadrant, _QC, _SC}}, escaping, State) ->
     ok = erltrek_ship:command(ship(State), stop),
-    next_state(idle, State#ship_state{
-                       energy = State#ship_state.ship#ship_def.max_energy,
-                       shield = State#ship_state.ship#ship_def.max_shield
-                      });
+    % TODO: should/can the commander instruct ship to refill energy?
+    ship(State) ! refill_energy,
+    next_state(idle, State);
 handle_info({event, {condition, cond_red}}, idle, State) ->
     next_state(scout, State);
-handle_info({event, _}, StateName, StateData) ->
+handle_info({event, energy_refilled}, StateName, StateData) ->
+    % do nothing here
+    next_state(StateName, StateData);
+handle_info({event, Info}, StateName, StateData) ->
+    io:format("klingon_commander: unknown_event_info: ~p~n", [Info]),
     next_state(StateName, StateData);
 handle_info({sync_event, {Pid, Ref}, _}, StateName, StateData) ->
     Pid ! {Ref, ok},
     next_state(StateName, StateData);
 handle_info({ship_destroyed, _Ship, _Reason}, _StateName, StateData) ->
     {stop, normal, StateData};
-handle_info(_Info, StateName, StateData) ->
+handle_info(Info, StateName, StateData) ->
+    io:format("klingon_commander: unknown_info: ~p~n", [Info]),
     next_state(StateName, StateData).
 
 terminate(_Reason, _StateName, _StateData) ->
@@ -204,7 +208,7 @@ next_state(StateName, #state{ skill=Timeout }=StateData) ->
     next_state(StateName, StateData, Timeout).
 
 next_state(StateName, StateData, Timeout) ->
-    {next_state, StateName, StateData, Timeout}.
+    {next_state, StateName, StateData#state{skill = Timeout}, Timeout}.
 
 ship(#state{ ship=Ship }) -> Ship.
 
