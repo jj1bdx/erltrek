@@ -145,6 +145,12 @@ handle_info({event, {collision, _Object, _Info}}, StateName, StateData) ->
 handle_info({event, {phaser_hit, _Level, _Info}}, StateName, StateData) ->
     % do nothing here
     next_state(StateName, StateData);
+handle_info({event, {damage_level, _Level}}, StateName, StateData) ->
+    % do nothing here
+    next_state(StateName, StateData);
+handle_info({event, move_done}, StateName, StateData) ->
+    % do nothing here
+    next_state(StateName, StateData);
 handle_info({event, energy_refilled}, StateName, StateData) ->
     % do nothing here
     next_state(StateName, StateData);
