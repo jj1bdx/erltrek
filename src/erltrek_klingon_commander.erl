@@ -219,7 +219,7 @@ next_state(StateName, #state{ skill=Timeout }=StateData) ->
     next_state(StateName, StateData, Timeout).
 
 next_state(StateName, StateData, Timeout) ->
-    {next_state, StateName, StateData#state{skill = Timeout}, Timeout}.
+    {next_state, StateName, StateData, Timeout}.
 
 ship(#state{ ship=Ship }) -> Ship.
 
