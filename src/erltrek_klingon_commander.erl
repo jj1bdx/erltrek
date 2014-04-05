@@ -132,7 +132,7 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 handle_info({event, {enter_quadrant, _QC, _SC}}, escaping, State) ->
     ok = erltrek_ship:command(ship(State), stop),
     % TODO: should/can the commander instruct ship to refill energy?
-    ship(State) ! refill_energy,
+    ok = erltrek_ship:refill_energy(ship(State)),
     next_state(idle, State);
 handle_info({event, {condition, cond_red}}, idle, State) ->
     next_state(scout, State);
