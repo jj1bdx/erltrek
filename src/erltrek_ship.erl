@@ -86,7 +86,7 @@
 -export([start_link/1, start_link/2, command/2]).
 
 %% Commander API
--export([count_nearby_enemies/1, status/1]).
+-export([count_nearby_enemies/1, refill_energy/1, status/1]).
 
 %% Callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -121,6 +121,9 @@ status(Ship) ->
 
 count_nearby_enemies(Ship) ->
     gen_server:call(Ship, count_nearby_enemies).
+
+refill_energy(Ship) ->
+    gen_server:call(Ship, refill_energy).
 
 
 %%% --------------------------------------------------------------------
@@ -181,9 +184,6 @@ handle_info({phaser_hit, Level, _Info}=Event, State) ->
     {noreply, absorb_hit(Level, State)};
 handle_info(update_condition, State) ->
     {noreply, update_condition(State)};
-handle_info(refill_energy, State) ->
-    %% TODO: Should this refilling-energy command be always accepted?
-    {noreply, refill_energy(State)};
 handle_info(Info, State) ->
     %% jj1bdx: how should these info messages be handled? Just ignored?
     %% kaos: Yes, I think so, but for now, lets print them so we spot
@@ -277,7 +277,11 @@ handle_commander_request(get_status, State) ->
     {State, State};
 %%% --------------------------------------------------------------------
 handle_commander_request(count_nearby_enemies, State) ->
-    {erltrek_galaxy:count_nearby_enemies(), State}.
+    {erltrek_galaxy:count_nearby_enemies(), State};
+%%% --------------------------------------------------------------------
+handle_commander_request(refill_energy, State) ->
+    %% TODO: Should this refilling-energy command be always accepted?
+    {ok, do_refill_energy(State)}.
 
 
 %%% --------------------------------------------------------------------
@@ -325,7 +329,7 @@ get_condition(#ship_state{ energy=E, ship=#ship_def{ max_energy=M }}) ->
 
 %%% --------------------------------------------------------------------
 %% refilling ship energy
-refill_energy(
+do_refill_energy(
     #ship_state{ship = #ship_def{
             max_energy = Maxenergy, max_shield=Maxshield}} = State) ->
         ok = notify(energy_refilled, State),
@@ -343,7 +347,7 @@ try_docking(State) ->
             % if distance < sqrt(2) then dockable
             case erltrek_calc:sector_distance(SC, TB#base_info.xy) < 1.415 of
                 true ->
-                    State2 = refill_energy(State),
+                    State2 = do_refill_energy(State),
                     {{dock, docking_complete},
                         State2#ship_state{docked = true}};
                 false ->
