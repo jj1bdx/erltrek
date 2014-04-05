@@ -136,6 +136,10 @@ handle_info({event, {enter_quadrant, _QC, _SC}}, escaping, State) ->
     next_state(idle, State);
 handle_info({event, {condition, cond_red}}, idle, State) ->
     next_state(scout, State);
+handle_info({event, {condition, cond_green}}, StateName, StateData) ->
+    % do nothing here
+    % TODO: what to do when condition goes back to GREEN?
+    next_state(StateName, StateData);
 handle_info({event, {enter_sector, _QC, _SC}}, StateName, StateData) ->
     % do nothing here
     next_state(StateName, StateData);
