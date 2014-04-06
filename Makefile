@@ -18,5 +18,8 @@ doc:
 eunit:
 	$(REBAR) eunit
 
+firsttime-dialyzer:
+	dialyzer --build_plt --apps kernel stdlib erts mnesia eunit crypto
+
 speed:
 	escript test-scripts/testspeed.escript
