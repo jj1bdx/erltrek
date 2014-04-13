@@ -253,9 +253,12 @@ setup_galaxy() ->
 %%   * bases, values of #base_info list (one element per list)
 %%   * holes, values of #sectxy list (of multiple stars)
 
--spec setup_galaxy_sector(integer(), integer(), list(#quadxy{}), list(#quadxy{}),
-    dict:dict(), dict:dict(), dict:dict(), dict:dict(), dict:dict()) ->
-    {dict:dict(), dict:dict(), dict:dict(), dict:dict()}.
+-spec setup_galaxy_sector(integer(), integer(),
+    list(#quadxy{}), list(#quadxy{}), dict:dict(#quadxy{}, string()),
+    dict:dict(#quadxy{}, [#sectxy{}]), dict:dict(#quadxy{}, [#inhabited_info{}]),
+    dict:dict(#quadxy{}, [#base_info{}]), dict:dict(#quadxy{}, [#sectxy{}])) ->
+    {dict:dict(#quadxy{}, [#sectxy{}]), dict:dict(#quadxy{}, [#inhabited_info{}]),
+        dict:dict(#quadxy{}, [#base_info{}]), dict:dict(#quadxy{}, [#sectxy{}])}.
 
 setup_galaxy_sector(-1, _QY, _LB, _LI, _DINAME, DS, DI, DB, DH) ->
     {DS, DI, DB, DH};
@@ -306,7 +309,8 @@ setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
 %% setup a dict with keys of quadxy on the number of klingons per quadrant
 %% with given total number of klingons
 
--spec setup_klingon_numbers(non_neg_integer(), dict:dict()) -> dict:dict().
+-spec setup_klingon_numbers(non_neg_integer(), dict:dict(#quadxy{}, non_neg_integer())) ->
+    dict:dict(#quadxy{}, non_neg_integer()).
 
 setup_klingon_numbers(0, DKQ) ->
     DKQ;
@@ -367,9 +371,11 @@ fill_klingons(N, SECT, LKS) when is_integer(N), N > 0 ->
 %%   * holes, values of #sectxy list (of multiple stars)
 %% * list of Klingon #sectxy
 
--spec setup_sector(#quadxy{}, dict:dict(), dict:dict(),
-                   dict:dict(), dict:dict(), dict:dict()) ->
-        {array:array(), [#sectxy{}]}.
+-spec setup_sector(#quadxy{},
+    dict:dict(#quadxy{}, [#sectxy{}]), dict:dict(#quadxy{}, [#inhabited_info{}]),
+    dict:dict(#quadxy{}, [#base_info{}]), dict:dict(#quadxy{}, [#sectxy{}]),
+    dict:dict(#quadxy{}, non_neg_integer())) ->
+    {array:array(), [#sectxy{}]}.
 
 setup_sector(QC, DS, DI, DB, DH, DKQ) ->
     SECT = init_sect(),
