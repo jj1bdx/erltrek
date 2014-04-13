@@ -314,7 +314,7 @@ update_sector(QC, SC, Value, State) ->
     set_quad(QC, update_sector(SC, Value, get_quad(QC, State)), State).
 
 -spec update_sector(#sectxy{},
-    sector_entity(), array:array(sector_entity())) -> array:array().
+    sector_entity(), array:array(sector_entity())) -> array:array(sector_entity()).
 update_sector(SC, Value, Quad) ->
     array:set(sectxy_index(SC), Value, Quad).
 
