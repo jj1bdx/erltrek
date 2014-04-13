@@ -131,14 +131,14 @@ rand_quad(Q, _, false) ->
 
 %% init Sector array
 
--spec init_sect() -> array:array().
+-spec init_sect() -> array:array(sector_entity()).
 
 init_sect() ->
     array:new(?NSECTS * ?NSECTS, {default, s_empty}).
 
 %% init Quadrant array
 
--spec init_quad() -> array:array().
+-spec init_quad() -> array:array(q_empty | q_fill).
 
 init_quad() ->
     array:new(?NQUADS * ?NQUADS, {default, q_empty}).
