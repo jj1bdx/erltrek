@@ -126,7 +126,7 @@
 -record(sectxy, { x :: sectcoord(), y :: sectcoord()}).
 -record(galaxy, { x :: galacoord(), y :: galacoord()}).
 
-%% entity atom in the sector array
+%% entities in the sector array
 
 -type sector_atoms() ::
     's_empty' | 's_star' | 's_enterprise' | 's_base' | 's_inhabited' |
