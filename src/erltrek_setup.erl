@@ -97,6 +97,8 @@
 
 -import(erltrek_calc, [quadxy_index/1, sectxy_index/1]).
 
+-type quad_fill_array() :: array:array(q_empty | q_fill).
+
 %% return empty {sx, sy} in the Sector array
 
 -spec rand_sect(sector_array()) -> #sectxy{}.
@@ -115,12 +117,12 @@ rand_sect(S, _, false) ->
 
 %% return empty {qx, qy} in the Quadrant array
 
--spec rand_quad(array:array(q_empty | q_fill)) -> #quadxy{}.
+-spec rand_quad(quad_fill_array()) -> #quadxy{}.
 
 rand_quad(Q) ->
     rand_quad(Q, #quadxy{}, false).
 
--spec rand_quad(array:array(q_empty | q_fill), #quadxy{}, boolean()) -> #quadxy{}.
+-spec rand_quad(quad_fill_array(), #quadxy{}, boolean()) -> #quadxy{}.
 
 rand_quad(_, QC, true) ->
     QC;
@@ -138,7 +140,7 @@ init_sect() ->
 
 %% init Quadrant array
 
--spec init_quad() -> array:array(q_empty | q_fill).
+-spec init_quad() -> quad_fill_array().
 
 init_quad() ->
     array:new(?NQUADS * ?NQUADS, {default, q_empty}).
@@ -150,8 +152,7 @@ init_quad() ->
 gen_quad_list(N) ->
     gen_quad_list(N, [], init_quad()).
 
--spec gen_quad_list(non_neg_integer(), list(#quadxy{}),
-    array:array(q_empty | q_fill)) -> list(#quadxy{}).
+-spec gen_quad_list(non_neg_integer(), list(#quadxy{}), quad_fill_array()) -> list(#quadxy{}).
 
 gen_quad_list(0, L, _) ->
     L;
