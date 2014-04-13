@@ -138,10 +138,10 @@ init_sect() ->
 
 %% init Quadrant array
 
--spec init_quad() -> array:array(q_empty).
+-spec init_quad() -> array:array({default, q_empty}).
 
 init_quad() ->
-    array:new(?NQUADS * ?NQUADS, q_empty).
+    array:new(?NQUADS * ?NQUADS, {default, q_empty}).
 
 %% Generate a list of random quadrant coordinates without duplicates
 
