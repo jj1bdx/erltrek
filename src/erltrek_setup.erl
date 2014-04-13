@@ -99,12 +99,12 @@
 
 %% return empty {sx, sy} in the Sector array
 
--spec rand_sect(array:array(sector_entity())) -> #sectxy{}.
+-spec rand_sect(sector_array()) -> #sectxy{}.
 
 rand_sect(S) ->
     rand_sect(S, #sectxy{}, false).
 
--spec rand_sect(array:array(sector_entity()), #sectxy{}, boolean()) -> #sectxy{}.
+-spec rand_sect(sector_array(), #sectxy{}, boolean()) -> #sectxy{}.
 
 rand_sect(_, SC, true) ->
     SC;
@@ -131,7 +131,7 @@ rand_quad(Q, _, false) ->
 
 %% init Sector array
 
--spec init_sect() -> array:array(sector_entity()).
+-spec init_sect() -> sector_array().
 
 init_sect() ->
     array:new(?NSECTS * ?NSECTS, {default, s_empty}).
@@ -162,15 +162,14 @@ gen_quad_list(N, L, A) when is_integer(N), N > 0 ->
 %% Generate a list of random sector coordinates without duplicates
 %% with sector state input and output
 
--spec gen_sect_list(non_neg_integer(), sector_atoms(), array:array(sector_entity())) ->
-    {array:array(sector_entity()), list(#sectxy{})}.
+-spec gen_sect_list(non_neg_integer(), sector_atoms(), sector_array()) ->
+    {sector_array(), list(#sectxy{})}.
 
 gen_sect_list(N, ENT, SECT) ->
     gen_sect_list(N, ENT, [], SECT).
 
--spec gen_sect_list(non_neg_integer(), sector_atoms(),
-    list(#sectxy{}), array:array(sector_entity())) ->
-    {array:array(sector_entity()), list(#sectxy{})}.
+-spec gen_sect_list(non_neg_integer(), sector_atoms(), list(#sectxy{}), sector_array()) ->
+    {sector_array(), list(#sectxy{})}.
 
 gen_sect_list(0, _, L, SECT) ->
     {SECT, L};
@@ -345,8 +344,7 @@ setup_klingon_numbers(NKALL, DKQ) when is_integer(NKALL), NKALL > 0 ->
 %% fill in a sector array with given sector_atoms()
 %% for the given list of #sectxy
 
--spec fill_sector([#sectxy{}], sector_atoms(),
-    array:array(sector_entity())) -> array:array(sector_entity()).
+-spec fill_sector([#sectxy{}], sector_atoms(), sector_array()) -> sector_array().
 
 fill_sector([], _E, SECT) ->
     SECT;
@@ -356,8 +354,8 @@ fill_sector(LSC, E, SECT) ->
 
 %% fill in a sector array and a list of #sectxy for klingons in the sector
 
--spec fill_klingons(non_neg_integer(), array:array(sector_entity()), [#sectxy{}]) -> 
-    {array:array(sector_entity()), [#sectxy{}]}.
+-spec fill_klingons(non_neg_integer(), sector_array(), [#sectxy{}]) ->
+    {sector_array(), [#sectxy{}]}.
 fill_klingons(0, SECT, LKS) ->
     {SECT, LKS};
 fill_klingons(N, SECT, LKS) when is_integer(N), N > 0 ->
@@ -378,7 +376,7 @@ fill_klingons(N, SECT, LKS) when is_integer(N), N > 0 ->
     dict:dict(#quadxy{}, [#sectxy{}]), dict:dict(#quadxy{}, [#inhabited_info{}]),
     dict:dict(#quadxy{}, [#base_info{}]), dict:dict(#quadxy{}, [#sectxy{}]),
     dict:dict(#quadxy{}, non_neg_integer())) ->
-    {array:array(sector_entity()), [#sectxy{}]}.
+    {sector_array(), [#sectxy{}]}.
 
 setup_sector(QC, DS, DI, DB, DH, DKQ) ->
     SECT = init_sect(),

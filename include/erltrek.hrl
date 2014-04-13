@@ -132,6 +132,7 @@
     's_empty' | 's_star' | 's_enterprise' | 's_base' | 's_inhabited' |
     's_klingon' | 's_hole'.
 -type sector_entity() :: sector_atoms() | {ship_class(), undefined | pid()}.
+-type sector_array() :: array:array(sector_entity()).
 
 %% record for entities
 

@@ -300,11 +300,11 @@ quadxy_index(QC) -> erltrek_calc:quadxy_index(QC).
 sectxy_index(SI) when is_integer(SI) -> SI rem (?NSECTS * ?NSECTS);
 sectxy_index(SC) -> erltrek_calc:sectxy_index(SC).
 
--spec get_quad(#quadxy{}, #state{}) -> array:array(sector_entity()).
+-spec get_quad(#quadxy{}, #state{}) -> sector_array().
 get_quad(QC, #state{ galaxy=G }) ->
     array:get(quadxy_index(QC), G).
 
--spec set_quad(#quadxy{}, array:array(sector_entity()), #state{}) -> #state{}.
+-spec set_quad(#quadxy{}, sector_array(), #state{}) -> #state{}.
 set_quad(QC, Quad, #state{ galaxy=G }=State) ->
     State#state{ galaxy=array:set(quadxy_index(QC), Quad, G) }.
 
@@ -313,12 +313,11 @@ set_quad(QC, Quad, #state{ galaxy=G }=State) ->
 update_sector(QC, SC, Value, State) ->
     set_quad(QC, update_sector(SC, Value, get_quad(QC, State)), State).
 
--spec update_sector(#sectxy{},
-    sector_entity(), array:array(sector_entity())) -> array:array(sector_entity()).
+-spec update_sector(#sectxy{}, sector_entity(), sector_array()) -> sector_array().
 update_sector(SC, Value, Quad) ->
     array:set(sectxy_index(SC), Value, Quad).
 
--spec lookup_sector(#sectxy{}, array:array(sector_entity())) -> sector_entity().
+-spec lookup_sector(#sectxy{}, sector_array()) -> sector_entity().
 lookup_sector(SC, Quad) ->
     array:get(sectxy_index(SC), Quad).
 
@@ -326,8 +325,7 @@ lookup_sector(SC, Quad) ->
 lookup_sector(QC, SC, State) ->
     lookup_sector(SC, get_quad(QC, State)).
 
--spec spawn_klingons([#sectxy{}], #quadxy{}, array:array(sector_entity())) ->
-    array:array(sector_entity()).
+-spec spawn_klingons([#sectxy{}], #quadxy{}, sector_array()) -> sector_array().
 spawn_klingons(LKS, QC, SECT0) ->
     lists:foldl(
       fun (SC, SECT) ->
@@ -501,8 +499,7 @@ tick(#state{ stardate=Stardate, sync=Sync }=State0) ->
     erlang:send_after(?GALAXY_TICK, self(), tick),
     State#state{ stardate=Stardate + Tick, sync=Timestamp }.
 
--spec count_other_ships(ship_class(), #state{} | array:array(sector_entity())) ->
-    non_neg_integer().
+-spec count_other_ships(ship_class(), #state{} | sector_array()) -> non_neg_integer().
 
 count_other_ships(Class, #state{ ships=Ships }) ->
     orddict:fold(
