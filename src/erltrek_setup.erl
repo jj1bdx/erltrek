@@ -161,13 +161,13 @@ gen_quad_list(N, L, A) when is_integer(N), N > 0 ->
 %% Generate a list of random sector coordinates without duplicates
 %% with sector state input and output
 
--spec gen_sect_list(non_neg_integer(), sector_entity(), array:array()) ->
+-spec gen_sect_list(non_neg_integer(), sector_atoms(), array:array()) ->
     {array:array(), list(#sectxy{})}.
 
 gen_sect_list(N, ENT, SECT) ->
     gen_sect_list(N, ENT, [], SECT).
 
--spec gen_sect_list(non_neg_integer(), sector_entity(), list(#sectxy{}), array:array()) ->
+-spec gen_sect_list(non_neg_integer(), sector_atoms(), list(#sectxy{}), array:array()) ->
     {array:array(), list(#sectxy{})}.
 
 gen_sect_list(0, _, L, SECT) ->
@@ -334,10 +334,10 @@ setup_klingon_numbers(NKALL, DKQ) when is_integer(NKALL), NKALL > 0 ->
     end,
     setup_klingon_numbers(NKALL2, DKQ2).
 
-%% fill in a sector array with given sector_entity()
+%% fill in a sector array with given sector_atoms()
 %% for the given list of #sectxy
 
--spec fill_sector([#sectxy{}], sector_entity(), array:array()) -> array:array().
+-spec fill_sector([#sectxy{}], sector_atoms(), array:array()) -> array:array().
 
 fill_sector([], _E, SECT) ->
     SECT;

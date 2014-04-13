@@ -309,22 +309,20 @@ set_quad(QC, Quad, #state{ galaxy=G }=State) ->
     State#state{ galaxy=array:set(quadxy_index(QC), Quad, G) }.
 
 -spec update_sector(#quadxy{}, #sectxy{},
-    sector_entity() | {ship_class(), undefined | pid()}, #state{}) -> #state{}.
+    sector_entity(), #state{}) -> #state{}.
 update_sector(QC, SC, Value, State) ->
     set_quad(QC, update_sector(SC, Value, get_quad(QC, State)), State).
 
 -spec update_sector(#sectxy{},
-    sector_entity() | {ship_class(), undefined | pid()}, array:array()) -> array:array().
+    sector_entity(), array:array()) -> array:array().
 update_sector(SC, Value, Quad) ->
     array:set(sectxy_index(SC), Value, Quad).
 
--spec lookup_sector(#sectxy{}, array:array()) ->
-    sector_entity() | {ship_class(), undefined | pid()}.
+-spec lookup_sector(#sectxy{}, array:array()) -> sector_entity().
 lookup_sector(SC, Quad) ->
     array:get(sectxy_index(SC), Quad).
 
--spec lookup_sector(#quadxy{}, #sectxy{}, #state{}) ->
-    sector_entity() | {ship_class(), undefined | pid()}.
+-spec lookup_sector(#quadxy{}, #sectxy{}, #state{}) -> sector_entity().
 lookup_sector(QC, SC, State) ->
     lookup_sector(SC, get_quad(QC, State)).
 
@@ -342,14 +340,13 @@ spawn_klingons(LKS, QC, SECT0) ->
               update_sector(SC, {s_klingon, Ship}, SECT)
       end, SECT0, LKS).
 
--spec place_object(sector_entity() | {ship_class(), undefined | pid()}, #state{}) ->
-    {#quadxy{}, #sectxy{}, #state{}}.
+-spec place_object(sector_entity(), #state{}) -> {#quadxy{}, #sectxy{}, #state{}}.
 place_object(Object, State) ->
     {QI, SI} = find_empty_sector(State),
     {QC, SC} = {index_quadxy(QI), index_sectxy(SI)},
     {QC, SC, update_sector(QC, SC, Object, State)}.
 
--spec place_object_quad(#quadxy{}, sector_entity() | {ship_class(), undefined | pid()}, #state{}) ->
+-spec place_object_quad(#quadxy{}, sector_entity(), #state{}) ->
     {#quadxy{}, #sectxy{}, #state{}}.
 place_object_quad(QC, Object, State) ->
     {_QI, SI} = find_empty_sector_quad(quadxy_index(QC), State),
