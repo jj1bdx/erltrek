@@ -223,8 +223,10 @@ inhabited_names() -> [
 %%   * holes, values of #sectxy list (of multiple stars)
 %%   * number of klingons, values of integer (NOT a list)
 
--spec setup_galaxy() -> {pos_integer(), dict:dict(), dict:dict(),
-                         dict:dict(), dict:dict(), dict:dict()}.
+-spec setup_galaxy() -> {pos_integer(),
+        dict:dict(#quadxy{}, [#sectxy{}]), dict:dict(#quadxy{}, [#inhabited_info{}]),
+        dict:dict(#quadxy{}, [#base_info{}]), dict:dict(#quadxy{}, [#sectxy{}]),
+        dict:dict(#quadxy{}, non_neg_integer())}.
 
 setup_galaxy() ->
     % number of bases in the galaxy
