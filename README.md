@@ -19,7 +19,7 @@
 
 * Using NIFs (unless absolutely necessary)
 
-## Functions implemented at tag `baselevel_20140330`
+## Functions implemented at tag `baselevel_20140416`
 
 (Most of code files are revised and rewritten by Andreas Stenius)
 
@@ -34,6 +34,7 @@
 * The galaxy is a process (see `erltrek_galaxy`)
 * The ships (Enterprise and Klingons) are processes
 * The game no longer depends on internal time synchronization
+* Type spec for functions are now 17.0-compatible
 
 ## Functions under development
 
@@ -62,8 +63,6 @@ will *not* be guaranteed.
 * Documentation in the source code (edoc or edown)
 * Eunit test cases
 * Refactoring with 17.0 maps (maps may replace most of dict functionality)
-* Note: dialyzer remote type issues incompatibility between R16B03-1 and 17.0-rc2 reported as in
-<http://erlang.org/pipermail/erlang-questions/2014-February/077945.html> and <http://erlang.org/pipermail/erlang-questions/2014-February/077955.html>; all -spec entries must be rewritten.
 * Running on Windows
 
 ## Authors
