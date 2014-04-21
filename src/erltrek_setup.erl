@@ -421,7 +421,7 @@ setup_sector(QC, DS, DI, DB, DH, DKQ) ->
     end,
     {SECT6, LKS2}.
 
--spec seed() -> #intstate32{}.
+-spec seed() -> tinymt32:intstate32().
 
 seed() ->
     % TODO: change to tinymt32:uniform(os:timestamp())
