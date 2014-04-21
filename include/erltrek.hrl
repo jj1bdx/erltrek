@@ -78,9 +78,6 @@
 %%% [End of LICENSE]
 %%% --------------------------------------------------------------------
 
-%% include tinymt32 config
--include("tinymt32.hrl").
-
 %% dimensions of quadrant in sectors
 -define(NSECTS, 10).
 %% dimension of galaxy in quadrants
