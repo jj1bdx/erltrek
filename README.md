@@ -5,6 +5,10 @@
 * License: BSD 3-clause (Note: tinymt-erlang has its own BSD license, compatible with this software)
 * *Note well: this program is still in the alpha level. Please report bugs to the GitHub issues and contribute through the pull requests.*
 
+## Travis CI build status for the master branch
+
+[![Build Status](https://travis-ci.org/jj1bdx/erltrek.svg?branch=master)](https://travis-ci.org/jj1bdx/erltrek)
+
 ## Goals
 
 * Incorporate true concurrency (= game proceeds in real-time)
