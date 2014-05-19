@@ -44,6 +44,15 @@
 
 * Torpedoes
 
+## Make options (of erlang.mk)
+
+* `Makefile` works on both BSD/GNU make
+* `Makefile.erltrek` is the real GNU make file; edit this file for modification
+* Building: `make`
+* Documentation: `make docs` (not yet ready)
+* Testing: `make tests` (not yet ready)
+* See also [erlang.mk](https://github.com/extend/erlang.mk) for the details
+
 ## How to run (will invoke a dedicated shell)
 
     ./game.sh
