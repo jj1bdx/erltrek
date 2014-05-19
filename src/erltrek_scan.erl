@@ -138,6 +138,9 @@ lrscan_lines(X, Scan) ->
              QX == X],
      "\n"].
 
+%% convert sector_entity() into the corresponding character
+
+-spec scan_char(sector_entity()) -> char().
 
 scan_char(s_empty) -> $.;
 scan_char(s_star) -> $*;
@@ -186,7 +189,7 @@ srscan_string({Stardate, Scan}) ->
      end].
 
 
--spec srscan_xline(non_neg_integer(), [string()], array()) -> iolist().
+-spec srscan_xline(non_neg_integer(), [string()], sector_array()) -> iolist().
 
 srscan_xline(?NSECTS, _SL, _SECT) -> [];
 srscan_xline(X, SL, SECT) ->
@@ -201,7 +204,7 @@ srscan_xline(X, SL, SECT) ->
      Status, "\n"
      | srscan_xline(X + 1, SLT, SECT)].
 
--spec srscan_ypos(non_neg_integer(), non_neg_integer(), array()) -> iolist().
+-spec srscan_ypos(non_neg_integer(), non_neg_integer(), sector_array()) -> iolist().
 
 srscan_ypos(?NSECTS, _X, _SECT) -> [];
 srscan_ypos(Y, X, SECT) ->

@@ -117,8 +117,7 @@ enterprise_command(Command) ->
     gen_server:call(?MODULE, {ship, Command}).
 
 srscan() ->
-    enterprise_command({srscan}).
-
+    erltrek_shell:dispatch_and_result("srscan").
 
 %%% --------------------------------------------------------------------
 %% Callbacks
@@ -126,7 +125,11 @@ srscan() ->
 
 init([]) ->
     erltrek_setup:seed(),
-    erltrek_galaxy:spawn_ship(?enterprise_ship).
+    %% put enterprise where a starbase locates
+    LB = dict:fetch_keys(erltrek_galaxy:bases()),
+    erltrek_galaxy:spawn_ship(
+        lists:nth(tinymt32:uniform(length(LB)), LB),
+        ?enterprise_ship).
 
 handle_call({ship, Command}, _From, Ship) ->
     {reply, erltrek_ship:command(Ship, Command), Ship}.

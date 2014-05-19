@@ -78,9 +78,6 @@
 %%% [End of LICENSE]
 %%% --------------------------------------------------------------------
 
-%% include tinymt32 config
--include("tinymt32.hrl").
-
 %% dimensions of quadrant in sectors
 -define(NSECTS, 10).
 %% dimension of galaxy in quadrants
@@ -126,11 +123,13 @@
 -record(sectxy, { x :: sectcoord(), y :: sectcoord()}).
 -record(galaxy, { x :: galacoord(), y :: galacoord()}).
 
-%% entity atom in the sector array
+%% entities in the sector array
 
--type sector_entity() ::
+-type sector_atoms() ::
     's_empty' | 's_star' | 's_enterprise' | 's_base' | 's_inhabited' |
     's_klingon' | 's_hole'.
+-type sector_entity() :: sector_atoms() | {ship_class(), undefined | pid()}.
+-type sector_array() :: array:array(sector_entity()).
 
 %% record for entities
 
@@ -182,14 +181,14 @@
 -record(ship_state, {
           ship=#ship_def{} :: #ship_def{},
           commander :: pid(), %% commander process
-          energy=1 :: pos_integer(),
+          energy=1 :: non_neg_integer(),
           shield=0 :: non_neg_integer(),
           condition=cond_green :: ship_condition(),
           docked=false :: boolean(),
 
           %% speed setting to use when moving (not current speed, that
           %% is in #ship_data{})
-          speed=0.3 :: float(),
+          speed=0.3 :: number(),
 
           %% traveling target coordinates
           tquad :: #quadxy{},
@@ -203,9 +202,20 @@
           pos :: #galaxy{},
           quad :: #quadxy{},
           sect :: #sectxy{},
-          course=0.0 :: float(), % 0..360
-          speed=0.0 :: float()
+          course=0.0 :: number(), % 0..360
+          speed=0.0 :: number()
          }).
+
+%% shell command record
+-record(command, {
+          name :: atom() | list(atom()),
+          expand = true :: boolean(), %% tab complete command? (default: yes)
+          desc = "(no arguments)" :: string(), %% printed on expand command
+          help = "No help available for this command." :: string(),
+          dispatch :: fun((list()) -> ok),
+          result = ok :: fun ((term()) -> ok) | term()
+         }).
+
 
 %% vim: set ts=4 sw=4 sts=4 et :
 %% emacs: -*- mode:erlang; tab-width:4; indent-tabs-mode:nil;  -*-

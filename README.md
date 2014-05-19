@@ -1,9 +1,13 @@
 # Erltrek: Star Trek Game in Erlang
 
-* Requirement: Erlang/OTP R16B03-1
+* Requirement: Erlang/OTP 17.0
 * Tested on: OS X 10.9.2, FreeBSD 10-STABLE
 * License: BSD 3-clause (Note: tinymt-erlang has its own BSD license, compatible with this software)
 * *Note well: this program is still in the alpha level. Please report bugs to the GitHub issues and contribute through the pull requests.*
+
+## Travis CI build status for the master branch
+
+[![Build Status](https://travis-ci.org/jj1bdx/erltrek.svg?branch=master)](https://travis-ci.org/jj1bdx/erltrek)
 
 ## Goals
 
@@ -19,13 +23,14 @@
 
 * Using NIFs (unless absolutely necessary)
 
-## Functions implemented at tag `first_galaxy_server`
+## Functions implemented at tag `baselevel_20140416`
 
 (Most of code files are revised and rewritten by Andreas Stenius)
 
 * Game field setup
 * Impulse engine for Enterprise
 * Enterprise firing phaser to Klingon
+* Klingon firing to Enterprise
 * Enterprise can dock/undock to/from the starbase
 * The Game is now a proper Erlang application
 * Game message handled by an gen\_event server
@@ -33,10 +38,10 @@
 * The galaxy is a process (see `erltrek_galaxy`)
 * The ships (Enterprise and Klingons) are processes
 * The game no longer depends on internal time synchronization
+* Type spec for functions are now 17.0-compatible
 
 ## Functions under development
 
-* Klingon firing to Enterprise
 * Torpedoes
 
 ## How to run (will invoke a dedicated shell)
@@ -61,9 +66,7 @@ will *not* be guaranteed.
 
 * Documentation in the source code (edoc or edown)
 * Eunit test cases
-* Porting to 17.0 (maps may replace most of dict functionality)
-* Note: dialyzer remote type issues incompatibility between R16B03-1 and 17.0-rc2 reported as in
-<http://erlang.org/pipermail/erlang-questions/2014-February/077945.html> and <http://erlang.org/pipermail/erlang-questions/2014-February/077955.html>; all -spec entries must be rewritten.
+* Refactoring with 17.0 maps (maps may replace most of dict functionality)
 * Running on Windows
 
 ## Authors

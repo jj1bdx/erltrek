@@ -86,7 +86,7 @@
 -export([start_link/1, start_link/2, command/2]).
 
 %% Commander API
--export([count_nearby_enemies/1, status/1]).
+-export([count_nearby_enemies/1, refill_energy/1, status/1]).
 
 %% Callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -110,7 +110,7 @@ start_link(Ship, Args)
   when is_record(Ship, ship_def), is_list(Args) ->
     gen_server:start_link(?MODULE, [{ship, Ship}|Args], []).
 
--spec command(pid(), tuple()) -> ok | tuple().
+-spec command(pid(), tuple() | atom()) -> ok | term().
 command(Ship, Command) ->
     gen_server:call(Ship, {command, Command}).
 
@@ -121,6 +121,9 @@ status(Ship) ->
 
 count_nearby_enemies(Ship) ->
     gen_server:call(Ship, count_nearby_enemies).
+
+refill_energy(Ship) ->
+    gen_server:call(Ship, refill_energy).
 
 
 %%% --------------------------------------------------------------------
@@ -133,7 +136,7 @@ init([{ship, Ship}|_Args]) ->
                undefined ->
                    undefined;
                Commander ->
-                   {ok, Pid} = Commander:start(self()),
+                   {ok, Pid} = Commander:start_link(self()),
                    Pid
            end,
     #ship_def{ max_energy=E, max_shield=S, initial_speed = IS } = Ship,
@@ -179,20 +182,23 @@ handle_info({distance_traveled, _}, State) ->
 handle_info({phaser_hit, Level, _Info}=Event, State) ->
     ok = notify(Event, State),
     {noreply, absorb_hit(Level, State)};
-handle_info({update_condition}, State) ->
+handle_info(update_condition, State) ->
     {noreply, update_condition(State)};
-handle_info(_Info, State) ->
+handle_info(Info, State) ->
     %% jj1bdx: how should these info messages be handled? Just ignored?
     %% kaos: Yes, I think so, but for now, lets print them so we spot
     %% early on if there are messages we miss, but ought to handle
-    io:format("~p ~p: unhandled info: ~p~n", [self(), ?MODULE, _Info]),
+    io:format("~p ~p: unhandled info: ~p~n", [self(), ?MODULE, Info]),
     {noreply, State}.
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-terminate(_Reason, _State) ->
-    ok.
+terminate(_Reason, #ship_state{ commander=undefined }) ->
+    ok;
+terminate(Reason, #ship_state{ commander=Pid }) ->
+    Pid ! {ship_destroyed, self(), Reason}.
+
 
 %%% --------------------------------------------------------------------
 %%% Internal functions
@@ -200,22 +206,14 @@ terminate(_Reason, _State) ->
 
 %%% --------------------------------------------------------------------
 %% Ship commands
-handle_command({srscan}, State) ->
+handle_command(srscan, State) ->
     %% TODO: we can check for damaged scanner device here.. ;)
-
-    %% collect data (i.e. perform the scan) here, now, then send that
-    %% off as a short range scan result for output.
-
     Stardate = erltrek_galaxy:stardate(),
     Data = erltrek_galaxy:srscan(),
-
-    %% Using sync notify so the output is presented before returning.
-    %% But for this to work, no event handler (directly or indirectly)
-    %% may call into any of the processes in our call chain!
-    {sync_notify({srscan, {Stardate, [State|Data]}}, State), State};
+    {{ok, {Stardate, [State|Data]}}, State};
 %%% --------------------------------------------------------------------
-handle_command({lrscan}, State) ->
-    {sync_notify({lrscan, erltrek_galaxy:lrscan()}, State), State};
+handle_command(lrscan, State) ->
+    {{ok, erltrek_galaxy:lrscan()}, State};
 %%% --------------------------------------------------------------------
 handle_command({impulse, Course}, #ship_state{ speed=Speed }=State) ->
     %% Free move until told otherwise..
@@ -242,32 +240,31 @@ handle_command(stop, State) ->
     {erltrek_galaxy:impulse(0,0), State};
 %%% --------------------------------------------------------------------
 handle_command({phaser, SX, SY, Energy},
-        #ship_state{ energy=E, docked = D }=State) ->
+               #ship_state{ energy=E, docked = D }=State) ->
     NKQ = erltrek_galaxy:count_nearby_enemies(),
     if
         D ->
-           {{phaser, no_firing_when_docked}, State};
+            {{phaser, no_firing_when_docked}, State};
         NKQ == 0 ->
-           {{phaser, no_klingon_in_quadrant}, State};
+            {{phaser, no_klingon_in_quadrant}, State};
         E =< Energy ->
-           {{phaser, not_enough_energy}, State};
+            {{phaser, not_enough_energy}, State};
         true ->
-           {erltrek_phaser:phaser(SX, SY, Energy),
-            State#ship_state{ energy = E - Energy }}
+            {phaser(SX, SY, Energy), State#ship_state{ energy = E - Energy }}
     end;
 %%% --------------------------------------------------------------------
-handle_command({dock}, #ship_state{docked = Docked}=State) ->
+handle_command(dock, #ship_state{docked = Docked}=State) ->
     if Docked ->
-           {{dock, already_docked}, State};
+            {{dock, already_docked}, State};
        true ->
-           try_docking(State)
+            try_docking(State)
     end;
 %%% --------------------------------------------------------------------
-handle_command({undock}, #ship_state{docked = Docked}=State) ->
+handle_command(undock, #ship_state{docked = Docked}=State) ->
     if not Docked ->
-           {{undock, not_docked}, State};
+            {{undock, not_docked}, State};
        true ->
-           {{undock, undock_complete}, State#ship_state{docked = false}}
+            {{undock, undock_complete}, State#ship_state{docked = false}}
     end;
 %%% --------------------------------------------------------------------
 handle_command(Cmd, State) ->
@@ -280,7 +277,11 @@ handle_commander_request(get_status, State) ->
     {State, State};
 %%% --------------------------------------------------------------------
 handle_commander_request(count_nearby_enemies, State) ->
-    {erltrek_galaxy:count_nearby_enemies(), State}.
+    {erltrek_galaxy:count_nearby_enemies(), State};
+%%% --------------------------------------------------------------------
+handle_commander_request(refill_energy, State) ->
+    %% TODO: Should this refilling-energy command be always accepted?
+    {ok, do_refill_energy(State)}.
 
 
 %%% --------------------------------------------------------------------
@@ -288,11 +289,6 @@ handle_commander_request(count_nearby_enemies, State) ->
 notify(_Event, #ship_state{ commander=undefined }) -> ok;
 notify(Event, #ship_state{ commander=Commander }) -> Commander ! {event, Event}, ok.
 
-sync_notify(_Event, #ship_state{ commander=undefined }) -> ok;
-sync_notify(Event, #ship_state{ commander=Commander }) ->
-    Ref = make_ref(),
-    Commander ! {sync_event, {self(), Ref}, Event},
-    receive {Ref, Rsp} -> Rsp end.
 
 %%% --------------------------------------------------------------------
 %% take damage from enemy attack
@@ -315,32 +311,33 @@ absorb_hit(_, _) -> exit(normal).
 
 %%% --------------------------------------------------------------------
 %% update ship condition flag
-update_condition(
-    #ship_state{ship = #ship_def{max_energy = Maxenergy},
-        condition = Old} = State) ->
-    % update ship condition
-    New = case {
-        erltrek_galaxy:count_nearby_enemies() > 0,
-        State#ship_state.energy < Maxenergy div 5,
-        State#ship_state.docked} of
-            {_, _, true} -> cond_docked;
-            {false, true, false} -> cond_yellow;
-            {true, _, false} -> cond_red;
-            {false, false, false} -> cond_green
-    end,
-    if
-        Old =/= New ->
+update_condition(#ship_state{ condition=Condition }=State) ->
+    case get_condition(State) of
+        Condition -> State;
+        New ->
             ok = notify({condition, New}, State),
-            State#ship_state{condition = New};
-        true ->
-            State
+            State#ship_state{ condition = New }
+    end.
+
+get_condition(#ship_state{ docked=true }) -> cond_docked;
+get_condition(#ship_state{ energy=E, ship=#ship_def{ max_energy=M }}) ->
+    case erltrek_galaxy:count_nearby_enemies() of
+        0 when E < M div 5 -> cond_yellow;
+        0 -> cond_green;
+        _ -> cond_red
     end.
 
 %%% --------------------------------------------------------------------
-%% try docking to the base
-try_docking(
+%% refilling ship energy
+do_refill_energy(
     #ship_state{ship = #ship_def{
             max_energy = Maxenergy, max_shield=Maxshield}} = State) ->
+        ok = notify(energy_refilled, State),
+        State#ship_state{energy = Maxenergy, shield = Maxshield}.
+
+%%% --------------------------------------------------------------------
+%% try docking to the base
+try_docking(State) ->
     {QC, SC} = erltrek_galaxy:get_position(),
     DB = erltrek_galaxy:bases(),
     case dict:is_key(QC, DB) of
@@ -350,12 +347,9 @@ try_docking(
             % if distance < sqrt(2) then dockable
             case erltrek_calc:sector_distance(SC, TB#base_info.xy) < 1.415 of
                 true ->
+                    State2 = do_refill_energy(State),
                     {{dock, docking_complete},
-                        State#ship_state{
-                            docked = true,
-                            % replenish energy and shield
-                            energy = Maxenergy,
-                            shield = Maxshield}};
+                        State2#ship_state{docked = true}};
                 false ->
                     {{dock, base_not_adjacent}, State}
             end;
@@ -380,11 +374,20 @@ impulse(SQC, SSC, DQC, DSC, State) ->
         {ok, _Dx, _Dy, Course, Dist} ->
             if
                 Dist > 0 ->
-                    %% TODO: get speed from somewhere ...
                     erltrek_galaxy:impulse(Course, State#ship_state.speed);
                 true ->
                     %% zero distance = no move
                     {move, no_move_to_same_position}
             end;
         Error -> {move, Error}
+    end.
+
+%%% --------------------------------------------------------------------
+%% fire phasers
+phaser(SX, SY, Energy) ->
+    {QC, SC} = erltrek_galaxy:get_position(),
+    case erltrek_calc:course_distance(QC, SC, QC, #sectxy{ x=SX, y=SY }) of
+        {ok, _Dx, _Dy, Course, _Dist} ->
+            erltrek_galaxy:phaser(Course, Energy);
+        Error -> {phaser, Error}
     end.

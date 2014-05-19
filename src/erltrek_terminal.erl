@@ -132,12 +132,6 @@ handle_event({collision, Object, {_, QC, SC}}, State) ->
                     QC#quadxy.x, QC#quadxy.y,
                     SC#sectxy.x, SC#sectxy.y]),
     {ok, State};
-handle_event({lrscan, GameState}, State) ->
-    ok = io:format("~s", [erltrek_scan:lrscan_string(GameState)]),
-    {ok, State};
-handle_event({srscan, GameState}, State) ->
-    ok = io:format("~s", [erltrek_scan:srscan_string(GameState)]),
-    {ok, State};
 handle_event({hit, SK, KHIT}, State) ->
     ok = io:format("Klingon hit from sector ~b,~b level ~b~n",
                    [SK#sectxy.x, SK#sectxy.y, KHIT]),
@@ -175,6 +169,9 @@ handle_event({shield_level, NSHIELD}, State) ->
 handle_event({condition, Condition}, State) ->
     ok = io:format("Condition changed to: ~s~n",
                    [erltrek_scan:condition_string(Condition)]),
+    {ok, State};
+handle_event(energy_refilled, State) ->
+    ok = io:format("Ship energy and shield replenished~n"),
     {ok, State};
 handle_event({unknown_command, Command}, State) ->
     ok = io:format("enterprise_command: unknown command: ~p~n", [Command]),

@@ -83,7 +83,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, spawn_ship/1,
+-export([start_link/0, spawn_ship/1, spawn_ship/2,
          stardate/0, get_position/0,
          srscan/0, lrscan/0,
          impulse/2, phaser/2,
@@ -102,12 +102,11 @@
 
 -record(state, {
           stardate=?INITTICK,
-          sync :: os:timestamp(),
+          sync :: erlang:timestamp(),
           ships,
           galaxy,
           stars, inhabited, bases, holes
          }).
-
 
 %%% --------------------------------------------------------------------
 %%% API
@@ -123,28 +122,35 @@ spawn_ship(Ship) when is_record(Ship, ship_def)->
     ok = gen_server:cast(?MODULE, {new_ship, Ship#ship_def.class, Pid}),
     {ok, Pid}.
 
--spec get_position() -> {reply, term(), #state{}}.
+-spec spawn_ship(#quadxy{}, #ship_def{}) -> {ok, pid()}.
+
+spawn_ship(QC, Ship) when is_record(QC, quadxy), is_record(Ship, ship_def)->
+    {ok, Pid} = erltrek_ship_sup:start_ship([Ship]),
+    ok = gen_server:cast(?MODULE, {new_ship_quad, QC, Ship#ship_def.class, Pid}),
+    {ok, Pid}.
+
+-spec get_position() -> term().
 get_position() -> call(get_position).
 
--spec stardate() -> {reply, term(), #state{}}.
+-spec stardate() -> term().
 stardate() -> call(get_stardate).
 
--spec srscan() -> {reply, term(), #state{}}.
+-spec srscan() -> term().
 srscan() -> call(srscan).
 
--spec lrscan() -> {reply, term(), #state{}}.
+-spec lrscan() -> term().
 lrscan() -> call(lrscan).
 
--spec impulse(non_neg_integer(), non_neg_integer()) -> {reply, term(), #state{}}.
+-spec impulse(number(), number()) -> term().
 impulse(Course, Speed) -> call({impulse, Course, Speed}).
 
--spec phaser(non_neg_integer(), non_neg_integer()) -> {reply, term(), #state{}}.
+-spec phaser(number(), non_neg_integer()) -> term().
 phaser(Course, Energy) -> call({phaser, Course, Energy}).
 
--spec count_nearby_enemies() -> {reply, term(), #state{}}.
+-spec count_nearby_enemies() -> term().
 count_nearby_enemies() -> call(count_nearby_enemies).
 
--spec bases() -> {reply, term(), #state{}}.
+-spec bases() -> term().
 bases() -> call(get_bases).
 
 
@@ -242,6 +248,14 @@ handle_cast({new_ship, Class, Pid}, State0) ->
                     pos=erltrek_calc:quadsect_to_galaxy({QC, SC})
                    }},
                 State);
+handle_cast({new_ship_quad, QC, Class, Pid}, State0) ->
+    {QC, SC, State} = place_object_quad(QC, {Class, Pid}, State0),
+    handle_info({register_ship, Pid,
+                 #ship_data{
+                    class=Class,
+                    pos=erltrek_calc:quadsect_to_galaxy({QC, SC})
+                   }},
+                State);
 handle_cast(_Cast, State) ->
     {noreply, State}.
 
@@ -275,7 +289,7 @@ terminate(_Reason, _State) ->
 %%% Internal functions
 %%% --------------------------------------------------------------------
 
--spec call(term()) -> {reply, term(), #state{}}.
+-spec call(term()) -> term().
 call(Msg) -> gen_server:call(?MODULE, Msg).
 
 -spec quadxy_index(non_neg_integer() | #quadxy{}) -> non_neg_integer().
@@ -286,24 +300,24 @@ quadxy_index(QC) -> erltrek_calc:quadxy_index(QC).
 sectxy_index(SI) when is_integer(SI) -> SI rem (?NSECTS * ?NSECTS);
 sectxy_index(SC) -> erltrek_calc:sectxy_index(SC).
 
--spec get_quad(#quadxy{}, #state{}) -> array().
+-spec get_quad(#quadxy{}, #state{}) -> sector_array().
 get_quad(QC, #state{ galaxy=G }) ->
     array:get(quadxy_index(QC), G).
 
--spec set_quad(#quadxy{}, array(), #state{}) -> #state{}.
+-spec set_quad(#quadxy{}, sector_array(), #state{}) -> #state{}.
 set_quad(QC, Quad, #state{ galaxy=G }=State) ->
     State#state{ galaxy=array:set(quadxy_index(QC), Quad, G) }.
 
--spec update_sector(#quadxy{}, #sectxy{}, sector_entity(), #state{}) -> #state{}.
+-spec update_sector(#quadxy{}, #sectxy{},
+    sector_entity(), #state{}) -> #state{}.
 update_sector(QC, SC, Value, State) ->
     set_quad(QC, update_sector(SC, Value, get_quad(QC, State)), State).
 
--spec update_sector(#sectxy{},
-    sector_entity() | {s_klingon, undefined | pid()}, array()) -> array().
+-spec update_sector(#sectxy{}, sector_entity(), sector_array()) -> sector_array().
 update_sector(SC, Value, Quad) ->
     array:set(sectxy_index(SC), Value, Quad).
 
--spec lookup_sector(#sectxy{}, array()) -> sector_entity().
+-spec lookup_sector(#sectxy{}, sector_array()) -> sector_entity().
 lookup_sector(SC, Quad) ->
     array:get(sectxy_index(SC), Quad).
 
@@ -311,7 +325,7 @@ lookup_sector(SC, Quad) ->
 lookup_sector(QC, SC, State) ->
     lookup_sector(SC, get_quad(QC, State)).
 
--spec spawn_klingons([#sectxy{}], #quadxy{}, array()) -> array().
+-spec spawn_klingons([#sectxy{}], #quadxy{}, sector_array()) -> sector_array().
 spawn_klingons(LKS, QC, SECT0) ->
     lists:foldl(
       fun (SC, SECT) ->
@@ -325,33 +339,52 @@ spawn_klingons(LKS, QC, SECT0) ->
               update_sector(SC, {s_klingon, Ship}, SECT)
       end, SECT0, LKS).
 
--spec place_object(sector_entity() | {ship_class, pid()}, #state{}) ->
-    {#quadxy{}, #sectxy{}, #state{}}.
+-spec place_object(sector_entity(), #state{}) -> {#quadxy{}, #sectxy{}, #state{}}.
 place_object(Object, State) ->
     {QI, SI} = find_empty_sector(State),
-    {index_quadxy(QI), index_sectxy(SI),
-     update_sector(QI, SI, Object, State)}.
+    {QC, SC} = {index_quadxy(QI), index_sectxy(SI)},
+    {QC, SC, update_sector(QC, SC, Object, State)}.
+
+-spec place_object_quad(#quadxy{}, sector_entity(), #state{}) ->
+    {#quadxy{}, #sectxy{}, #state{}}.
+place_object_quad(QC, Object, State) ->
+    {_QI, SI} = find_empty_sector_quad(quadxy_index(QC), State),
+    SC = index_sectxy(SI),
+    {QC, SC, update_sector(QC, SC, Object, State)}.
 
 %% maximum number of empty sector search attempts
 
 -define(MAX_ATTEMPTS, 10000).
 
--spec find_empty_sector(#state{}) -> {non_neg_integer(), non_neg_integer()}.
+-spec find_empty_sector(#state{}) ->
+    {non_neg_integer(), non_neg_integer()} | no_empty_sector_found.
 find_empty_sector(State) ->
     find_empty_sector(?MAX_ATTEMPTS, State).
 
--spec find_empty_sector(non_neg_integer(), #state{}) -> 
+-spec find_empty_sector(non_neg_integer(), #state{}) ->
     {non_neg_integer(), non_neg_integer()} | no_empty_sector_found.
 
-find_empty_sector(0, _State) -> no_empty_sector_found;
 find_empty_sector(N, #state{ galaxy=G }=State) when is_integer(N), N > 0 ->
+    %% 0 =< QI =< (array:size(G) - 1)
+    find_empty_sector_quad(N, tinymt32:uniform(array:size(G)) - 1, State).
+
+-spec find_empty_sector_quad(non_neg_integer(), #state{}) ->
+    {non_neg_integer(), non_neg_integer()} | no_empty_sector_found.
+
+find_empty_sector_quad(QI, State) when is_integer(QI), QI >= 0 ->
+    find_empty_sector_quad(?MAX_ATTEMPTS, QI, State).
+
+-spec find_empty_sector_quad(non_neg_integer(), non_neg_integer(), #state{}) ->
+    {non_neg_integer(), non_neg_integer()} | no_empty_sector_found.
+
+find_empty_sector_quad(0, _QI, _State) -> no_empty_sector_found;
+find_empty_sector_quad(N, QI, State) when is_integer(N), N > 0 ->
     %% 0 =< QI =< (array:size(G) - 1),  0 =< SI =< (array:size(SECT) - 1)
-    QI = tinymt32:uniform(array:size(G)) - 1,
     SECT = get_quad(index_quadxy(QI), State),
     SI = tinymt32:uniform(array:size(SECT)) - 1,
     case lookup_sector(index_sectxy(SI), SECT) of
         s_empty -> {QI, SI};
-        _ -> find_empty_sector(N - 1, State)
+        _ -> find_empty_sector_quad(N - 1, QI, State)
     end.
 
 -spec find_ship(pid(), #state{}) -> {ok, #ship_data{}} | error.
@@ -370,7 +403,9 @@ erase_ship(Ship, #state{ ships=Ships }=State) ->
 set_ship_vector(Course, Speed, Data) ->
     Data#ship_data{ course = Course / 180 * math:pi(), speed=Speed }.
 
--spec update_ship_pos(#ship_data{}) -> #ship_data{}.
+-spec update_ship_pos(#ship_data{}) ->
+    #ship_data{} |
+    {{enter_sector | enter_quadrant, #quadxy{}, #sectxy{}}, #ship_data{}}.
 update_ship_pos(#ship_data{ pos=GC, quad=QC, sect=SC }=Data) ->
     case erltrek_calc:galaxy_to_quadsect(GC) of
         {QC, SC} -> Data;
@@ -433,6 +468,11 @@ move_ships(Delta, #state{ ships=Ships }=State0) ->
                             pos=#galaxy{x = GX, y = GY},
                             speed=Speed, course=Course }=Data,
                    Acc) ->
+                      % Note from @jj1bdx:
+                      % Delta unit in Seconds
+                      % abs(Speed * Delta) < 1.0
+                      % Otherwise skipping sectors may occur
+                      % @kaos: am I correct?
                       Dist = Speed * Delta,
                       DX = Dist * -math:cos(Course),
                       DY = Dist * math:sin(Course),
@@ -459,7 +499,7 @@ tick(#state{ stardate=Stardate, sync=Sync }=State0) ->
     erlang:send_after(?GALAXY_TICK, self(), tick),
     State#state{ stardate=Stardate + Tick, sync=Timestamp }.
 
--spec count_other_ships(ship_class(), #state{} | array()) -> non_neg_integer().
+-spec count_other_ships(ship_class(), #state{} | sector_array()) -> non_neg_integer().
 
 count_other_ships(Class, #state{ ships=Ships }) ->
     orddict:fold(

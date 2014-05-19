@@ -83,7 +83,7 @@
 -behaviour(gen_fsm).
 
 %% API
--export([start/1]).
+-export([start_link/1]).
 
 %% States
 -export([idle/2, scout/2, aggressive/2, evasive/2, escaping/2]).
@@ -107,9 +107,9 @@
 %%% API
 %%% --------------------------------------------------------------------
 
--spec start(pid()) -> {ok, pid()}.
-start(Ship) ->
-    gen_fsm:start(?MODULE, Ship, []).
+-spec start_link(pid()) -> {ok, pid()}.
+start_link(Ship) ->
+    gen_fsm:start_link(?MODULE, Ship, []).
 
 
 %%% --------------------------------------------------------------------
@@ -118,7 +118,6 @@ start(Ship) ->
 
 init(Ship) ->
     erltrek_setup:seed(),
-    monitor(process, Ship),
     State = #state{ ship=Ship },
     {ok, idle, State, State#state.skill}.
 
@@ -128,18 +127,47 @@ handle_event(_Event, StateName, StateData) ->
 handle_sync_event(_Event, _From, StateName, StateData) ->
     next_state(StateName, StateData).
 
-handle_info({enter_quadrant, _QC, _SC}, escaping, State) ->
+%% See erltrek_ship:notify/2 and erltrek_ship:handle_info/2
+%% to find out what sort of events should be processed here
+handle_info({event, {enter_quadrant, _QC, _SC}}, escaping, State) ->
     ok = erltrek_ship:command(ship(State), stop),
-    %% TODO: recharge ship as we got away
+    % TODO: should/can the commander instruct ship to refill energy?
+    ok = erltrek_ship:refill_energy(ship(State)),
     next_state(idle, State);
-handle_info({event, _}, StateName, StateData) ->
+handle_info({event, {condition, cond_red}}, idle, State) ->
+    next_state(scout, State);
+handle_info({event, {condition, cond_green}}, StateName, StateData) ->
+    % do nothing here
+    % TODO: what to do when condition goes back to GREEN?
+    next_state(StateName, StateData);
+handle_info({event, {enter_sector, _QC, _SC}}, StateName, StateData) ->
+    % do nothing here
+    next_state(StateName, StateData);
+handle_info({event, {collision, _Object, _Info}}, StateName, StateData) ->
+    % do nothing here
+    next_state(StateName, StateData);
+handle_info({event, {phaser_hit, _Level, _Info}}, StateName, StateData) ->
+    % do nothing here
+    next_state(StateName, StateData);
+handle_info({event, {damage_level, _Level}}, StateName, StateData) ->
+    % do nothing here
+    next_state(StateName, StateData);
+handle_info({event, move_done}, StateName, StateData) ->
+    % do nothing here
+    next_state(StateName, StateData);
+handle_info({event, energy_refilled}, StateName, StateData) ->
+    % do nothing here
+    next_state(StateName, StateData);
+handle_info({event, Info}, StateName, StateData) ->
+    io:format("klingon_commander: unknown_event_info: ~p~n", [Info]),
     next_state(StateName, StateData);
 handle_info({sync_event, {Pid, Ref}, _}, StateName, StateData) ->
     Pid ! {Ref, ok},
     next_state(StateName, StateData);
-handle_info({'DOWN', _Ref, process, _Ship, _Info}, _StateName, StateData) ->
+handle_info({ship_destroyed, _Ship, _Reason}, _StateName, StateData) ->
     {stop, normal, StateData};
-handle_info(_Info, StateName, StateData) ->
+handle_info(Info, StateName, StateData) ->
+    io:format("klingon_commander: unknown_info: ~p~n", [Info]),
     next_state(StateName, StateData).
 
 terminate(_Reason, _StateName, _StateData) ->
@@ -155,10 +183,8 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 
 idle(timeout, State) ->
     %% wait for enterprise to show up
-    case erltrek_ship:count_nearby_enemies(ship(State)) of
-        0 -> next_state(idle, State);
-        _ -> next_state(scout, State)
-    end.
+    ship(State) ! update_condition,
+    next_state(idle, State).
 
 scout(timeout, State) ->
     %% depending on our energy level, we'll be evasive or aggressive
@@ -182,8 +208,7 @@ evasive(timeout, State) ->
 aggressive(timeout, State) ->
     case status(State) of
         ok ->
-            %% TODO: attack!
-            next_state(aggressive, State);
+            attack(State);
         badly_hurt ->
             %% go straight to evasive (fast reaction)
             evasive(timeout, State)
@@ -216,3 +241,18 @@ status(State) ->
         _ ->
             badly_hurt
     end.
+
+attack(State) ->
+    {ok, {_, Data}} = erltrek_ship:command(ship(State), srscan),
+    Quad = proplists:get_value(quad, Data),
+    SI = array:sparse_foldl(
+          fun (I, {s_enterprise, _}, _) -> I;
+              (_, _, I) -> I
+          end, false, Quad),
+    %% TODO: check distance, maybe we should get closer to make the shot more effective
+    if is_integer(SI) ->
+            #sectxy{ x=SX, y=SY } = erltrek_calc:index_sectxy(SI),
+            {phaser_hit, _} = erltrek_ship:command(ship(State), {phaser, SX, SY, 100});
+       true -> nop
+    end,
+    next_state(aggressive, State).
