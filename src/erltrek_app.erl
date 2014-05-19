@@ -42,8 +42,12 @@
 %% Use `erltrek:start/0` and `erltrek:stop/0` instead.
 -export([start/2, stop/1]).
 
+-spec start(application:start_type(), term()) -> tuple().
+
 start(_Type, _Args) ->
     erltrek_sup:start_link().
+
+-spec stop(term()) -> ok.
 
 stop(_State) ->
     ok.

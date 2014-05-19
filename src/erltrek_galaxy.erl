@@ -278,8 +278,12 @@ handle_info({'DOWN', _Ref, process, Pid, _Info}, State0) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
+-spec code_change(term(), term(), term()) -> {ok, term()}.
+
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+-spec terminate(term(), term()) -> ok.
 
 terminate(_Reason, _State) ->
     ok.
