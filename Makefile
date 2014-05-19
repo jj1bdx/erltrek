@@ -1,25 +1,15 @@
-.PHONY: compile clean doc eunit
+# See http://stackoverflow.com/questions/11775109/determine-if-makefile-is-executed-with-gmake
+# and http://stackoverflow.com/questions/11775197/how-to-execute-gmake-make-from-a-bash-script-file
+# for the GNUMAKE detection script
+# If stock `make` is GNU Make, use `make`; otherwise use `gmake`
+GNUMAKE=@`sh -c \
+		'if (make --version | grep "^GNU Make" 2>&1 >/dev/null); \
+		then echo make; else echo gmake; fi' 2>/dev/null`
 
-REBAR=@`sh -c "PATH='$(PATH)':support which rebar\
-	||support/getrebar||echo false"`
+TARGETMAKEFILE=	./Makefile.erltrek
 
-compile:
-	$(REBAR) compile
+all:
+	$(GNUMAKE) -f $(TARGETMAKEFILE) $@
 
-clean:
-	$(REBAR) clean
-
-dialyzer:
-	dialyzer src/*.erl
-
-doc:
-	$(REBAR) doc
-
-eunit:
-	$(REBAR) eunit
-
-firsttime-dialyzer:
-	dialyzer --build_plt --apps kernel stdlib erts mnesia eunit crypto
-
-speed:
-	escript test-scripts/testspeed.escript
+.DEFAULT:
+	$(GNUMAKE) -f $(TARGETMAKEFILE) $@
