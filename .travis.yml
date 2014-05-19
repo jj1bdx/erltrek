@@ -1,4 +1,5 @@
 language: erlang
+script: "make clean && make"
 notifications:
   email: false
 otp_release:
