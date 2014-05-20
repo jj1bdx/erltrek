@@ -140,7 +140,7 @@ srscan() ->
 -spec init(term) -> term().
 
 init([]) ->
-    erltrek_setup:seed(),
+    _ = erltrek_setup:seed(),
     %% put enterprise where a starbase locates
     LB = dict:fetch_keys(erltrek_galaxy:bases()),
     erltrek_galaxy:spawn_ship(

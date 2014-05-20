@@ -131,7 +131,7 @@ refill_energy(Ship) ->
 %%% --------------------------------------------------------------------
 
 init([{ship, Ship}|_Args]) ->
-    erltrek_setup:seed(),
+    _ = erltrek_setup:seed(),
     Cmdr = case Ship#ship_def.commander of
                undefined ->
                    undefined;

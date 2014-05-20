@@ -161,7 +161,7 @@ bases() -> call(get_bases).
 -spec init([]) -> {ok, #state{}}.
 
 init([]) ->
-    erltrek_setup:seed(),
+    _ = erltrek_setup:seed(),
     {_NK, DS, DI, DB, DH, DKQ} = erltrek_setup:setup_galaxy(),
     erlang:send_after(?GALAXY_TICK, self(), tick),
     {ok, #state{

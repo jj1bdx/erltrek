@@ -117,7 +117,7 @@ start_link(Ship) ->
 %%% --------------------------------------------------------------------
 
 init(Ship) ->
-    erltrek_setup:seed(),
+    _ = erltrek_setup:seed(),
     State = #state{ ship=Ship },
     {ok, idle, State, State#state.skill}.
 
@@ -250,7 +250,7 @@ attack(State) ->
               (_, _, I) -> I
           end, false, Quad),
     %% TODO: check distance, maybe we should get closer to make the shot more effective
-    if is_integer(SI) ->
+    _ = if is_integer(SI) ->
             #sectxy{ x=SX, y=SY } = erltrek_calc:index_sectxy(SI),
             {phaser_hit, _} = erltrek_ship:command(ship(State), {phaser, SX, SY, 100});
        true -> nop
