@@ -42,7 +42,7 @@
 %% Use `erltrek:start/0` and `erltrek:stop/0` instead.
 -export([start/2, stop/1]).
 
--spec start(application:start_type(), term()) -> tuple().
+-spec start(application:start_type(), term()) -> {'ok', pid()}.
 
 start(_Type, _Args) ->
     erltrek_sup:start_link().

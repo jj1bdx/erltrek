@@ -137,7 +137,7 @@ srscan() ->
 %% Callbacks
 %%% --------------------------------------------------------------------
 
--spec init(term) -> term().
+-spec init([]) -> {'ok', pid()}.
 
 init([]) ->
     _ = erltrek_setup:seed(),
@@ -147,7 +147,7 @@ init([]) ->
         lists:nth(tinymt32:uniform(length(LB)), LB),
         ?enterprise_ship).
 
--spec handle_call(term(), {pid(), term()}, term()) -> tuple().
+-spec handle_call(term(), {pid(), term()}, term()) -> {reply, term(), pid()}.
 
 handle_call({ship, Command}, _From, Ship) ->
     {reply, erltrek_ship:command(Ship, Command), Ship}.
@@ -162,13 +162,13 @@ terminate(_Reason, _Ship) ->
 code_change(_OldVsn, State, _Extra) ->
         {ok, State}.
 
--spec handle_cast(term(), term()) -> tuple().
+-spec handle_cast(term(), term()) -> {stop, normal, term()}.
 
 handle_cast({stop, Event}, State) ->
     ok = erltrek_event:sync_notify(Event),
     {stop, normal, State}.
 
--spec handle_info(term(), term()) -> tuple().
+-spec handle_info(term(), term()) -> {noreply, term()}.
 
 handle_info(_, State) ->
     {noreply, State}.
