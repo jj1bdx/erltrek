@@ -116,16 +116,27 @@ start_link(Ship) ->
 %%% Callbacks
 %%% --------------------------------------------------------------------
 
+-spec init(pid()) -> {ok, idle, term(), non_neg_integer()}.
+
 init(Ship) ->
     _ = erltrek_setup:seed(),
     State = #state{ ship=Ship },
     {ok, idle, State, State#state.skill}.
 
+-spec handle_event(term(), term(), term()) ->
+    {next_state, atom(), term(), non_neg_integer()}.
+
 handle_event(_Event, StateName, StateData) ->
     next_state(StateName, StateData).
 
+-spec handle_sync_event(term(), {pid(), term()}, term(), term()) ->
+    {next_state, atom(), term(), non_neg_integer()}.
+
 handle_sync_event(_Event, _From, StateName, StateData) ->
     next_state(StateName, StateData).
+
+-spec handle_info(term(), term(), term()) ->
+    {next_state, atom(), term(), non_neg_integer()}.
 
 %% See erltrek_ship:notify/2 and erltrek_ship:handle_info/2
 %% to find out what sort of events should be processed here
@@ -170,8 +181,13 @@ handle_info(Info, StateName, StateData) ->
     io:format("klingon_commander: unknown_info: ~p~n", [Info]),
     next_state(StateName, StateData).
 
+-spec terminate(term(), term(), term()) -> ok.
+
 terminate(_Reason, _StateName, _StateData) ->
     ok.
+
+-spec code_change(term(), term(), term(), term()) ->
+    {ok, atom(), term()}.
 
 code_change(_OldVsn, StateName, StateData, _Extra) ->
     {ok, StateName, StateData}.
@@ -181,10 +197,14 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%% States
 %%% --------------------------------------------------------------------
 
+-spec idle(timeout, term()) -> {next_state, term(), term(), integer()}.
+
 idle(timeout, State) ->
     %% wait for enterprise to show up
     ship(State) ! update_condition,
     next_state(idle, State).
+
+-spec scout(timeout, term()) -> {next_state, term(), term(), integer()}.
 
 scout(timeout, State) ->
     %% depending on our energy level, we'll be evasive or aggressive
@@ -194,6 +214,8 @@ scout(timeout, State) ->
         badly_hurt ->
             next_state(evasive, State)
     end.
+
+-spec evasive(timeout, term()) -> {next_state, term(), term(), integer()}.
 
 evasive(timeout, State) ->
     %% TODO: check where enterprise are, and go in other direction
@@ -205,6 +227,8 @@ evasive(timeout, State) ->
     %% TODO: (not here) we may collide, and need to find another direction..
     next_state(escaping, State, infinity).
 
+-spec aggressive(timeout, term()) -> {next_state, term(), term(), integer()}.
+
 aggressive(timeout, State) ->
     case status(State) of
         ok ->
@@ -213,6 +237,8 @@ aggressive(timeout, State) ->
             %% go straight to evasive (fast reaction)
             evasive(timeout, State)
     end.
+
+-spec escaping(timeout, term()) -> {next_state, term(), term(), integer()}.
 
 escaping(timeout, State) ->
     %% We'll get here after an event has occured..  but we want to
