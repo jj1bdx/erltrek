@@ -116,11 +116,18 @@ command(Ship, Command) ->
 
 
 %% Commander API
+
+-spec status(pid()) -> {reply, term(), term()}.
+
 status(Ship) ->
     gen_server:call(Ship, get_status).
 
+-spec count_nearby_enemies(pid()) -> {reply, non_neg_integer(), term()}.
+
 count_nearby_enemies(Ship) ->
     gen_server:call(Ship, count_nearby_enemies).
+
+-spec refill_energy(pid()) -> {reply, ok, term()}.
 
 refill_energy(Ship) ->
     gen_server:call(Ship, refill_energy).
