@@ -44,11 +44,17 @@
 %% Callbacks
 -export([init/1]).
 
+-spec start_link() -> supervisor:startlink_ret().
+
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
+-spec start_ship(list()) -> supervisor:startchild_ret().
+
 start_ship(Args) when is_list(Args) ->
     supervisor:start_child(?MODULE, Args).
+
+-spec init(term()) -> {ok, {tuple(), term()}}.
 
 init(_Args) ->
     RestartStrategy = simple_one_for_one,

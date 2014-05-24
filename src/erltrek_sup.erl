@@ -40,8 +40,12 @@
 
 -export([start_link/0, init/1]).
 
+-spec start_link() -> supervisor:startlink_ret().
+
 start_link() ->
     supervisor:start_link(?MODULE, []).
+
+-spec init(list()) -> {ok, {tuple(), term}}.
 
 init(_Args) ->
     RestartStrategy = one_for_all,
