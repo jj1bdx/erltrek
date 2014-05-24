@@ -90,6 +90,7 @@
 
 -include("erltrek.hrl").
 
+-spec start() -> pid().
 
 start() ->
     spawn(fun server/0).
@@ -112,6 +113,8 @@ server_loop() ->
                       [file:format_error(Desc)]),
             server_loop()
     end.
+
+-spec dispatch_and_result(string()) -> ok.
 
 dispatch_and_result(Command) ->
     case dispatch_command(Command) of
@@ -143,9 +146,15 @@ parse_command({ok, [Name|Args], _}) ->
 parse_command({ok, [], _}) -> ok;
 parse_command({error, Info, _Location}) -> Info.
 
+-spec token_to_name(atom() | list() | tuple()) ->
+    atom() | list().
+
 token_to_name({_, _, Name}) -> Name;
 token_to_name({Name, _}) -> Name;
 token_to_name(Name) -> Name.
+
+-spec find_command(atom() | list() | tuple()) ->
+    atom() | list().
 
 find_command(Token) ->
     Name = token_to_name(Token),
