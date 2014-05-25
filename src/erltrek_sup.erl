@@ -45,7 +45,11 @@
 start_link() ->
     supervisor:start_link(?MODULE, []).
 
--spec init(list()) -> {ok, {tuple(), term}}.
+-spec init(Args :: term()) ->
+        {ok, {{RestartStrategy :: supervisor:strategy(),
+               MaxR            :: non_neg_integer(),
+               MaxT            :: non_neg_integer()},
+               [ChildSpec :: supervisor:child_spec()]}} | ignore.
 
 init(_Args) ->
     RestartStrategy = one_for_all,

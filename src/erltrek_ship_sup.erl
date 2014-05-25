@@ -54,7 +54,11 @@ start_link() ->
 start_ship(Args) when is_list(Args) ->
     supervisor:start_child(?MODULE, Args).
 
--spec init(term()) -> {ok, {tuple(), term()}}.
+-spec init(Args :: term()) ->
+        {ok, {{RestartStrategy :: supervisor:strategy(),
+               MaxR            :: non_neg_integer(),
+               MaxT            :: non_neg_integer()},
+               [ChildSpec :: supervisor:child_spec()]}} | ignore.
 
 init(_Args) ->
     RestartStrategy = simple_one_for_one,
