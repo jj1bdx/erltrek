@@ -113,6 +113,11 @@
 
 -type orddict() :: [{Key :: term(), Value :: term()}].
 
+%% see OTP lib/stdlib/src/supervisor.erl
+
+-type startlink_err() :: {'already_started', pid()} | {'shutdown', term()} | term().
+-type startlink_ret() :: {'ok', pid()} | 'ignore' | {'error', startlink_err()}.
+
 %% quadrant and sector coordinates
 
 -type quadcoord() :: 0..(?NQUADS - 1).

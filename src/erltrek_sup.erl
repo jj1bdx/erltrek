@@ -37,10 +37,11 @@
 
 -module(erltrek_sup).
 -behaviour(supervisor).
+-include("erltrek.hrl").
 
 -export([start_link/0, init/1]).
 
--spec start_link() -> supervisor:startlink_ret().
+-spec start_link() -> startlink_ret().
 
 start_link() ->
     supervisor:start_link(?MODULE, []).
