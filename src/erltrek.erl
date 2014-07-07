@@ -39,6 +39,8 @@
 
 -export([start/0, stop/0]).
 
+-include("erltrek.hrl").
+
 -spec start() -> ok | {error, term()}.
 start() ->
     application:start(erltrek).

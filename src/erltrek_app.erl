@@ -37,6 +37,7 @@
 
 -module(erltrek_app).
 -behaviour(application).
+-include("erltrek.hrl").
 
 %% Do not call these directly, these are callbacks for the application behaviour.
 %% Use `erltrek:start/0` and `erltrek:stop/0` instead.

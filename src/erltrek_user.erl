@@ -80,7 +80,7 @@
 %%% --------------------------------------------------------------------
 
 -module(erltrek_user).
-
+-include("erltrek.hrl").
 -export([start/0]).
 
 % See lib/kernel/src/user_drv.erl
