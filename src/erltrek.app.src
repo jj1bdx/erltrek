@@ -4,6 +4,7 @@
   {vsn, git},
   {registered, [erltrek_game, erltrek_event]},
   {applications, [kernel, stdlib]},
-  {modules, {erltrek_app, []}},
+  {mod, {erltrek_app, []}},
+  {modules, []},
   {env, []}
  ]}.
