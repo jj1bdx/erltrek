@@ -1,7 +1,7 @@
 # Erltrek: Star Trek Game in Erlang
 
-* Requirement: Erlang/OTP 17.1
-* Tested on: OS X 10.9.3, FreeBSD 10-STABLE
+* Requirement: Erlang/OTP 17.3
+* Tested on: OS X 10.9.5, FreeBSD 10-STABLE
 * License: BSD 3-clause (Note: tinymt-erlang has its own BSD license, compatible with this software)
 * *Note well: this program is still in the alpha level. Please report bugs to the GitHub issues and contribute through the pull requests.*
 
