@@ -91,7 +91,7 @@ start_link(Ship) ->
     {ok,
      spawn_link(
        fun() ->
-               erltrek_setup:seed(),
+               _ = erltrek_setup:seed(),
                command(Ship)
        end)}.
 

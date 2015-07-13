@@ -120,6 +120,8 @@ get_integer(Prompt, Default) ->
         _ -> Default
     end.
 
+-spec commands() -> list(#command{}).
+
 commands() ->
     [#command{
         name = srscan,

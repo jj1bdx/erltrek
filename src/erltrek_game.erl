@@ -98,23 +98,37 @@
 %% public APIs
 %%% --------------------------------------------------------------------
 
+-spec start_link() -> term().
+
 start_link() ->
     start_link([]).
+
+-spec start_link(term()) -> term().
 
 start_link(Args) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, Args, []).
 
+-spec stop() -> ok.
+
 stop() ->
     gen_server:cast(?MODULE, {stop, stop}).
+
+-spec lost(term()) -> ok.
 
 lost(Message) ->
     gen_server:cast(?MODULE, {stop, {lost, Message}}).
 
+-spec won(term()) -> ok.
+
 won(Message) ->
     gen_server:cast(?MODULE, {stop, {won, Message}}).
 
+-spec enterprise_command(term()) -> term().
+
 enterprise_command(Command) ->
     gen_server:call(?MODULE, {ship, Command}).
+
+-spec srscan() -> term().
 
 srscan() ->
     erltrek_shell:dispatch_and_result("srscan").
@@ -123,26 +137,38 @@ srscan() ->
 %% Callbacks
 %%% --------------------------------------------------------------------
 
+-spec init([]) -> {'ok', pid()}.
+
 init([]) ->
-    erltrek_setup:seed(),
+    _ = erltrek_setup:seed(),
     %% put enterprise where a starbase locates
     LB = dict:fetch_keys(erltrek_galaxy:bases()),
     erltrek_galaxy:spawn_ship(
         lists:nth(tinymt32:uniform(length(LB)), LB),
         ?enterprise_ship).
 
+-spec handle_call(term(), {pid(), term()}, term()) -> {reply, term(), pid()}.
+
 handle_call({ship, Command}, _From, Ship) ->
     {reply, erltrek_ship:command(Ship, Command), Ship}.
+
+-spec terminate(term(), term()) -> ok.
 
 terminate(_Reason, _Ship) ->
     ok.
 
+-spec code_change(term(), term(), term()) -> {ok, term()}.
+
 code_change(_OldVsn, State, _Extra) ->
         {ok, State}.
+
+-spec handle_cast(term(), term()) -> {stop, normal, term()}.
 
 handle_cast({stop, Event}, State) ->
     ok = erltrek_event:sync_notify(Event),
     {stop, normal, State}.
+
+-spec handle_info(term(), term()) -> {noreply, term()}.
 
 handle_info(_, State) ->
     {noreply, State}.

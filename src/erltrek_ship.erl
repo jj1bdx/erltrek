@@ -116,11 +116,18 @@ command(Ship, Command) ->
 
 
 %% Commander API
+
+-spec status(pid()) -> #ship_state{} | not_commander.
+
 status(Ship) ->
     gen_server:call(Ship, get_status).
 
+-spec count_nearby_enemies(pid()) -> {reply, non_neg_integer(), term()}.
+
 count_nearby_enemies(Ship) ->
     gen_server:call(Ship, count_nearby_enemies).
+
+-spec refill_energy(pid()) -> ok | not_commander.
 
 refill_energy(Ship) ->
     gen_server:call(Ship, refill_energy).
@@ -130,8 +137,10 @@ refill_energy(Ship) ->
 %%% Callbacks
 %%% --------------------------------------------------------------------
 
+-spec init(list()) -> {ok, #ship_state{}}.
+
 init([{ship, Ship}|_Args]) ->
-    erltrek_setup:seed(),
+    _ = erltrek_setup:seed(),
     Cmdr = case Ship#ship_def.commander of
                undefined ->
                    undefined;
@@ -144,6 +153,8 @@ init([{ship, Ship}|_Args]) ->
                       energy = E, shield = S, speed = IS,
                       commander = Cmdr }}.
 
+-spec handle_call(term(), {pid(), term()}, term()) -> {reply, term(), term()}.
+
 handle_call({command, Command}, _From, State0) ->
     {Reply, State} = handle_command(Command, State0),
     {reply, Reply, State};
@@ -153,8 +164,12 @@ handle_call(Command, {Pid, _Ref}, #ship_state{ commander=Pid }=State0) ->
 handle_call(_Call, _From, State) ->
     {reply, not_commander, State}.
 
+-spec handle_cast(term(), term()) -> {noreply, term()}.
+
 handle_cast(_Cast, State) ->
     {noreply, State}.
+
+-spec handle_info(term(), #ship_state{}) -> {noreply, #ship_state{}}.
 
 handle_info({Event, QC, SC}=Info, #ship_state{ tquad=TQC, tsect=TSC }=State)
   when Event == enter_sector; Event == enter_quadrant ->
@@ -191,8 +206,12 @@ handle_info(Info, State) ->
     io:format("~p ~p: unhandled info: ~p~n", [self(), ?MODULE, Info]),
     {noreply, State}.
 
+-spec code_change(term(), term(), term()) -> {ok, term()}.
+
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+-spec terminate(term(), term()) -> ok.
 
 terminate(_Reason, #ship_state{ commander=undefined }) ->
     ok;

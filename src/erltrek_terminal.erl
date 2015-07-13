@@ -86,10 +86,16 @@
 
 -include("erltrek.hrl").
 
+-spec init(term()) -> {'ok', []}.
+
 init(_Args) ->
     {ok, []}.
 
+-spec terminate(term(), term()) -> 'ok'.
+
 terminate(_Arg, _State) -> ok.
+
+-spec handle_event(term(), term()) -> {ok, term()}.
 
 handle_event({lost, Message}, State) ->
     ok = io:format("Game lost: ~s~n", [Message]),
@@ -181,6 +187,8 @@ handle_event(Event, State) ->
     ok = io:format("~p: unknown event: ~p~n", [?MODULE, Event]),
     {ok, State}.
 
+-spec handle_info(term(), term()) -> {ok, term()}.
+
 %% This happens when CTRL/D is received
 handle_info({'EXIT', Pid, normal}, State) ->
     ok = io:format("~p: normally exited, Pid: ~p~n", [?MODULE, Pid]),
@@ -189,6 +197,8 @@ handle_info({'EXIT', Pid, Reason}, State) ->
     ok = io:format("~p: 'EXIT' received, Pid: ~p, Reason:~p~n",
                    [?MODULE, Pid, Reason]),
     {ok, State}.
+
+-spec describe_object(atom() | term()) -> string().
 
 describe_object(s_klingon) -> "Klingon";
 describe_object(s_base) -> "Starbase";

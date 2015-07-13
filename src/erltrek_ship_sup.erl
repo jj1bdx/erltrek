@@ -37,6 +37,7 @@
 
 -module(erltrek_ship_sup).
 -behaviour(supervisor).
+-include("erltrek.hrl").
 
 %% API
 -export([start_link/0, start_ship/1]).
@@ -44,11 +45,21 @@
 %% Callbacks
 -export([init/1]).
 
+-spec start_link() -> startlink_ret().
+
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
+-spec start_ship(list()) -> supervisor:startchild_ret().
+
 start_ship(Args) when is_list(Args) ->
     supervisor:start_child(?MODULE, Args).
+
+-spec init(Args :: term()) ->
+        {ok, {{RestartStrategy :: supervisor:strategy(),
+               MaxR            :: non_neg_integer(),
+               MaxT            :: non_neg_integer()},
+               [ChildSpec :: supervisor:child_spec()]}} | ignore.
 
 init(_Args) ->
     RestartStrategy = simple_one_for_one,

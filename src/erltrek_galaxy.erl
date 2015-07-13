@@ -161,7 +161,7 @@ bases() -> call(get_bases).
 -spec init([]) -> {ok, #state{}}.
 
 init([]) ->
-    erltrek_setup:seed(),
+    _ = erltrek_setup:seed(),
     {_NK, DS, DI, DB, DH, DKQ} = erltrek_setup:setup_galaxy(),
     erlang:send_after(?GALAXY_TICK, self(), tick),
     {ok, #state{
@@ -278,8 +278,12 @@ handle_info({'DOWN', _Ref, process, Pid, _Info}, State0) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
+-spec code_change(term(), term(), term()) -> {ok, term()}.
+
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+-spec terminate(term(), term()) -> ok.
 
 terminate(_Reason, _State) ->
     ok.

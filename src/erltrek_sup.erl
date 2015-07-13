@@ -37,11 +37,20 @@
 
 -module(erltrek_sup).
 -behaviour(supervisor).
+-include("erltrek.hrl").
 
 -export([start_link/0, init/1]).
 
+-spec start_link() -> startlink_ret().
+
 start_link() ->
     supervisor:start_link(?MODULE, []).
+
+-spec init(Args :: term()) ->
+        {ok, {{RestartStrategy :: supervisor:strategy(),
+               MaxR            :: non_neg_integer(),
+               MaxT            :: non_neg_integer()},
+               [ChildSpec :: supervisor:child_spec()]}} | ignore.
 
 init(_Args) ->
     RestartStrategy = one_for_all,
