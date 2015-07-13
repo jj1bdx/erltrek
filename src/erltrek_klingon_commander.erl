@@ -221,7 +221,7 @@ evasive(timeout, State) ->
     %% TODO: check where enterprise are, and go in other direction
     %% (also check for closest nearby quadrant)
     %% This may also take us into a negative energy barrier..
-    Course = tinymt32:uniform(360) - 1,
+    Course = rand:uniform(360) - 1,
     ok = erltrek_ship:command(ship(State), {impulse, Course}),
     %% will stop when we reach new quadrant
     %% TODO: (not here) we may collide, and need to find another direction..

@@ -144,7 +144,7 @@ init([]) ->
     %% put enterprise where a starbase locates
     LB = dict:fetch_keys(erltrek_galaxy:bases()),
     erltrek_galaxy:spawn_ship(
-        lists:nth(tinymt32:uniform(length(LB)), LB),
+        lists:nth(rand:uniform(length(LB)), LB),
         ?enterprise_ship).
 
 -spec handle_call(term(), {pid(), term()}, term()) -> {reply, term(), pid()}.

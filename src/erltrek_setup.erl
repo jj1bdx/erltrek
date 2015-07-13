@@ -111,8 +111,8 @@ rand_sect(S) ->
 rand_sect(_, SC, true) ->
     SC;
 rand_sect(S, _, false) ->
-    SC = #sectxy{x = tinymt32:uniform(?NSECTS) - 1,
-                 y = tinymt32:uniform(?NSECTS) - 1},
+    SC = #sectxy{x = rand:uniform(?NSECTS) - 1,
+                 y = rand:uniform(?NSECTS) - 1},
     rand_sect(S, SC, array:get(sectxy_index(SC), S) =:= s_empty).
 
 %% return empty {qx, qy} in the Quadrant array
@@ -127,8 +127,8 @@ rand_quad(Q) ->
 rand_quad(_, QC, true) ->
     QC;
 rand_quad(Q, _, false) ->
-    QC = #quadxy{x = tinymt32:uniform(?NQUADS) - 1,
-                 y = tinymt32:uniform(?NQUADS) - 1},
+    QC = #quadxy{x = rand:uniform(?NQUADS) - 1,
+                 y = rand:uniform(?NQUADS) - 1},
     rand_quad(Q, QC, array:get(quadxy_index(QC), Q) =:= q_empty).
 
 %% init Sector array
@@ -232,7 +232,7 @@ inhabited_names() -> [
 
 setup_galaxy() ->
     % number of bases in the galaxy
-    NBASES = tinymt32:uniform(?MAXBASES - 3) + 3,
+    NBASES = rand:uniform(?MAXBASES - 3) + 3,
     LBASEQUAD = gen_quad_list(NBASES),
     LINHABITNAME = inhabited_names(),
     LINHABITQUAD = gen_quad_list(length(LINHABITNAME)),
@@ -242,7 +242,7 @@ setup_galaxy() ->
             LBASEQUAD, LINHABITQUAD, DINAME,
             dict:new(), dict:new(), dict:new(), dict:new()),
     % number of klingons in the galaxy
-    NKLINGONS = (tinymt32:uniform(25) * 2) + 10,
+    NKLINGONS = (rand:uniform(25) * 2) + 10,
     DKLINGON = setup_klingon_numbers(NKLINGONS, dict:new()),
     {NKLINGONS, DSTAR, DINHABIT, DBASE, DHOLE, DKLINGON}.
 
@@ -295,7 +295,7 @@ setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
             {0, SECT2, DI}
     end,
     % the number of stars includes the inhabited star
-    NSTARS = tinymt32:uniform(9) - NINHABITED,
+    NSTARS = rand:uniform(9) - NINHABITED,
     {SECT4, DS2} = case NSTARS > 0 of
         true ->
             {SECT31, STARLIST} = gen_sect_list(NSTARS, s_star, SECT3),
@@ -303,7 +303,7 @@ setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
         false ->
             {SECT3, DS}
     end,
-    NHOLES = tinymt32:uniform(3) - 1,
+    NHOLES = rand:uniform(3) - 1,
     {_SECT5, HOLELIST} = gen_sect_list(NHOLES, s_hole, SECT4),
     DH2 = dict:append_list(QC, HOLELIST, DH),
     setup_galaxy_sector(QX, QY - 1, LB, LI, DINAME, DS2, DI2, DB2, DH2).
@@ -317,15 +317,15 @@ setup_galaxy_sector(QX, QY, LB, LI, DINAME, DS, DI, DB, DH) ->
 setup_klingon_numbers(0, DKQ) ->
     DKQ;
 setup_klingon_numbers(NKALL, DKQ) when is_integer(NKALL), NKALL > 0 ->
-    N = tinymt32:uniform(4),
+    N = rand:uniform(4),
     NKADD = case N > NKALL of
         true ->
             NKALL;
         false ->
             N
     end,
-    QC = #quadxy{x = tinymt32:uniform(?NQUADS) - 1,
-                 y = tinymt32:uniform(?NQUADS) - 1},
+    QC = #quadxy{x = rand:uniform(?NQUADS) - 1,
+                 y = rand:uniform(?NQUADS) - 1},
     NKOLD = case dict:is_key(QC, DKQ) of
         true ->
             dict:fetch(QC, DKQ);
@@ -421,12 +421,11 @@ setup_sector(QC, DS, DI, DB, DH, DKQ) ->
     end,
     {SECT6, LKS2}.
 
--spec seed() -> tinymt32:intstate32().
+-spec seed() -> rand:intstate32().
 
 seed() ->
-    % TODO: change to tinymt32:uniform(os:timestamp())
     % TODO: or even safer way as in LYSE
     % <http://learnyousomeerlang.com/buckets-of-sockets>
     % <<A:32, B:32, C:32>> = crypto:rand_bytes(12),
-    % tinymt32:seed({A,B,C}).
-    tinymt32:seed({100, 200, 300}).
+    % rand:seed({A,B,C}).
+    rand:seed(exsplus, {100, 200, 300}).

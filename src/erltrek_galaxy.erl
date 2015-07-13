@@ -370,7 +370,7 @@ find_empty_sector(State) ->
 
 find_empty_sector(N, #state{ galaxy=G }=State) when is_integer(N), N > 0 ->
     %% 0 =< QI =< (array:size(G) - 1)
-    find_empty_sector_quad(N, tinymt32:uniform(array:size(G)) - 1, State).
+    find_empty_sector_quad(N, rand:uniform(array:size(G)) - 1, State).
 
 -spec find_empty_sector_quad(non_neg_integer(), #state{}) ->
     {non_neg_integer(), non_neg_integer()} | no_empty_sector_found.
@@ -385,7 +385,7 @@ find_empty_sector_quad(0, _QI, _State) -> no_empty_sector_found;
 find_empty_sector_quad(N, QI, State) when is_integer(N), N > 0 ->
     %% 0 =< QI =< (array:size(G) - 1),  0 =< SI =< (array:size(SECT) - 1)
     SECT = get_quad(index_quadxy(QI), State),
-    SI = tinymt32:uniform(array:size(SECT)) - 1,
+    SI = rand:uniform(array:size(SECT)) - 1,
     case lookup_sector(index_sectxy(SI), SECT) of
         s_empty -> {QI, SI};
         _ -> find_empty_sector_quad(N - 1, QI, State)
