@@ -3,4 +3,4 @@ script: "make clean && make"
 notifications:
   email: false
 otp_release:
-  - 17.0
+  - 18.0
